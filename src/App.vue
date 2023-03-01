@@ -4,7 +4,7 @@
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
-import RootContainer from './components/RootContainer.vue';
+import RootContainer from '@/page/RootContainer.vue';
 
 @Options({
   components: {
