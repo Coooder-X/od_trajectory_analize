@@ -2,15 +2,16 @@
   <RootContainer/>
 </template>
 
-<script>
-import RootContainer from './components/RootContainer.vue'
+<script lang="ts">
+import { Options, Vue } from 'vue-class-component';
+import RootContainer from './components/RootContainer.vue';
 
-export default {
-  name: 'App',
+@Options({
   components: {
-    RootContainer
-  }
-}
+    RootContainer,
+  },
+})
+export default class App extends Vue {}
 </script>
 
 <style>
