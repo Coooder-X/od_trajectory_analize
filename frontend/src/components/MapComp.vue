@@ -89,5 +89,8 @@ export default defineComponent({
 	line-height:10%;
 	text-align:center
 }
+:deep(.mapboxgl-ctrl-logo) {
+  display:none !important;
+}
 
 </style>

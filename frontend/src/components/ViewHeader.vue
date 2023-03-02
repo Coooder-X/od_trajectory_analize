@@ -21,7 +21,7 @@ export default defineComponent({
 <style scoped>
 .header {
   width: 100%;
-  height: 35px;
+  height: var(--header-height);
   background-color: silver;
 }
 
