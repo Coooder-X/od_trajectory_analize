@@ -1,6 +1,7 @@
 <template>
   <div class="map-container">
     <div id="map" ref="mapDivElement" class="map-content"></div>
+    <cluster-layer v-if="initSuccess" :map="map" class="cluster-layer"></cluster-layer>
   </div>
 </template>
 
@@ -12,14 +13,18 @@ import MapboxLanguage from "@mapbox/mapbox-gl-language"; // 加中文
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from 'mapbox-gl';
 import { Marker, Map } from 'mapbox-gl/index'
+import ClusterLayer from "./ClusterLayer.vue";
 
 export default defineComponent({
-  components: {},
+  components: {
+    ClusterLayer
+  },
   name: 'MapComp',
   setup() {
     const mapDivElement: Ref<HTMLDivElement | null> = ref(null)
     const map: Ref<Map> = ref({}) as Ref<Map>
     const marker: Ref<Marker> = ref({}) as Ref<Marker>
+    const initSuccess: Ref<Boolean> = ref(false)
 
 
     function mapNew(map: Ref<Map>, mapDivElement: Ref<HTMLDivElement | null>, marker: Ref<Marker>, arr: [number, number]) {
@@ -59,6 +64,7 @@ export default defineComponent({
         "pk.eyJ1IjoidnVlamF2YSIsImEiOiJja3E3Zmc3cnAwNWl5Mm9yenZ4dmxrdnFlIn0.xskeHvMcXwPwOeg-3Unsjg";
       //pk.eyJ1Ijoiam9yZGl0b3N0IiwiYSI6ImQtcVkyclEifQ.vwKrOGZoZSj3N-9MB6FF_A
       mapNew(map, mapDivElement, marker, [120.094491, 30.239897]);
+      initSuccess.value = true
     }
     
     onMounted(initMap);
@@ -68,6 +74,7 @@ export default defineComponent({
       map, 
       mapDivElement,
       marker,
+      initSuccess,
     };
   },
 });

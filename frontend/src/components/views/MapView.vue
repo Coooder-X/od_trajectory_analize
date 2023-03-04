@@ -5,15 +5,23 @@
       <el-menu
         default-active="2"
         class="el-menu-vertical"
-        :collapse="isCollapse"
-        @open="handleOpen"
-        @close="handleClose"
+        @select="chooseMode"
       >
-        <el-menu-item index="2">
-          <el-icon><icon-menu /></el-icon>
+        <el-menu-item :index="MapMode.SHOW_POINTS">
+          <el-tooltip
+            :content="MapModeTooltip[MapMode.SHOW_POINTS]"
+            placement="right"
+            >
+            <el-icon><icon-menu /></el-icon>
+          </el-tooltip>
         </el-menu-item>
-        <el-menu-item index="4">
-          <el-icon><setting /></el-icon>
+        <el-menu-item :index="MapMode.SELECT">
+          <el-tooltip
+            :content="MapModeTooltip[MapMode.SELECT]"
+            placement="right"
+            >
+            <el-icon><setting /></el-icon>
+          </el-tooltip>
         </el-menu-item>
       </el-menu>
       <map-comp class="map-comp"></map-comp>
@@ -24,29 +32,39 @@
 <script>
 /* eslint-disable */
 import { defineComponent } from "vue";
-import ViewHeader from '../ViewHeader'
-import MapComp from '../MapComp'
+import ViewHeader from "../ViewHeader";
+import MapComp from "../MapComp";
+import { MapMode, MapModeTooltip } from '@/map-interface.ts'
 import {
   Document,
   Menu as IconMenu,
   Location,
   Setting,
-} from '@element-plus/icons-vue'
+} from "@element-plus/icons-vue";
 
 export default defineComponent({
-  components: { 
-    MapComp, 
+  components: {
+    MapComp,
     ViewHeader,
     Document,
     IconMenu,
     Location,
-    Setting
+    Setting,
   },
-  name: 'MapView',
-  props: {
-    
-  }
-})
+  name: "MapView",
+  props: {},
+  setup() {
+    const chooseMode = (index) => {
+      console.log("chooseMode", index);
+    };
+
+    return {
+      chooseMode,
+      MapMode,
+      MapModeTooltip
+    };
+  },
+});
 </script>
 
 <style scoped>
