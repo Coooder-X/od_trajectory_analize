@@ -7,6 +7,7 @@
 /* eslint-disable */
 import { defineComponent, PropType } from "vue";
 import { onMounted, Ref, ref } from "vue";
+import { useStore } from 'vuex';
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from 'mapbox-gl';
 import { Map } from 'mapbox-gl/index'
@@ -22,7 +23,8 @@ export default defineComponent({
     }
   },
   setup(props) {
-    // const mapDivElement: Ref<HTMLDivElement | null> = ref(null)
+    const clusterLayerSvg: Ref<any | null> = ref(null);
+    const mapStore = useStore();
 
     const project = (d: Array<number>) => {
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));
@@ -33,8 +35,8 @@ export default defineComponent({
     });
     
     const initLayer = () => {
-      var container = props.map.getCanvasContainer();
-      var svg = d3
+      const container = props.map.getCanvasContainer();
+      const svg = d3
         .select(container)
         .append("svg")
         .attr("width", "100%")
@@ -42,11 +44,14 @@ export default defineComponent({
         .style("position", "absolute")
         .style("z-index", 2);
 
+      clusterLayerSvg.value = svg
+      mapStore.commit('setClusterLayerSvg', svg);
+
       // Add data
-      var data = [[120.094491, 30.239897], [120.194491, 30.339897], [120.064491, 30.29897]];
+      const data = [[120.094491, 30.239897], [120.194491, 30.339897], [120.064491, 30.29897]];
 
       // Add svg objects
-      var dots = svg
+      const dots = svg
         .selectAll("circle")
         .data(data)
         .enter()

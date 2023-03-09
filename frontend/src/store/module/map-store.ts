@@ -1,12 +1,13 @@
+import { MapViewState } from '@/map-interface';
 import { ActionContext } from 'vuex';
 
-// const initState: DataSetState = {
-// 	dataTree: null,
-// 	loading: false,
-// 	file: {},
-// };
-const initState = {
-    
+const initState: MapViewState = {
+  clusterLayerSvg: null,
+  odLayerSvg: null,
+  trjLayerSvg: null,
+  clusterLayerShow: false,
+  codLayerShow: false,
+  trjLayeShow: false,
 }
 
 const mapModule = {
@@ -14,9 +15,17 @@ const mapModule = {
     ...initState
   },
   mutations: {
-    // getDataSet(state: DataSetState, payload: any) {
-    //   state.dataTree = payload;
-    // },
+    setClusterLayerSvg(state: MapViewState, payload: SVGAElement) {
+      state.clusterLayerSvg = payload;
+    },
+    setClusterLayerShow(state: MapViewState, payload: Boolean) {
+      state.clusterLayerShow = payload;
+      console.log('clusterLayerSvg', state.clusterLayerSvg, payload)
+      if (payload === false) {
+        // state.clusterLayerSvg?.attr('display', 'none')
+      }
+      state.clusterLayerShow = payload
+    }
   },
   actions: {
     // createCategory(context: ActionContext<{}, {}>, params: any) {
