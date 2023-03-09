@@ -22,7 +22,7 @@ const store = createStore({
     // },
   },
   modules: {
-    mapStore: mapModule
+    layers: mapModule
   },
 });
 

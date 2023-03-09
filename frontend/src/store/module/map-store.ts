@@ -19,12 +19,8 @@ const mapModule = {
       state.clusterLayerSvg = payload;
     },
     setClusterLayerShow(state: MapViewState, payload: Boolean) {
-      state.clusterLayerShow = payload;
-      console.log('clusterLayerSvg', state.clusterLayerSvg, payload)
-      if (payload === false) {
-        // state.clusterLayerSvg?.attr('display', 'none')
-      }
       state.clusterLayerShow = payload
+      state.clusterLayerSvg?.attr('visibility', !payload? 'hidden' : 'visible')
     }
   },
   actions: {

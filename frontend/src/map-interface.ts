@@ -1,11 +1,8 @@
 export const MapMode = {
   SHOW_POINTS: 'show_points',
+  HIDE_POINTS: 'hide_points',
+  CLUSTERED: 'clustered',
   SELECT: 'select',
-}
-
-export const MapModeTooltip = {
-  [MapMode.SHOW_POINTS]: '显示OD点',
-  [MapMode.SELECT]: '选择OD簇'
 }
 
 export interface MapViewState {

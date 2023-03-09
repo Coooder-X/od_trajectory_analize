@@ -2,31 +2,54 @@
   <div class="map-view">
     <view-header viewId="A" title="地图视图"></view-header>
     <div class="map-view-content">
-      <!-- <el-menu
-        default-active="2"
-        class="el-menu-vertical"
-        @select="chooseMode"
-      >
-        <el-menu-item :index="MapMode.SHOW_POINTS">
-          <el-tooltip
-            :content="MapModeTooltip[MapMode.SHOW_POINTS]"
-            placement="right"
-            >
-            <img src="@/assets/连接流.svg" alt="" />
-          </el-tooltip>
-        </el-menu-item>
-        <el-menu-item :index="MapMode.SELECT">
-          <el-tooltip
-            :content="MapModeTooltip[MapMode.SELECT]"
-            placement="right"
-            >
-            <el-icon><setting /></el-icon>
-          </el-tooltip>
-        </el-menu-item>
-      </el-menu> -->
       <div class="side-bar">
         <div class="side-bar-button" @click="toggleClusterLayer($event)">
-          <el-icon><setting /></el-icon>
+          <el-tooltip
+            :content="clusterLayerShow? '隐藏OD点' : '显示OD点'"
+            placement="right">
+            <img src="@/assets/location_fill.svg" alt="" />
+          </el-tooltip>
+        </div>
+        <div class="side-bar-button" @click="()=>{}">
+          <el-tooltip
+            content="聚类选项"
+            placement="right">
+            <img src="@/assets/chart-bubble.svg" alt="" />
+          </el-tooltip>
+        </div>
+        <div class="side-bar-button">
+          <el-tooltip
+            content="刷选"
+            placement="right">
+            <img src="@/assets/框选.svg" alt="" />
+          </el-tooltip>
+        </div>
+        <div class="side-bar-button">
+          <el-tooltip
+            content="点选"
+            placement="right">
+            <img src="@/assets/pointer.svg" alt="" />
+          </el-tooltip>
+        </div><div class="side-bar-button">
+          <el-tooltip
+            content="显示OD流"
+            placement="right">
+            <img src="@/assets/pin-distance-line-active.svg" alt="" />
+          </el-tooltip>
+        </div>
+        <div class="side-bar-button">
+          <el-tooltip
+            content="显示轨迹"
+            placement="right">
+            <img src="@/assets/路径分析.svg" alt="" />
+          </el-tooltip>
+        </div>
+        <div class="side-bar-button">
+          <el-tooltip
+            content="过滤"
+            placement="right">
+            <img src="@/assets/filter.svg" alt="" />
+          </el-tooltip>
         </div>
       </div>
       <map-comp class="map-comp"></map-comp>
@@ -36,7 +59,7 @@
 
 <script>
 /* eslint-disable */
-import { defineComponent } from "vue";
+import { defineComponent, computed } from "vue";
 import { useStore } from 'vuex';
 import ViewHeader from "../ViewHeader";
 import MapComp from "../MapComp";
@@ -60,20 +83,19 @@ export default defineComponent({
   name: "MapView",
   props: {},
   setup() {
-    const mapStore = useStore();
+    const store = useStore();
+    const clusterLayerShow = computed(() => store.state.layers.clusterLayerShow);
 
     const chooseMode = (index) => {
       console.log("chooseMode", index);
     };
 
     const toggleClusterLayer = () => {
-      console.log('mapStore', mapStore.state, !mapStore.state.clusterLayerShow)
-
-      console.log('toggleClusterLayer')
-      mapStore.commit('setClusterLayerShow', !mapStore.state.clusterLayerShow)
+      store.commit('setClusterLayerShow', !store.state.layers.clusterLayerShow)
     }
 
     return {
+      clusterLayerShow,
       toggleClusterLayer,
       chooseMode,
       MapMode,
@@ -85,8 +107,8 @@ export default defineComponent({
 
 <style scoped>
 img {
-  height: 20px;
-  width: 20px;
+  height: 30px;
+  width: 30px;
 }
 img:hover {
   fill: aqua;
@@ -104,6 +126,7 @@ img:hover {
 }
 
 .side-bar {
+  padding-top: 5px;
   height: calc(100% - var(--header-height));
   width: var(--menu-width);
   position: absolute;
@@ -111,7 +134,7 @@ img:hover {
 
 .side-bar-button {
   display: flex;
-  height: 40px;
+  height: 50px;
   align-items: center;
   justify-content: center;
 }
