@@ -5,8 +5,8 @@
 
 <script lang="ts">
 /* eslint-disable */
-import { defineComponent, PropType } from "vue";
-import { onMounted, Ref, ref } from "vue";
+import { computed, defineComponent, PropType, watch } from "vue";
+import { Ref, ref } from "vue";
 import { useStore } from 'vuex';
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from 'mapbox-gl';
@@ -24,17 +24,25 @@ export default defineComponent({
   },
   setup(props) {
     const clusterLayerSvg: Ref<any | null> = ref(null);
-    const mapStore = useStore();
+    const store = useStore();
+    const { getters } = store;
+
+    let pointsExist = computed(() => getters.pointsExist);
+    let totalODPoints = computed(() => getters.totalODPoints);
+    // console.log(pointsExist, totalODPoints.value)
+
+    watch(pointsExist, (newValue: Boolean, oldValue: Boolean) => {
+      // 当轨迹点数据获取成功后，初始化轨迹点图层。（要不要判断 oldValue 是false？）
+      if (newValue) {
+        initLayer(totalODPoints.value);
+      }
+    });
 
     const project = (d: Array<number>) => {
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));
     }
-
-    onMounted(() => {
-      initLayer()
-    });
     
-    const initLayer = () => {
+    const initLayer = (pointsData: Array<[]>) => {
       const container = props.map.getCanvasContainer();
       const svg = d3
         .select(container)
@@ -44,19 +52,17 @@ export default defineComponent({
         .style("position", "absolute")
         .style("z-index", 2);
 
+      //  将轨迹点图层的 svg 更新到 store
       clusterLayerSvg.value = svg
-      mapStore.commit('setClusterLayerSvg', svg);
-
-      // Add data
-      const data = [[120.094491, 30.239897], [120.194491, 30.339897], [120.064491, 30.29897]];
+      store.commit('setClusterLayerSvg', svg);
 
       // Add svg objects
       const dots = svg
         .selectAll("circle")
-        .data(data)
+        .data(pointsData)
         .enter()
         .append("circle")
-        .attr("r", 5)
+        .attr("r", 3)
         .style("opcaity", 0.7)
         .style("fill", "#ff3636");
 

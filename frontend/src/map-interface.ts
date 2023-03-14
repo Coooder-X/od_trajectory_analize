@@ -6,10 +6,14 @@ export const MapMode = {
 }
 
 export interface MapViewState {
+  pointsExist: Boolean,
   clusterLayerSvg: any,
   odLayerSvg: any,
   trjLayerSvg: any,
   clusterLayerShow: Boolean,
   codLayerShow: Boolean,
   trjLayeShow: Boolean,
+  data: {
+    totalODPoints: Array<[]>,
+  }
 }

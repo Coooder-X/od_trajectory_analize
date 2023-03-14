@@ -59,7 +59,7 @@
 
 <script>
 /* eslint-disable */
-import { defineComponent, computed } from "vue";
+import { defineComponent, computed, onMounted } from "vue";
 import { useStore } from 'vuex';
 import ViewHeader from "../ViewHeader";
 import MapComp from "../MapComp";
@@ -86,12 +86,23 @@ export default defineComponent({
     const store = useStore();
     const clusterLayerShow = computed(() => store.state.layers.clusterLayerShow);
 
+    //  进入 gis 视图，获取所有轨迹点数据
+    const getAllODPoints = () => {
+      store.dispatch('getAllODPoints');
+    }
+    getAllODPoints();
+
+    onMounted(() => {
+      store.dispatch('helloWorld');
+    })
+
     const chooseMode = (index) => {
       console.log("chooseMode", index);
     };
 
+    // 切换是否显示轨迹点图层
     const toggleClusterLayer = () => {
-      store.commit('setClusterLayerShow', !store.state.layers.clusterLayerShow)
+      store.commit('setClusterLayerShow', !store.state.layers.clusterLayerShow);
     }
 
     return {
