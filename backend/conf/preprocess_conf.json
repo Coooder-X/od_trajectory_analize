@@ -1,0 +1,16 @@
+{
+	"timecellsize": 120,
+	"distcellsize": 250,
+	"delta": 1.0,
+	"nointeresttime": 3300.0,
+	"interesttime": 1100.0,
+	"cityname": "hangzhou",
+	"h5dirname": "../make_data",
+	"paramfile": "../data/hangzhou-param-cell",
+	"needTime": 1,
+	"timefuzzysize": 1,
+	"timestart": 0,
+	"spatiosplitobj": "../spatio_splits/stme",
+	"usegrid": 1,
+	"hasLabel": 1
+}
