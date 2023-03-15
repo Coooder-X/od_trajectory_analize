@@ -20,7 +20,7 @@
           :data="tableData"
           class="data-table"
           align="center"
-          show-overflow-tooltip 
+          show-overflow-tooltip
           :show-header="false"
           :stripe="true"
           :border="true"
@@ -29,7 +29,20 @@
         </el-table>
       </div>
       <el-divider direction="vertical" class="divider" />
-      <div class="info-comp"></div>
+      <div class="info-comp">
+        <div class="selec-box">
+          <div><b>日期选择:</b></div>
+          <el-slider
+            :disabled="!tableData.length"
+            v-model="dateScope"
+            range
+            :format-tooltip="formatDate"
+            :min="dateSelection[0]"
+            :max="dateSelection.at(-1)"
+          >
+          </el-slider>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -50,18 +63,32 @@ export default defineComponent({
   setup() {
     const store = useStore();
     const dataset: Ref<String | null> = ref("");
-    let tableData: Ref<{ name: string; }[]> = ref([]);
+    let tableData: Ref<{ name: string }[]> = ref([]);
+    const dateSelection: Ref<number[]> = ref([]);
+    const dateScope: Ref<number[]> = ref([]);
 
-    const changeDataSet = () => { //  后面加上逻辑：修改数据集后，才显示 gis 轨迹点
+    const changeDataSet = () => {
+      //  后面加上逻辑：修改数据集后，才显示 gis 轨迹点
       tableData.value = new Array(20).fill(0).map((_, index) => {
-        return { name: `2020年5月${index+1}日杭州市出租车GPS轨迹点数据.h5` };
+        return { name: `2020年5月${index + 1}日杭州市出租车GPS轨迹点数据.h5` };
       });
+      dateSelection.value = new Array(20).fill(0).map((_, index) => index + 1);
+      dateScope.value = [dateSelection.value[0], dateSelection.value[1]];
+    };
+
+    const formatDate = (value: number) => {
+      if(tableData.value.length == 0)
+        return '无数据'
+      return `5月${value}日`;
     }
 
     return {
       dataset,
       tableData,
-      changeDataSet
+      dateScope,
+      dateSelection,
+      formatDate,
+      changeDataSet,
     };
   },
 });
@@ -90,6 +117,8 @@ export default defineComponent({
 .info-comp {
   height: 100%;
   width: 100%;
+  display: flex;
+  box-sizing: content-box;
 }
 
 .file-select {
@@ -120,5 +149,11 @@ export default defineComponent({
   height: 90%;
   top: 5%;
   border-left: 3px #909399 solid;
+}
+
+.selec-box {
+  margin: 10px 20px;
+  width: 290px;
+  height: 100px;
 }
 </style>
