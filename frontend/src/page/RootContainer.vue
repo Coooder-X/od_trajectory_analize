@@ -1,6 +1,7 @@
 <template>
   <div class="root-container">
     <div class="main">
+      <global-view class="global-view"></global-view>
       <map-view class="map-view"></map-view>
     </div>
   </div>
@@ -9,11 +10,13 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import MapView from '@/components/views/MapView.vue';
+import GlobalView from '@/components/views/GlobalView.vue'
 
 export default defineComponent({
   name: 'RootContainer',
   components: {
     MapView,
+    GlobalView,
   },
   setup() {
     
@@ -31,13 +34,17 @@ export default defineComponent({
   width: 1850px;
 }
 
+.global-view {
+  position: relative;
+  margin-bottom: 10px;
+}
+
 .map-view {
   position: relative;
-  top: 100px;
 }
 
 .main {
-  height: 100%;
+  height: 1000px;
   width: 100%;
   background-color: rgb(230, 230, 230);
   border-width: 2px;

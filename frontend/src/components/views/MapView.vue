@@ -127,7 +127,7 @@ img:hover {
 .map-view {
   --menu-width: 50px;
   height: 500px;
-  width: 800px;
+  width: 850px;
   background-color: white;
 }
 
