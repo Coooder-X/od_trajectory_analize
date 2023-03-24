@@ -6,6 +6,8 @@ from scipy.spatial import Delaunay  # version 1.4.1
 import matplotlib.pyplot as plt  # version 3.1.2
 
 from data_process.hierarchical_clustering import get_trip_endpoints, get_trip_endpoints_filter_by_coords
+# from data_process.od_pair_process import get_hour_od_points
+# from data_process.od_pair_process import get_total_od_points, get_hour_od_points
 from poi_process.read_poi import buildKDTree, lonlat2meters_coords
 from utils import UnionFindSet
 from vis.trajectoryVIS import FileInfo, randomcolor
@@ -172,10 +174,10 @@ def draw_DT_clusters(cluster_point_dict: dict, od_points: list, k: int, theta: i
 
     ax.set_xlabel('lon')  # 画出坐标轴
     ax.set_ylabel('lat')
-    if start_hour is not None:
-        plt.savefig(f'../../figs/三角剖分聚类_k{k}_theta{theta}_{len(od_points)}points_time{start_hour}-{end_hour}.png', dpi=100)
-    else:
-        plt.savefig(f'../../figs/三角剖分聚类_k{k}_theta{theta}_{len(od_points)}points.png', dpi=100)
+    # if start_hour is not None:
+    #     plt.savefig(f'../../figs/三角剖分聚类_k{k}_theta{theta}_{len(od_points)}points_time{start_hour}-{end_hour}.png', dpi=100)
+    # else:
+    #     plt.savefig(f'../../figs/三角剖分聚类_k{k}_theta{theta}_{len(od_points)}points.png', dpi=100)
     plt.show()
 
 
@@ -194,7 +196,9 @@ if __name__ == '__main__':
     k, theta = 8, 10
     print('开始读取OD点')
     start_time = datetime.now()
-    od_points = np.asarray(lonlat2meters_coords(coords=get_data(), use_time=True))
+    # od_points = np.asarray(lonlat2meters_coords(coords=get_data(), use_time=True))
+    od_points = np.asarray(get_hour_od_points())
+
 
     total_od_coord_points = od_points[:, 0:2]  # 并去掉时间戳留下经纬度坐标
     print('读取OD点结束，用时: ', (datetime.now() - start_time))
@@ -208,7 +212,7 @@ if __name__ == '__main__':
     # print('画图用时: ', draw_time - end_time)
 
     start_hour, end_hour = 10, 15
-    (part_od_coord_points, index_lst) = od_points_filter_by_hour(total_od_coord_points, start_hour, end_hour)  # 过滤出所有在该时间段的 od 点
+    (part_od_coord_points, index_lst) = od_points_filter_by_hour(od_points, start_hour, end_hour)  # 过滤出所有在该时间段的 od 点
     index_lst = index_lst[0]
     print(index_lst)
     # part_od_coord_points = part_od_coord_points[:, 0:2]  # 并去掉时间戳留下坐标

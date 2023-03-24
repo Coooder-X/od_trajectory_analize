@@ -127,3 +127,25 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.classpath
+.project
+.idea
+.settings/*
+conf/
+target
+web-all.iml
+runnerupload/*
+*/logs/
+logs/
+/schedue/target/
+*.iml
+lib/
+conf/hadoop/*
+run/*
+bin/*
+.settings/
+bin/
+upload/*
+kerberosConf/*
+executeInfo/
