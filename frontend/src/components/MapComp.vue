@@ -35,7 +35,7 @@ export default defineComponent({
             center: arr, // 初始坐标系
             minZoom: 1.7, // 设置最小拉伸比例
             zoom: 10, // starting zoom 地图初始的拉伸比例
-            style: "mapbox://styles/mapbox/streets-v11", // 类型
+            style: "mapbox://styles/mapbox/light-v9", // 类型light-v9
             // pitch: 60, //地图的角度，不写默认是0，取值是0-60度，一般在3D中使用
             bearing: 0, //地图的初始方向，值是北的逆时针度数，默认是0，即是正北,-17.6
             antialias: false, //抗锯齿，通过false关闭提升性能

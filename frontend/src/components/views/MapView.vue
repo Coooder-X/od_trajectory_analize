@@ -86,12 +86,6 @@ export default defineComponent({
     const store = useStore();
     const clusterLayerShow = computed(() => store.state.layers.clusterLayerShow);
 
-    //  进入 gis 视图，获取所有轨迹点数据
-    const getAllODPoints = () => {
-      store.dispatch('getAllODPoints');
-    }
-    getAllODPoints();
-
     onMounted(() => {
       store.dispatch('helloWorld');
     })

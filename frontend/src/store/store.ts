@@ -1,4 +1,5 @@
 import { createStore } from 'vuex';
+import globalModule from './module/global-store';
 // import axios from 'axios';
 import mapModule from './module/map-store';
 
@@ -22,7 +23,8 @@ const store = createStore({
     // },
   },
   modules: {
-    layers: mapModule
+    layers: mapModule,
+    global: globalModule
   },
 });
 

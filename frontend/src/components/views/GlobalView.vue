@@ -31,8 +31,12 @@
       <el-divider direction="vertical" class="divider" />
       <div class="info-comp">
         <div class="selec-box">
-          <div><b>日期选择:</b></div>
+          <div style="margin-bottom: 5px;">
+            <b v-if="tableData.length">{{ `当前日期范围: 5月${dateScope[0]}日-5月${dateScope[1]}日` }}</b>
+            <b v-else>选择日期范围:</b>
+          </div>
           <el-slider
+            style="margin-bottom: 10px; margin-left: 5px;"
             :disabled="!tableData.length"
             v-model="dateScope"
             range
@@ -41,6 +45,21 @@
             :max="dateSelection.at(-1)"
           >
           </el-slider>
+          <div style="margin-bottom: 5px;">
+            <b v-if="tableData.length">{{ `当前时间范围: ${timeScope[0]}时-${timeScope[1]}时` }}</b>
+            <b v-else>选择时间范围:</b>
+            <el-slider
+              style="margin-bottom: 10px; margin-left: 5px;"
+              :disabled="!tableData.length"
+              v-model="timeScope"
+              range
+              :format-tooltip="formatTime"
+              :min="timeSelection[0]"
+              :max="timeSelection.at(-1)"
+              @change="onTimeSelect"
+            >
+            </el-slider>
+          </div>
         </div>
       </div>
     </div>
@@ -65,7 +84,9 @@ export default defineComponent({
     const dataset: Ref<String | null> = ref("");
     let tableData: Ref<{ name: string }[]> = ref([]);
     const dateSelection: Ref<number[]> = ref([]);
-    const dateScope: Ref<number[]> = ref([]);
+    const timeSelection: Ref<number[]> = ref([]);
+    const dateScope: Ref<[number, number]> = ref([] as any);
+    const timeScope: Ref<[number, number]> = ref([] as any);
 
     const changeDataSet = () => {
       //  后面加上逻辑：修改数据集后，才显示 gis 轨迹点
@@ -73,22 +94,39 @@ export default defineComponent({
         return { name: `2020年5月${index + 1}日杭州市出租车GPS轨迹点数据.h5` };
       });
       dateSelection.value = new Array(20).fill(0).map((_, index) => index + 1);
+      timeSelection.value = new Array(24).fill(0).map((_, index) => index + 1);
       dateScope.value = [dateSelection.value[0], dateSelection.value[1]];
+      timeScope.value = [timeSelection.value[7], timeSelection.value[9]];
+      //  初始化时间后，第一次取数据初始化 gis 视图
+      onTimeSelect(timeScope.value);
     };
 
     const formatDate = (value: number) => {
-      if(tableData.value.length == 0)
-        return '无数据'
+      if (tableData.value.length == 0) return "无数据";
       return `5月${value}日`;
+    };
+
+    const formatTime = (value: number) => {
+      if (tableData.value.length == 0) return "无数据";
+      return `${value}时`;
+    };
+
+    const onTimeSelect = (event: [number, number]) => {
+      console.log(event)
+      store.dispatch('getODPointsFilterByHour', {params: {startHour: timeScope.value[0], endHour: timeScope.value[1]}});
     }
 
     return {
       dataset,
       tableData,
       dateScope,
+      timeScope,
       dateSelection,
+      timeSelection,
       formatDate,
+      formatTime,
       changeDataSet,
+      onTimeSelect,
     };
   },
 });
@@ -154,6 +192,5 @@ export default defineComponent({
 .selec-box {
   margin: 10px 20px;
   width: 290px;
-  height: 100px;
 }
 </style>

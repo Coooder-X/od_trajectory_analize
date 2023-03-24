@@ -27,22 +27,24 @@ export default defineComponent({
     const store = useStore();
     const { getters } = store;
 
-    let pointsExist = computed(() => getters.pointsExist);
-    let totalODPoints = computed(() => getters.totalODPoints);
-    // console.log(pointsExist, totalODPoints.value)
+    // let pointsExist = computed(() => getters.pointsExist);
+    let odPoints = computed(() => getters.odPoints);
+    // console.log(pointsExist, odPoints.value)
 
-    watch(pointsExist, (newValue: Boolean, oldValue: Boolean) => {
-      // 当轨迹点数据获取成功后，初始化轨迹点图层。（要不要判断 oldValue 是false？）
-      if (newValue) {
-        initLayer(totalODPoints.value);
+    //  监听 od 点数据变化，如果时间范围改变，则重新绘制 od 点
+    watch(odPoints, (newValue: Array<[]>, oldValue: Array<[]>) => {
+      if(!clusterLayerSvg.value) {
+        initLayer();
       }
+      paintLayer(clusterLayerSvg.value, odPoints.value);
     });
 
     const project = (d: Array<number>) => {
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));
     }
     
-    const initLayer = (pointsData: Array<[]>) => {
+    //  初始化 od 点图层 svg
+    const initLayer = () => {
       const container = props.map.getCanvasContainer();
       const svg = d3
         .select(container)
@@ -55,6 +57,13 @@ export default defineComponent({
       //  将轨迹点图层的 svg 更新到 store
       clusterLayerSvg.value = svg
       store.commit('setClusterLayerSvg', svg);
+    }
+
+    const paintLayer = (svg: any, pointsData: Array<[]>) => {
+      //  如果已存在绘制的 od 点，清空再绘制新的
+      svg
+        .selectAll("#od_points")
+        .remove()
 
       // Add svg objects
       const dots = svg
@@ -62,7 +71,10 @@ export default defineComponent({
         .data(pointsData)
         .enter()
         .append("circle")
+        .attr('id', 'od_points')
         .attr("r", 3)
+        .attr('stroke', 'black')
+        .attr('stroke-width', '1px')
         .style("opcaity", 0.7)
         .style("fill", "#ff3636");
 
