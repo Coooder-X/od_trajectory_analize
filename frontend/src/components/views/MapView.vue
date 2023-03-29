@@ -10,13 +10,29 @@
             <img src="@/assets/location_fill.svg" alt="" />
           </el-tooltip>
         </div>
-        <div class="side-bar-button" @click="()=>{}">
-          <el-tooltip
-            content="聚类选项"
-            placement="right">
-            <img src="@/assets/chart-bubble.svg" alt="" />
-          </el-tooltip>
-        </div>
+        <el-popover :visible="clusteringConfigVisible" placement="right" :width="200">
+          <template #reference>
+            <div class="side-bar-button" @click="()=>{clusteringConfigVisible = !clusteringConfigVisible}">
+              <el-tooltip
+                content="聚类选项"
+                placement="right">
+                <img src="@/assets/chart-bubble.svg" alt="" />
+              </el-tooltip>
+            </div>
+          </template>
+          <div style="text-align: center; margin: 0">
+            <b style="margin-bottom: 5px;">聚类参数配置</b>
+            <div class="clustering-config-row">
+              <span class="config-line">k:</span>
+              <el-input v-model="k" class="config-input"></el-input>
+            </div>
+            <div class="clustering-config-row">
+              <span class="config-line">θ:</span>
+              <el-input v-model="theta" class="config-input"></el-input>
+            </div>
+            <el-button type="primary" @click="doClustering">聚类</el-button>
+          </div>
+        </el-popover>
         <div class="side-bar-button">
           <el-tooltip
             content="刷选"
@@ -57,13 +73,13 @@
   </div>
 </template>
 
-<script>
+<script lang='ts'>
 /* eslint-disable */
-import { defineComponent, computed, onMounted } from "vue";
+import { defineComponent, computed, onMounted, ref, Ref } from "vue";
 import { useStore } from 'vuex';
-import ViewHeader from "../ViewHeader";
-import MapComp from "../MapComp";
-import { MapMode, MapModeTooltip } from '@/map-interface.ts'
+import ViewHeader from "../ViewHeader.vue";
+import MapComp from "../MapComp.vue";
+import { MapMode } from '@/map-interface'
 import {
   Document,
   Menu as IconMenu,
@@ -85,12 +101,15 @@ export default defineComponent({
   setup() {
     const store = useStore();
     const clusterLayerShow = computed(() => store.state.layers.clusterLayerShow);
+    const clusteringConfigVisible: Ref<boolean> = ref(false);
+    const k: Ref<number> = ref(25);
+    const theta: Ref<number> = ref(50);
 
     onMounted(() => {
       store.dispatch('helloWorld');
     })
 
-    const chooseMode = (index) => {
+    const chooseMode = (index: number) => {
       console.log("chooseMode", index);
     };
 
@@ -99,12 +118,22 @@ export default defineComponent({
       store.commit('setClusterLayerShow', !store.state.layers.clusterLayerShow);
     }
 
+    const doClustering = () => {
+      console.log('doClustering')
+      const [startHour, endHour] = store.state.global.timeScope;
+      clusteringConfigVisible.value = !clusteringConfigVisible.value
+      store.dispatch('getClusteringResult', {params: {k: k.value, theta: theta.value, startHour, endHour}});
+    }
+
     return {
       clusterLayerShow,
       toggleClusterLayer,
       chooseMode,
+      k,
+      theta,
+      doClustering,
+      clusteringConfigVisible,
       MapMode,
-      MapModeTooltip
     };
   },
 });
@@ -152,5 +181,21 @@ img:hover {
   margin-left: var(--menu-width);
   height: 100%;
   width: calc(100% - var(--menu-width));
+}
+
+.clustering-config-row {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  margin-bottom: 10px;
+}
+
+.config-line {
+  line-height: 30px;
+  margin-right: 10px;
+}
+
+.config-input {
+  width: 150px;
 }
 </style>

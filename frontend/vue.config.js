@@ -11,7 +11,8 @@ module.exports = defineConfig({
     proxy: {//配置跨域
         // 这个地方的 '/api'  名字要和底下 '^/api'  这个地方的名字一样。如果这里是 '/bpi'，那么底下就也要是 '^/bpi'
         '/api': {
-            target: 'http://localhost:5000',//这里后台的地址模拟的;应该填写你们真实的后台接口
+            // target: 'http://localhost:5000',//这里后台的地址模拟的;应该填写你们真实的后台接口
+            target: 'http://10.105.16.24:5000',
             ws: true,
             changOrigin: true,//允许跨域
             pathRewrite: {

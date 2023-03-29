@@ -9,6 +9,8 @@ const initState: GlobalState = {
   dateScope: [8, 10],
   odPoints: [],
   odIndexList: [],
+  pointClusterMap: new Map(),
+  clusterPointMap: new Map(),
 }
 
 const globalModule = {
@@ -27,6 +29,18 @@ const globalModule = {
     setODIndexList(state: GlobalState, payload: number[]) {
       state.odIndexList = payload;
     },
+    setPointClusterMap(state: GlobalState, payload: {[key: number]: number}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key)
+        state.pointClusterMap.set(k, payload[k]);
+      })
+    },
+    setClusterPointMap(state: GlobalState, payload: {[key: number]: number[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key)
+        state.clusterPointMap.set(k, payload[k]);
+      })
+    },
   },
   actions: {
     getAllODPoints(context: ActionContext<{}, {}>) {
@@ -44,6 +58,16 @@ const globalModule = {
         context.commit('setAllODPoints', res.data['od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
         context.commit('setPointsExist', res.status === 200);
+      })
+    },
+    getClusteringResult(context: ActionContext<{}, {}>, params: any) {
+      axios.get('/api/getClusteringResult', params).then((res) => {
+        console.log('getClusteringResult', res, res.status === 200);
+        //  设置 od 点的坐标数组和 index 序号数组
+        context.commit('setPointClusterMap', res.data['point_cluster_dict']);
+        context.commit('setClusterPointMap', res.data['cluster_point_dict']);
+        context.commit('setAllODPoints', res.data['od_points']);
+        context.commit('setODIndexList', res.data['index_lst']);
       })
     },
     // createCategory(context: ActionContext<{}, {}>, params: any) {
@@ -67,7 +91,13 @@ const globalModule = {
     },
     timeScope: (state: GlobalState) => {
       return state.timeScope;
-    }
+    },
+    pointClusterMap: (state: GlobalState) => {
+      return state.pointClusterMap;
+    },
+    odIndexList: (state: GlobalState) => {
+      return state.odIndexList;
+    },
   },
   modules: {},
 };

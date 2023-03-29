@@ -4,4 +4,6 @@ export interface GlobalState {
   dateScope: [number, number],
   odPoints: Array<[]>,
   odIndexList: number[],
+  pointClusterMap: Map<number, number>,
+  clusterPointMap: Map<number, number[]>,
 }
