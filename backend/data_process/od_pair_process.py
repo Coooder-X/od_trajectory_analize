@@ -17,13 +17,19 @@ def get_data():
 
 def get_hour_od_points():
     start_time = datetime.now()
-    with open("D:/研究生/chinavis2023/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
+    #  D:/研究生/chinavis2023/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl
+    # /home/linzhengxuan/project/od_trajectory_analize/backend/data/
+    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
         od_points = pickle.loads(file.read())
     print('读取文件结束，用时: ', (datetime.now() - start_time))
     # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556
     res = []
+    num_of_points = len(od_points) / 5
+    start_id = len(od_points) / 3
     for (idx, od) in enumerate(od_points):
-        if idx % 12 == 0:
+        # if idx % 12 == 0:
+        #     res.append(od.tolist())
+        if start_id <= idx <= start_id + num_of_points:
             res.append(od.tolist())
     return res
 

@@ -164,7 +164,7 @@ def draw_DT_clusters(cluster_point_dict: dict, od_points: list, k: int, theta: i
 
     for cluster_id in cluster_point_dict.keys():
         for p_idx in cluster_point_dict[cluster_id]:
-            if p_idx not in index_set:
+            if index_set and p_idx not in index_set:
                 continue
             x, y = od_points[p_idx][0:2]
             ax.scatter(x, y, c=color_dict[cluster_id], marker='o', s=4)
@@ -188,8 +188,28 @@ def od_points_filter_by_hour(od_points, start_hour, end_hour):
     :param end_hour:    几点结束
     :return:            该时间闭区间内的 od 点 npArray, 以及这些点对应全量 od 点的索引
     """
+    print(od_points)
     index_lst = numpy.where((start_hour * 3600 <= od_points[:, 2]) & (od_points[:, 2] <= end_hour * 3600))
-    return od_points[(start_hour * 3600 <= od_points[:, 2]) & (od_points[:, 2] <= end_hour * 3600)], index_lst
+    return od_points[index_lst], index_lst
+
+
+def cluster_filter_by_hour(index_lst, point_cluster_dict):
+    """
+    :param index_lst:           已经根据时间过滤后的相对于总体数据的 od 点索引
+    :param point_cluster_dict:  聚类后得到的 od 点索引 -> 簇 id 的映射字典
+    :return:                    返回新的 双向映射字典
+    """
+    new_cluster_point_dict = {}
+    new_point_cluster_dict = {}
+    for idx in index_lst:
+        if idx not in point_cluster_dict.keys():
+            print(idx)
+            continue
+        if point_cluster_dict[idx] not in new_cluster_point_dict.keys():
+            new_cluster_point_dict[point_cluster_dict[idx]] = []
+        new_cluster_point_dict[point_cluster_dict[idx]].append(idx)
+        new_point_cluster_dict[idx] = point_cluster_dict[idx]
+    return new_point_cluster_dict, new_cluster_point_dict
 
 
 if __name__ == '__main__':
