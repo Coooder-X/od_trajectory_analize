@@ -1,4 +1,4 @@
-import { MapViewState } from '@/map-interface';
+import { MapMode, MapViewState } from '@/map-interface';
 import axios from 'axios';
 import { ActionContext } from 'vuex';
 
@@ -9,6 +9,7 @@ const initState: MapViewState = {
   clusterLayerShow: false,
   codLayerShow: false,
   trjLayeShow: false,
+  mapMode: new Set([MapMode.INIT]),
 }
 
 const mapModule = {
@@ -24,6 +25,12 @@ const mapModule = {
       state.clusterLayerShow = payload
       state.clusterLayerSvg?.attr('visibility', !payload? 'hidden' : 'visible')
     },
+    toggleMapMode(state: MapViewState, payload: string) {
+      if(state.mapMode.has(payload)) {
+        state.mapMode.delete(payload)
+      } else
+        state.mapMode.add(payload);
+    }
   },
   actions: {
     helloWorld(context: ActionContext<{}, {}>) {
@@ -43,6 +50,9 @@ const mapModule = {
     // }
   },
   getters: {
+    mapMode: (state: MapViewState) => {
+      return state.mapMode;
+    }
   },
   modules: {},
 };

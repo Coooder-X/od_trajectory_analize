@@ -1,6 +1,8 @@
 export const MapMode = {
-  SHOW_POINTS: 'show_points',
-  HIDE_POINTS: 'hide_points',
+  INIT: 'init',
+  ORIGIN_POINTS: 'origin_points',
+  // SHOW_POINTS: 'show_points',
+  // HIDE_POINTS: 'hide_points',
   CLUSTERED: 'clustered',
   SELECT: 'select',
 }
@@ -12,4 +14,5 @@ export interface MapViewState {
   clusterLayerShow: Boolean,
   codLayerShow: Boolean,
   trjLayeShow: Boolean,
+  mapMode: Set<string>
 }

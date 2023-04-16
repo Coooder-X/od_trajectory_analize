@@ -33,7 +33,7 @@
             <el-button type="primary" @click="doClustering">聚类</el-button>
           </div>
         </el-popover>
-        <div class="side-bar-button">
+        <div class="side-bar-button" @click="modifyMode(MapMode.SELECT)">
           <el-tooltip
             content="刷选"
             placement="right">
@@ -123,12 +123,17 @@ export default defineComponent({
       const [startHour, endHour] = store.state.global.timeScope;
       clusteringConfigVisible.value = !clusteringConfigVisible.value
       store.dispatch('getClusteringResult', {params: {k: k.value, theta: theta.value, startHour, endHour}});
+      modifyMode(MapMode.CLUSTERED);
+    }
+
+    const modifyMode = (mode: string) => {
+      store.commit('toggleMapMode', mode);
     }
 
     return {
       clusterLayerShow,
       toggleClusterLayer,
-      chooseMode,
+      modifyMode,
       k,
       theta,
       doClustering,
