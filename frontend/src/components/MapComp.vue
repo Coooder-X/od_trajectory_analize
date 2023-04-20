@@ -1,7 +1,18 @@
 <template>
-  <div class="map-container">
+  <div 
+    class="map-container"
+    ref="clusterLayerRef"
+    @contextmenu.prevent="openMenu($event)"
+  >
     <div id="map" ref="mapDivElement" class="map-content"></div>
     <cluster-layer v-if="initSuccess" :map="map" class="cluster-layer"></cluster-layer>
+    <right-click-menu  
+      :visible="visible"
+      :left="left"
+      :top="top"
+      @closeMenu="closeMenu"
+    >
+    </right-click-menu>
   </div>
 </template>
 
@@ -11,13 +22,16 @@ import { defineComponent } from "vue";
 import { onMounted, Ref, ref } from "vue";
 import MapboxLanguage from "@mapbox/mapbox-gl-language"; // 加中文
 import "mapbox-gl/dist/mapbox-gl.css";
-import mapboxgl from 'mapbox-gl';
-import { Marker, Map } from 'mapbox-gl/index'
+import mapboxgl from "mapbox-gl";
+import { Marker, Map } from "mapbox-gl/index";
 import ClusterLayer from "./ClusterLayer.vue";
+import RightClickMenu from "./right-click-menu.vue";
+import { useRightClick } from "@/hooks/rightClickHooks";
 
 export default defineComponent({
   components: {
-    ClusterLayer
+    ClusterLayer,
+    RightClickMenu,
   },
   name: 'MapComp',
   setup() {
@@ -25,6 +39,8 @@ export default defineComponent({
     const map: Ref<Map> = ref({}) as Ref<Map>
     const marker: Ref<Marker> = ref({}) as Ref<Marker>
     const initSuccess: Ref<Boolean> = ref(false)
+    const { visible, left, top, setTop, setLeft, setMenuVisible } = useRightClick();
+    const clusterLayerRef = ref<any>(null);
 
 
     function mapNew(map: Ref<Map>, mapDivElement: Ref<HTMLDivElement | null>, marker: Ref<Marker>, arr: [number, number]) {
@@ -64,17 +80,37 @@ export default defineComponent({
         "pk.eyJ1IjoidnVlamF2YSIsImEiOiJja3E3Zmc3cnAwNWl5Mm9yenZ4dmxrdnFlIn0.xskeHvMcXwPwOeg-3Unsjg";
       //pk.eyJ1Ijoiam9yZGl0b3N0IiwiYSI6ImQtcVkyclEifQ.vwKrOGZoZSj3N-9MB6FF_A
       mapNew(map, mapDivElement, marker, [120.094491, 30.239897]);
-      initSuccess.value = true
-    }
-    
-    onMounted(initMap);
+      initSuccess.value = true;
+    };
 
+    // 打开右键菜单
+    const openMenu = (e: MouseEvent) => {
+      console.log('openMenu')
+      const x = e.offsetX
+      const y = e.offsetY;
+      setTop(y);
+      setLeft(x);
+      setMenuVisible(true);
+    }
+    // 关闭右键菜单
+    const closeMenu = () => {
+      setMenuVisible(false);
+    }
+
+    onMounted(() => {
+      initMap();
+      clusterLayerRef.value.addEventListener('click', closeMenu)
+    });
 
     return {
-      map, 
+      map,
       mapDivElement,
       marker,
       initSuccess,
+      openMenu,
+      closeMenu,
+      clusterLayerRef,
+      visible, left, top,
     };
   },
 });
@@ -91,13 +127,12 @@ export default defineComponent({
   width: 100%;
 }
 .mapboxgl-ctrl.mapboxgl-ctrl-scale {
-	height: 10px;
-	background-color:transparent;
-	line-height:10%;
-	text-align:center
+  height: 10px;
+  background-color: transparent;
+  line-height: 10%;
+  text-align: center;
 }
 :deep(.mapboxgl-ctrl-logo) {
-  display:none !important;
+  display: none !important;
 }
-
 </style>
