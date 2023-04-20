@@ -3,6 +3,7 @@
     <div class="main">
       <global-view class="global-view"></global-view>
       <map-view class="map-view"></map-view>
+      <force-view></force-view>
     </div>
   </div>
 </template>
@@ -11,12 +12,14 @@
 import { defineComponent } from 'vue';
 import MapView from '@/components/views/MapView.vue';
 import GlobalView from '@/components/views/GlobalView.vue'
+import ForceView from '@/components/views/ForceView.vue';
 
 export default defineComponent({
   name: 'RootContainer',
   components: {
     MapView,
     GlobalView,
+    ForceView,
   },
   setup() {
     
@@ -41,6 +44,14 @@ export default defineComponent({
 
 .map-view {
   position: relative;
+}
+
+.force-view {
+  position: relative;
+  margin-bottom: 10px;
+  margin-left: 10px;
+  left: 850px;
+  top: calc(-500px - 200px - 10px);
 }
 
 .main {

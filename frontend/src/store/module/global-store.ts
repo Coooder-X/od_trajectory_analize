@@ -1,5 +1,4 @@
-import { GlobalState } from '@/global-interface';
-import { MapViewState } from '@/map-interface';
+import { ForceLink, ForceNode, GlobalState } from '@/global-interface';
 import axios from 'axios';
 import { ActionContext } from 'vuex';
 
@@ -11,6 +10,9 @@ const initState: GlobalState = {
   odIndexList: [],
   pointClusterMap: new Map(),
   clusterPointMap: new Map(),
+  adjTable: new Map(),
+  forceTreeLinks: [],
+  forceTreeNodes: [],
 }
 
 const globalModule = {
@@ -41,6 +43,18 @@ const globalModule = {
         state.clusterPointMap.set(k, payload[k]);
       })
     },
+    setAdjTable(state: GlobalState, payload: {[key: number]: number[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key)
+        state.adjTable.set(k, payload[k]);
+      });
+    },
+    setForceTreeLinks(state: GlobalState, payload: ForceLink) {
+      state.forceTreeLinks = payload;
+    },
+    setForceTreeNodes(state: GlobalState, payload: ForceNode) {
+      state.forceTreeNodes = payload;
+    },
   },
   actions: {
     getAllODPoints(context: ActionContext<{}, {}>) {
@@ -68,6 +82,9 @@ const globalModule = {
         context.commit('setClusterPointMap', res.data['cluster_point_dict']);
         context.commit('setAllODPoints', res.data['od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
+        context.commit('setForceTreeLinks', res.data['json_adj_table']);
+        context.commit('setForceTreeNodes', res.data['json_nodes']);
+        context.commit('setAdjTable', res.data['adj_table']);
       })
     },
     // createCategory(context: ActionContext<{}, {}>, params: any) {
