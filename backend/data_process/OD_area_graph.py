@@ -11,8 +11,20 @@ from vis.trajectoryVIS import FileInfo
 
 
 def build_od_graph(point_cluster_dict: dict, total_od_points, index_lst: list):
+    """
+    2 个作用：
+    1、生成适用于力导向布局的 json 邻接表和节点数组
+    2、生成 map<int, set<int>> 形式的邻接表，用于传给前端 store 使用（如刷选功能）
+    :param point_cluster_dict
+    :param total_od_points [[lon, lat, time, trj_id, flag], [], ...] trj_id 是轨迹id，flag==0 表示 O 点，1表示 D 点
+    :param index_lst: od_points 【全量】 od 点对应的索引
+    :return json_adj_table: 元素形式为 {'source': st, 'target': ed} 的数组，st、ed 为簇索引
+    :return json_nodes: 数组，每个元素形式为 {'name': i}, i 是 od 点在全量 od 点中的索引
+    :return adj_table: 邻接表，map<int, set<int>> 形式的，存储簇索引标识的簇之间的邻接关系
+    """
     json_adj_table = []
     json_nodes = []
+    adj_table = {}
     for i in index_lst:
         json_nodes.append({'name': i})
         for j in index_lst:
@@ -20,8 +32,14 @@ def build_od_graph(point_cluster_dict: dict, total_od_points, index_lst: list):
             if total_od_points[i][3] == total_od_points[j][3] and cid_i != cid_j:
                 (st, ed) = (cid_i, cid_j) if total_od_points[i][4] == 0 else (cid_j, cid_i)
                 json_adj_table.append({'source': st, 'target': ed})
-    print(json_nodes)
-    return json_adj_table, json.dumps(json_adj_table), json_nodes
+                if st not in adj_table:
+                    adj_table[st] = set()
+                adj_table[st].add(ed)
+    new_adj_table = {}
+    print(adj_table)
+    for k in adj_table:
+        new_adj_table[k] = list(adj_table[k])
+    return json_adj_table, json_nodes, new_adj_table
 
 
 if __name__ == '__main__':

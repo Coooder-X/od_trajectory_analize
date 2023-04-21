@@ -36,7 +36,7 @@ def get_hour_od_points():
 
 def get_total_od_points():
     start_time = datetime.now()
-    with open("./data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
+    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
         od_points = pickle.loads(file.read())
     print('读取文件结束，用时: ', (datetime.now() - start_time))
     # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556

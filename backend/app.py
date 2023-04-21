@@ -6,6 +6,7 @@ from flask import Flask, request
 from flask_cors import CORS
 import _thread
 
+from data_process.OD_area_graph import build_od_graph
 from data_process import od_pair_process
 from data_process.DT_graph_clustering import delaunay_clustering, cluster_filter_by_hour, draw_DT_clusters
 
@@ -53,12 +54,16 @@ def get_cluster_result():
     new_point_cluster_dict, new_cluster_point_dict = cluster_filter_by_hour(index_lst, point_cluster_dict)
     print('过滤后的点数：', len(index_lst))
     print('过滤后的的簇数：', len(new_cluster_point_dict.keys()))
+    json_adj_table, json_nodes, adj_table = build_od_graph(new_point_cluster_dict, od_points, index_lst)
     # draw_DT_clusters(new_cluster_point_dict, total_od_coord_points, k, theta, start_hour, end_hour, set(index_lst))
     return json.dumps({
         'index_lst': index_lst,
         'point_cluster_dict': point_cluster_dict,
         'cluster_point_dict': new_cluster_point_dict,
         'od_points': part_od_points,
+        'json_adj_table': json_adj_table,
+        'json_nodes': json_nodes,
+        'adj_table': adj_table,
     })
 
 
