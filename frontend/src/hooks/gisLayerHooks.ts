@@ -10,7 +10,7 @@ export function useBrush({
 }) {
   const store = useStore();
   const { getters } = store;
-  const adjTable = getters.adjTable;
+  const { inAdjTable, outAdjTable } = getters;
   const mapMode = getters.mapMode;
   let pointClusterMap = computed(() => getters.pointClusterMap);
   let odIndexList = computed(() => getters.odIndexList);
@@ -88,7 +88,8 @@ export function useBrush({
       }
     });
     inBrush.forEach((idx: number) => {
-      relatedBrush.push(...(adjTable.get(idx) || []));
+      relatedBrush.push(...(inAdjTable.get(idx) || []));
+      relatedBrush.push(...(outAdjTable.get(idx) || []));
     });
     const relatedSet = new Set(relatedBrush);
     odCircles.each(function(d: any, i: number) {

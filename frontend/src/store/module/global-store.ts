@@ -10,7 +10,8 @@ const initState: GlobalState = {
   odIndexList: [],
   pointClusterMap: new Map(),
   clusterPointMap: new Map(),
-  adjTable: new Map(),
+  inAdjTable: new Map(),
+  outAdjTable: new Map(),
   forceTreeLinks: [],
   forceTreeNodes: [],
 }
@@ -43,10 +44,16 @@ const globalModule = {
         state.clusterPointMap.set(k, payload[k]);
       })
     },
-    setAdjTable(state: GlobalState, payload: {[key: string]: number[]}) {
+    setInAdjTable(state: GlobalState, payload: {[key: string]: number[]}) {
       Object.keys(payload).forEach((key: string) => {
         let k = parseInt(key);
-        state.adjTable.set(k, payload[key]);
+        state.inAdjTable.set(k, payload[key]);
+      });
+    },
+    setOutAdjTable(state: GlobalState, payload: {[key: string]: number[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key);
+        state.outAdjTable.set(k, payload[key]);
       });
     },
     setForceTreeLinks(state: GlobalState, payload: ForceLink) {
@@ -84,7 +91,8 @@ const globalModule = {
         context.commit('setODIndexList', res.data['index_lst']);
         context.commit('setForceTreeLinks', res.data['json_adj_table']);
         context.commit('setForceTreeNodes', res.data['json_nodes']);
-        context.commit('setAdjTable', res.data['adj_table']);
+        context.commit('setInAdjTable', res.data['in_adj_table']);
+        context.commit('setOutAdjTable', res.data['out_adj_table']);
       })
     },
     // createCategory(context: ActionContext<{}, {}>, params: any) {
@@ -115,8 +123,11 @@ const globalModule = {
     odIndexList: (state: GlobalState) => {
       return state.odIndexList;
     },
-    adjTable: (state: GlobalState) => {
-      return state.adjTable;
+    inAdjTable: (state: GlobalState) => {
+      return state.inAdjTable;
+    },
+    outAdjTable: (state: GlobalState) => {
+      return state.outAdjTable;
     },
   },
   modules: {},
