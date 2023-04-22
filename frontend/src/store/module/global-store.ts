@@ -43,10 +43,10 @@ const globalModule = {
         state.clusterPointMap.set(k, payload[k]);
       })
     },
-    setAdjTable(state: GlobalState, payload: {[key: number]: number[]}) {
+    setAdjTable(state: GlobalState, payload: {[key: string]: number[]}) {
       Object.keys(payload).forEach((key: string) => {
-        let k = parseInt(key)
-        state.adjTable.set(k, payload[k]);
+        let k = parseInt(key);
+        state.adjTable.set(k, payload[key]);
       });
     },
     setForceTreeLinks(state: GlobalState, payload: ForceLink) {
@@ -114,6 +114,9 @@ const globalModule = {
     },
     odIndexList: (state: GlobalState) => {
       return state.odIndexList;
+    },
+    adjTable: (state: GlobalState) => {
+      return state.adjTable;
     },
   },
   modules: {},

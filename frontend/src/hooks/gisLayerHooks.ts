@@ -10,6 +10,7 @@ export function useBrush({
 }) {
   const store = useStore();
   const { getters } = store;
+  const adjTable = getters.adjTable;
   const mapMode = getters.mapMode;
   let pointClusterMap = computed(() => getters.pointClusterMap);
   let odIndexList = computed(() => getters.odIndexList);
@@ -61,7 +62,10 @@ export function useBrush({
     x1.value = selection[1][0];
     y1.value = selection[1][1];
 
-    // 遍历所有的 circle 元素
+    //  inBrush: 在选区内的 od 点索引集，relatedBrush: 选区内的点关联到的选区外的点的索引集
+    const inBrush: number[] = [], relatedBrush: number[] = [];
+
+    // 遍历所有的 circle 元素，i 是第几个 circle svg，要获取它的索引需要通过 odIndexList.value[i]
     odCircles.each(function (d: any, i: number) {
       // 获取当前 circle 的坐标
       const cx = project(d).x;
@@ -72,6 +76,7 @@ export function useBrush({
 
       // 根据判断结果改变当前 circle 的颜色
       if (inside) {
+        inBrush.push(i);
         d3.select(this).style("fill", function(point: number[]) {
           const index = odIndexList.value[i]
           if(pointClusterMap.value.has(index))
@@ -80,6 +85,20 @@ export function useBrush({
         });
       } else {
         d3.select(this).style("fill", "lightblue");
+      }
+    });
+    inBrush.forEach((idx: number) => {
+      relatedBrush.push(...(adjTable.get(idx) || []));
+    });
+    const relatedSet = new Set(relatedBrush);
+    odCircles.each(function(d: any, i: number) {
+      if(relatedSet.has(i)) {
+        d3.select(this).style("fill", function(point: number[]) {
+          const index = odIndexList.value[i];
+          if(pointClusterMap.value.has(index))
+            return colorTable[pointClusterMap.value.get(index)];
+          return "#ff3636";
+        });
       }
     });
   }
