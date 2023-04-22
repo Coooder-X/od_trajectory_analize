@@ -24,7 +24,8 @@ def build_od_graph(point_cluster_dict: dict, total_od_points, index_lst: list):
     """
     json_adj_table = []
     json_nodes = []
-    adj_table = {}
+    out_adj_table = {}
+    in_adj_table = {}
     for i in index_lst:
         json_nodes.append({'name': i})
         for j in index_lst:
@@ -32,14 +33,20 @@ def build_od_graph(point_cluster_dict: dict, total_od_points, index_lst: list):
             if total_od_points[i][3] == total_od_points[j][3] and cid_i != cid_j:
                 (st, ed) = (cid_i, cid_j) if total_od_points[i][4] == 0 else (cid_j, cid_i)
                 json_adj_table.append({'source': st, 'target': ed})
-                if st not in adj_table:
-                    adj_table[st] = set()
-                adj_table[st].add(ed)
-    new_adj_table = {}
-    print(adj_table)
-    for k in adj_table:
-        new_adj_table[k] = list(adj_table[k])
-    return json_adj_table, json_nodes, new_adj_table
+                if st not in out_adj_table:
+                    out_adj_table[st] = set()
+                out_adj_table[st].add(ed)
+                if ed not in in_adj_table:
+                    in_adj_table[ed] = set()
+                in_adj_table[ed].add(st)
+    new_out_adj_table = {}
+    new_in_adj_table = {}
+    print(out_adj_table)
+    for k in out_adj_table:
+        new_out_adj_table[k] = list(out_adj_table[k])
+    for k in in_adj_table:
+        new_in_adj_table[k] = list(in_adj_table[k])
+    return json_adj_table, json_nodes, new_out_adj_table, new_in_adj_table
 
 
 if __name__ == '__main__':
