@@ -137,29 +137,8 @@ export function useBrush({
       .style('display', value ? '' : 'none');
   }
 
-  // const selectedPoints = computed(() => {
-  //   return odCircles.filter(function (d: any) {
-  //     // 获取当前 circle 的坐标
-  //     const cx = d.x;
-  //     const cy = d.y;
-  //     // 判断当前 circle 是否在刷取范围内
-  //     return cx >= x0.value && cx <= x1.value && cy >= y0.value && cy <= y1.value;
-  //   });
-  // });
-
-  // function getSelectedPoints() {
-  //   return odCircles.filter(function (d: any) {
-  //     // 获取当前 circle 的坐标
-  //     const cx = d.x;
-  //     const cy = d.y;
-  //     // 判断当前 circle 是否在刷取范围内
-  //     return cx >= x0.value && cx <= x1.value && cy >= y0.value && cy <= y1.value;
-  //   });
-  // }
-
   return {
     setBrushLayerVisible,
-    // selectedPoints,
     selectedSvgs,
     noSelectedSvgs,
     selectedODIdxs,
