@@ -23,11 +23,12 @@ def build_od_graph(point_cluster_dict: dict, total_od_points, index_lst: list):
     :return adj_table: 邻接表，map<int, set<int>> 形式的，存储簇索引标识的簇之间的邻接关系
     """
     json_adj_table = []
-    json_nodes = []
+    json_nodes = set()
     out_adj_table = {}
     in_adj_table = {}
     for i in index_lst:
-        json_nodes.append({'name': i})
+        json_nodes.add(point_cluster_dict[i])
+        # json_nodes.append({'name': i})
         for j in index_lst:
             cid_i, cid_j = point_cluster_dict[i], point_cluster_dict[j]
             if total_od_points[i][3] == total_od_points[j][3] and cid_i != cid_j:
@@ -41,12 +42,15 @@ def build_od_graph(point_cluster_dict: dict, total_od_points, index_lst: list):
                 in_adj_table[ed].add(st)
     new_out_adj_table = {}
     new_in_adj_table = {}
+    new_json_nodes = []
+    for cid in json_nodes:
+        new_json_nodes.append({'id': cid})
     print(out_adj_table)
     for k in out_adj_table:
         new_out_adj_table[k] = list(out_adj_table[k])
     for k in in_adj_table:
         new_in_adj_table[k] = list(in_adj_table[k])
-    return json_adj_table, json_nodes, new_out_adj_table, new_in_adj_table
+    return json_adj_table, new_json_nodes, new_out_adj_table, new_in_adj_table
 
 
 if __name__ == '__main__':
