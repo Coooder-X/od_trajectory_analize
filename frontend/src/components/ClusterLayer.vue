@@ -40,7 +40,7 @@ export default defineComponent({
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));
     }
 
-    const { setBrushLayerVisible, selectedPoints } = useBrush({clusterLayerSvg, odPoints, project});
+    const { setBrushLayerVisible } = useBrush({clusterLayerSvg, odPoints, project});
     watch(mapMode, () => {
       setBrushLayerVisible(mapMode.value.has(MapMode.SELECT));
     }, { deep: true }); //  watch 监听 Set 对象内容必须添加 deep: true，否则只会监听 Set 对象本身的变化，而不是它的元素的变化

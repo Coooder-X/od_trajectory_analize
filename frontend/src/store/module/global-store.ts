@@ -120,6 +120,9 @@ const globalModule = {
     pointClusterMap: (state: GlobalState) => {
       return state.pointClusterMap;
     },
+    clusterPointMap: (state: GlobalState) => {
+      return state.clusterPointMap;
+    },
     odIndexList: (state: GlobalState) => {
       return state.odIndexList;
     },
@@ -128,6 +131,12 @@ const globalModule = {
     },
     outAdjTable: (state: GlobalState) => {
       return state.outAdjTable;
+    },
+    forceTreeLinks: (state: GlobalState) => {
+      return state.forceTreeLinks;
+    },
+    forceTreeNodes: (state: GlobalState) => {
+      return state.forceTreeNodes;
     },
   },
   modules: {},

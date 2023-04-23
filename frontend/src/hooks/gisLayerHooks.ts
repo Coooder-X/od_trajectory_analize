@@ -13,11 +13,17 @@ export function useBrush({
   const { inAdjTable, outAdjTable } = getters;
   const mapMode = getters.mapMode;
   let pointClusterMap = computed(() => getters.pointClusterMap);
+  let clusterPointMap = computed(() => getters.clusterPointMap);
   let odIndexList = computed(() => getters.odIndexList);
   const x0 = ref(0);
   const y0 = ref(0);
   const x1 = ref(0);
   const y1 = ref(0);
+  let selectedSvgs: Ref<any> = ref([]); //  存储被刷选的 circle svg
+  let noSelectedSvgs: Ref<any> = ref([]); //  存储未被刷选的 circle svg
+  let selectedODIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 od 点索引
+  let selectedClusterIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 簇的索引
+
   console.log('clusterLayerSvg', clusterLayerSvg)
   let odCircles: any
   let brush: any
@@ -53,6 +59,10 @@ export function useBrush({
 
   // 定义刷取事件的回调函数
   function brushed(event: any) {
+    selectedSvgs.value = []
+    noSelectedSvgs.value = []
+    selectedODIdxs.value = []
+    selectedClusterIdxs.value = []
     odCircles = clusterLayerSvg.value.selectAll("circle")
     // 获取刷取范围的坐标
     const selection = event.selection;
@@ -62,8 +72,12 @@ export function useBrush({
     x1.value = selection[1][0];
     y1.value = selection[1][1];
 
-    //  inBrush: 在选区内的 od 点索引集，relatedBrush: 选区内的点关联到的选区外的点的索引集
-    const inBrush: number[] = [], relatedBrush: number[] = [];
+    /**  刷选实现：
+     * （干2件事，1、得到选中的 od 和 簇 的数据，2、修改选中的 svg 颜色）
+     * 1、先通过一次遍历 odCircles，得到在【选区内的所有簇 id】selectedClusterIdxs，以及这些簇包含的 od 点 id，
+     * 2、再遍历 【选区内的所有簇 id】selectedClusterIdxs，得到【框框外与其有邻接关系的簇 id】，得到【关联到的框框外的所有簇】包含的 od 点 id
+     * 3、得到所有 od 点 id，再对 odCircles 遍历一次，统一修改颜色，并记录需要的数据。 
+     */
 
     // 遍历所有的 circle 元素，i 是第几个 circle svg，要获取它的索引需要通过 odIndexList.value[i]
     odCircles.each(function (d: any, i: number) {
@@ -73,33 +87,46 @@ export function useBrush({
 
       // 判断当前 circle 是否在刷取范围内
       const inside = cx >= x0.value && cx <= x1.value && cy >= y0.value && cy <= y1.value;
-
       // 根据判断结果改变当前 circle 的颜色
       if (inside) {
-        inBrush.push(i);
-        d3.select(this).style("fill", function(point: number[]) {
-          const index = odIndexList.value[i]
-          if(pointClusterMap.value.has(index))
-            return colorTable[pointClusterMap.value.get(index)];
-          return "#ff3636"
-        });
-      } else {
-        d3.select(this).style("fill", "lightblue");
+        selectedClusterIdxs.value.push(pointClusterMap.value.get(odIndexList.value[i]));  //  拿到在【框框内的所有簇 id】
       }
     });
-    inBrush.forEach((idx: number) => {
-      relatedBrush.push(...(inAdjTable.get(idx) || []));
-      relatedBrush.push(...(outAdjTable.get(idx) || []));
+    
+    const selectedODSet: Set<number> = new Set();
+    //  记录【框框内的所有簇】包含的 od 点 id
+    for(let cid of selectedClusterIdxs.value) {
+      const pInCluster = clusterPointMap.value.get(cid);
+      for(let pid of pInCluster) {
+        selectedODSet.add(pid);
+      }
+    }
+    
+    selectedClusterIdxs.value.forEach((clusterIdx: number) => {
+      //  根据【框框内的所有簇 id】，得到框框外与其有邻接关系的簇 id
+      let relatedClusterIds = new Set([...(inAdjTable.get(clusterIdx) || []), ...(outAdjTable.get(clusterIdx) || [])]);
+        //  记录【关联到的框框外的所有簇】包含的 od 点 id
+        for(let cid of relatedClusterIds) {
+          const pInCluster = clusterPointMap.value.get(cid);
+          for(let pid of pInCluster) {
+            selectedODSet.add(pid);
+          }
+        }
     });
-    const relatedSet = new Set(relatedBrush);
+    //  od 点 id 数组 selectedODIdxs 去重
+    selectedODIdxs.value = [...selectedODSet]
     odCircles.each(function(d: any, i: number) {
-      if(relatedSet.has(i)) {
+      if(selectedODSet.has(odIndexList.value[i])) { //  如果当前 circle svg 对应的 od 点在被选中的集合中
+        selectedSvgs.value.push(d3.select(this));
         d3.select(this).style("fill", function(point: number[]) {
           const index = odIndexList.value[i];
           if(pointClusterMap.value.has(index))
             return colorTable[pointClusterMap.value.get(index)];
-          return "#ff3636";
+          return "lightblue";
         });
+      } else {
+        noSelectedSvgs.value.push(d3.select(this));
+        d3.select(this).style("fill", "lightblue");
       }
     });
   }
@@ -110,15 +137,15 @@ export function useBrush({
       .style('display', value ? '' : 'none');
   }
 
-  const selectedPoints = computed(() => {
-    return odCircles.filter(function (d: any) {
-      // 获取当前 circle 的坐标
-      const cx = d.x;
-      const cy = d.y;
-      // 判断当前 circle 是否在刷取范围内
-      return cx >= x0.value && cx <= x1.value && cy >= y0.value && cy <= y1.value;
-    });
-  });
+  // const selectedPoints = computed(() => {
+  //   return odCircles.filter(function (d: any) {
+  //     // 获取当前 circle 的坐标
+  //     const cx = d.x;
+  //     const cy = d.y;
+  //     // 判断当前 circle 是否在刷取范围内
+  //     return cx >= x0.value && cx <= x1.value && cy >= y0.value && cy <= y1.value;
+  //   });
+  // });
 
   // function getSelectedPoints() {
   //   return odCircles.filter(function (d: any) {
@@ -132,6 +159,9 @@ export function useBrush({
 
   return {
     setBrushLayerVisible,
-    selectedPoints,
+    // selectedPoints,
+    selectedSvgs,
+    noSelectedSvgs,
+    selectedODIdxs,
   }
 }
