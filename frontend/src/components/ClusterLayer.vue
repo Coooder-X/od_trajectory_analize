@@ -14,7 +14,7 @@ import { Map } from 'mapbox-gl/index'
 import { MapMode } from '@/map-interface'
 import * as d3 from 'd3';
 import {colorTable} from '@/color-pool'
-import { useBrush } from "@/hooks/gisLayerHooks";
+import { useBrush, debounce } from "@/hooks/gisLayerHooks";
 
 export default defineComponent({
   components: {},
@@ -40,7 +40,13 @@ export default defineComponent({
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));
     }
 
-    const { setBrushLayerVisible } = useBrush({clusterLayerSvg, odPoints, project});
+    const { 
+      setBrushLayerVisible,
+      selectedSvgs,
+      noSelectedSvgs,
+      selectedODIdxs,
+      selectedClusterIdxs
+    } = useBrush({clusterLayerSvg, odPoints, project});
     watch(mapMode, () => {
       setBrushLayerVisible(mapMode.value.has(MapMode.SELECT));
     }, { deep: true }); //  watch 监听 Set 对象内容必须添加 deep: true，否则只会监听 Set 对象本身的变化，而不是它的元素的变化
@@ -55,6 +61,21 @@ export default defineComponent({
     //   console.log('角坐标:', coordinates)
     //   return coordinates;
     // })
+
+    watch([selectedODIdxs, selectedClusterIdxs],
+      debounce(() => {  //  节流，不然每次 brush 调用都存 store，性能非常差
+        store.commit('setSelectedODIdxs', selectedODIdxs.value);
+        store.commit('setSelectedClusterIdxs', selectedClusterIdxs.value);
+        const adjTable: {[key: number]: number[]} = {};
+        getters.outAdjTable.forEach(function(value: number[], key: number) {
+          adjTable[key] = value;
+        });
+        store.dispatch('getLineGraph', {
+          selectedClusterIdxs: selectedClusterIdxs.value,
+          outAdjTable: adjTable,
+        });
+      }, 1000)
+    );
 
     //  监听 od 点数据变化，如果时间范围改变，则重新绘制 od 点
     watch(odPoints, (newValue: number[][], oldValue: number[][]) => {

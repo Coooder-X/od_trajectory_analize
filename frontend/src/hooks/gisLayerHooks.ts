@@ -63,6 +63,9 @@ export function useBrush({
     noSelectedSvgs.value = []
     selectedODIdxs.value = []
     selectedClusterIdxs.value = []
+    //  记录【框框内的所有簇】包含的 od 点 id
+    const selectedODSet: Set<number> = new Set();
+
     odCircles = clusterLayerSvg.value.selectAll("circle")
     // 获取刷取范围的坐标
     const selection = event.selection;
@@ -75,8 +78,8 @@ export function useBrush({
     /**  刷选实现：
      * （干2件事，1、得到选中的 od 和 簇 的数据，2、修改选中的 svg 颜色）
      * 1、先通过一次遍历 odCircles，得到在【选区内的所有簇 id】selectedClusterIdxs，以及这些簇包含的 od 点 id，
-     * 2、再遍历 【选区内的所有簇 id】selectedClusterIdxs，得到【框框外与其有邻接关系的簇 id】，得到【关联到的框框外的所有簇】包含的 od 点 id
-     * 3、得到所有 od 点 id，再对 odCircles 遍历一次，统一修改颜色，并记录需要的数据。 
+     * 2、再遍历 【选区内的所有簇 id】selectedClusterIdxs，得到【框框外与其有邻接关系的簇 id】，得到【框框内+关联到的框框外的所有簇】的 id
+     * 3、根据所有已选簇 id，得到所有 od 点 id，再对 odCircles 遍历一次，统一修改颜色，并记录需要的数据。 
      */
 
     // 遍历所有的 circle 元素，i 是第几个 circle svg，要获取它的索引需要通过 odIndexList.value[i]
@@ -89,32 +92,33 @@ export function useBrush({
       const inside = cx >= x0.value && cx <= x1.value && cy >= y0.value && cy <= y1.value;
       // 根据判断结果改变当前 circle 的颜色
       if (inside) {
+        //  记录【框框内的所有簇】的簇 id
         selectedClusterIdxs.value.push(pointClusterMap.value.get(odIndexList.value[i]));  //  拿到在【框框内的所有簇 id】
       }
     });
     
-    const selectedODSet: Set<number> = new Set();
-    //  记录【框框内的所有簇】包含的 od 点 id
-    for(let cid of selectedClusterIdxs.value) {
-      const pInCluster = clusterPointMap.value.get(cid);
-      for(let pid of pInCluster) {
-        selectedODSet.add(pid);
-      }
-    }
+    //  记录【框框内 + 框框外关联的 所有簇】包含的 簇 id
+    const selectedClusterIdxSet: Set<number> = new Set(selectedClusterIdxs.value);
+    selectedClusterIdxs.value = [...selectedClusterIdxSet];
     
     selectedClusterIdxs.value.forEach((clusterIdx: number) => {
       //  根据【框框内的所有簇 id】，得到框框外与其有邻接关系的簇 id
       let relatedClusterIds = new Set([...(inAdjTable.get(clusterIdx) || []), ...(outAdjTable.get(clusterIdx) || [])]);
-        //  记录【关联到的框框外的所有簇】包含的 od 点 id
-        for(let cid of relatedClusterIds) {
-          const pInCluster = clusterPointMap.value.get(cid);
-          for(let pid of pInCluster) {
-            selectedODSet.add(pid);
-          }
-        }
+      for(let relaCid of relatedClusterIds) {
+        selectedClusterIdxSet.add(relaCid)
+      }
     });
-    //  od 点 id 数组 selectedODIdxs 去重
-    selectedODIdxs.value = [...selectedODSet]
+    //  更新 已选的所有 簇id 数组
+    selectedClusterIdxs.value = [...selectedClusterIdxSet]
+    //  根据已选的所有 簇id，得到已选的所有 od 点 id
+    for(let cid of selectedClusterIdxSet) {
+      const pInCluster = clusterPointMap.value.get(cid);
+        for(let pid of pInCluster) {
+          selectedODSet.add(pid);
+        }
+    }
+
+    //  染色和收集 svg 数据
     odCircles.each(function(d: any, i: number) {
       if(selectedODSet.has(odIndexList.value[i])) { //  如果当前 circle svg 对应的 od 点在被选中的集合中
         selectedSvgs.value.push(d3.select(this));
@@ -142,5 +146,21 @@ export function useBrush({
     selectedSvgs,
     noSelectedSvgs,
     selectedODIdxs,
+    selectedClusterIdxs,
+  }
+}
+
+export function debounce(callback: Function, delay: number) {
+  var timer: number | undefined = undefined
+  return function() { //  下面用了arguments，所以这里要返回function而不是箭头函数
+    var firstClick = !timer
+    if(!firstClick) {
+      clearTimeout(timer)
+    }
+    timer = setTimeout(() => {
+      timer = undefined
+      if(!firstClick)
+        callback(...arguments)
+    }, delay)
   }
 }

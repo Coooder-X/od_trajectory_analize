@@ -10,6 +10,8 @@ export interface GlobalState {
   outAdjTable: Map<number, number[]>,  //  存储 <O点簇id，[D点簇id]>
   forceTreeLinks: ForceLink,
   forceTreeNodes: ForceNode,
+  selectedODIdxs: number[],
+  selectedClusterIdxs: number[],
 }
 
 export type ForceLink = Array<{source: number, target: number, isFake?: boolean}>;

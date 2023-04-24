@@ -14,6 +14,8 @@ const initState: GlobalState = {
   outAdjTable: new Map(),
   forceTreeLinks: [],
   forceTreeNodes: [],
+  selectedODIdxs: [],
+  selectedClusterIdxs: [],
 }
 
 const globalModule = {
@@ -62,6 +64,12 @@ const globalModule = {
     setForceTreeNodes(state: GlobalState, payload: ForceNode) {
       state.forceTreeNodes = payload;
     },
+    setSelectedODIdxs(state: GlobalState, payload: number[]) {
+      state.selectedODIdxs = payload;
+    },
+    setSelectedClusterIdxs(state: GlobalState, payload: number[]) {
+      state.selectedClusterIdxs = payload;
+    },
   },
   actions: {
     getAllODPoints(context: ActionContext<{}, {}>) {
@@ -89,11 +97,22 @@ const globalModule = {
         context.commit('setClusterPointMap', res.data['cluster_point_dict']);
         context.commit('setAllODPoints', res.data['od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
-        context.commit('setForceTreeLinks', res.data['json_adj_table']);
-        context.commit('setForceTreeNodes', res.data['json_nodes']);
+        // context.commit('setForceTreeLinks', res.data['json_adj_table']);
+        // context.commit('setForceTreeNodes', res.data['json_nodes']);
         context.commit('setInAdjTable', res.data['in_adj_table']);
         context.commit('setOutAdjTable', res.data['out_adj_table']);
       })
+    },
+    getLineGraph(context: ActionContext<{}, {}>, params: any) {
+      axios({
+        method: 'post',
+        url: '/api/getLineGraph',
+        data: params,
+      }).then((res) => {
+        console.log(res)
+        context.commit('setForceTreeLinks', res.data['force_edges']);
+        context.commit('setForceTreeNodes', res.data['force_nodes']);
+      });
     },
     // createCategory(context: ActionContext<{}, {}>, params: any) {
     //   axios.post('/api/dataset/createCategory', params);
@@ -137,6 +156,12 @@ const globalModule = {
     },
     forceTreeNodes: (state: GlobalState) => {
       return state.forceTreeNodes;
+    },
+    selectedODIdxs: (state: GlobalState) => {
+      return state.selectedODIdxs;
+    },
+    selectedClusterIdxs: (state: GlobalState) => {
+      return state.selectedClusterIdxs;
     },
   },
   modules: {},
