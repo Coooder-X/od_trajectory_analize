@@ -1,6 +1,7 @@
 <template>
   <div class="time-selector-container">
-    <div ref="domRef" class="time-selector"></div>
+    <div class="mask" v-if="disabled"></div>
+    <div ref="domRef" class="time-selector" :class="{'time-selector-disabled': disabled}"></div>
   </div>
 </template>
 
@@ -11,30 +12,48 @@ import * as echarts from "echarts";
 export default defineComponent({
   components: {},
   name: "TimeSelector",
-  props: {},
-  setup() {
+  props: {
+    min: Number,
+    max: Number,
+    defaultMin: Number,
+    defaultMax: Number,
+    disabled: Boolean,
+  },
+  emits: ['change'],
+  setup(props, { emit }) {
     type EChartsOption = echarts.EChartsOption;
-    let chartDom; // = document.getElementById("time-selector")!;
-    let timeSelector: any; // = echarts.init(chartDom);
+    let chartDom: HTMLElement;
+    let timeSelector: any; 
     let option: EChartsOption;
     let data: Ref<any> = ref([]);
     const domRef: Ref<any> = ref(null);
 
-    watch(data, () => {
-      console.log("data", data);
-    });
+    let times: number[] = [];
+    data.value = [];
+
+    for (let i = 0; i < 24; i++) {
+      times.push(i);
+      data.value.push(Math.random());
+    }
 
     onMounted(() => {
       chartDom = domRef.value;
       timeSelector = echarts.init(chartDom);
-      let times = [];
-      data.value = [];
 
-      for (let i = 0; i < 24; i++) {
-        times.push(i);
-        data.value.push(Math.random());
-      }
+      //  获取选中的时间范围端点
+      timeSelector.on("datazoom", 
+        (params: any) => {
+          console.log(params); //里面存有代表滑动条的起始的数字
+          let xAxis = timeSelector.getOption().dataZoom[0]; //获取axis
+          console.log(xAxis.startValue); //滑动条左端对应在xAxis.data的索引
+          console.log(xAxis.endValue); //滑动条右端对应在xAxis.data的索引
+          emit('change', [xAxis.startValue, xAxis.endValue]);
+        }
+      );
+    });
 
+    const setChartOption = () => {
+      const { disabled, defaultMin, defaultMax, min, max } = props;
       option = {
         xAxis: {
           type: "category",
@@ -45,12 +64,12 @@ export default defineComponent({
           {
             filterMode: "filter",
             type: "inside",
-            start: 0,
-            end: 10,
+            startValue: disabled? 0 : defaultMin,
+            endValue: disabled? 0 : defaultMax,
           },
           {
-            start: 0,
-            end: 23,  //  改成 props 传
+            start: min,
+            end: max,  //  改成 props 传
           },
         ],
         series: [
@@ -62,15 +81,11 @@ export default defineComponent({
       };
 
       timeSelector.setOption(option);
+    }
 
-      //  获取选中的时间范围端点
-      timeSelector.on("datazoom", function (params: any) {
-        console.log(params); //里面存有代表滑动条的起始的数字
-        let xAxis = timeSelector.getOption().dataZoom[0]; //获取axis
-        console.log(xAxis.startValue); //滑动条左端对应在xAxis.data的索引
-        console.log(xAxis.endValue); //滑动条右端对应在xAxis.data的索引
-      });
-    });
+    watch(props, setChartOption, {deep: true});
+
+    watch(domRef, setChartOption, {deep: true});
     
     return {
       domRef,
@@ -82,17 +97,29 @@ export default defineComponent({
 <style scoped>
 .time-selector {
   bottom: 0px;
-  left: -20px;  /*  改成 props 传 */
+  left: -30px;  /*  改成 props 传 */
   position: absolute;
-  width: 300px;
+  width: 360px;
   height: 300px;
   overflow: hidden;
 }
 .time-selector-container {
   position: relative;
-  width: 290px;
+  width: 320px;
   height: 50px;
   /* background-color: antiquewhite; */
   overflow: hidden;
+}
+
+.mask {
+  background-color: transparent;
+  width: 100%;
+  height: 100%;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+.time-selector-disabled {
+  pointer-events: none;
 }
 </style>
