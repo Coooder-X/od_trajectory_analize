@@ -5,7 +5,11 @@
   </component>
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
+<<<<<<< Updated upstream
     <orderEntry type="jdk" jdkName="Remote Python 3.9.13 (/home/linzhengxuan/anaconda3/envs/v_env/bin/python3.9) (4)" jdkType="Python SDK" />
+=======
+    <orderEntry type="jdk" jdkName="Python 3.8" jdkType="Python SDK" />
+>>>>>>> Stashed changes
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TemplatesService">

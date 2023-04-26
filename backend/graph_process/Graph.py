@@ -75,10 +75,13 @@ class Graph:
             start, end = node[0], node[1]
             L.nodes[node]['from'] = origin_G.nodes[start]
             L.nodes[node]['to'] = origin_G.nodes[end]
-            L.nodes[node]['name'] = self.dict[start].name + '-' + self.dict[end].name
-            curEdge = self.multiEdgeDict[(node[0], node[1])][-1]
-            self.multiEdgeDict[(node[0], node[1])].pop()
-            L.nodes[node]['Lnode_feature'] = curEdge  # origin_G[node[0]][node[1]] # 原图边的信息作为线图的点信息加入。但原图可能有多条等效边，因此线图需要依次为等效点分配feat，这里还没处理
+            L.nodes[node]['name'] = str(self.dict[start].name) + '-' + str(self.dict[end].name)
+            # print(self.multiEdgeDict[(node[0], node[1])])
+            #  TODO: 看一下 self.multiEdgeDict[(node[0], node[1])] 的长度什么情况会是 0，为 0 是不是正常的
+            if len(self.multiEdgeDict[(node[0], node[1])]) > 0:
+                curEdge = self.multiEdgeDict[(node[0], node[1])][-1]
+                self.multiEdgeDict[(node[0], node[1])].pop()
+                L.nodes[node]['Lnode_feature'] = curEdge  # origin_G[node[0]][node[1]] # 原图边的信息作为线图的点信息加入。但原图可能有多条等效边，因此线图需要依次为等效点分配feat，这里还没处理
 
         for edge in L.edges():  # like [((1, 3, 0), (3, 1, 0), 0), ((1, 3, 0), (3, 4, 0), 0)]，第3维恒是0
             # print('edge', edge) # like ((1, 3, 0), (3, 1, 0))

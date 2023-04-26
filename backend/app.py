@@ -6,13 +6,15 @@ from flask import Flask, request
 from flask_cors import CORS
 import _thread
 
-from data_process.OD_area_graph import build_od_graph
+from data_process.OD_area_graph import build_od_graph, get_line_graph_by_selected_cluster
 from data_process import od_pair_process
 from data_process.DT_graph_clustering import delaunay_clustering, cluster_filter_by_hour, draw_DT_clusters
 
 app = Flask(__name__)
 CORS(app, resources=r'/*')
 #  python -m flask run
+
+# out_adj_dict = {}
 
 
 @app.route('/')
@@ -65,6 +67,25 @@ def get_cluster_result():
         'json_nodes': json_nodes,
         'out_adj_table': out_adj_table,
         'in_adj_table': in_adj_table,
+    })
+
+
+@app.route('/getLineGraph', methods=['post'])
+def get_line_graph():
+    data = request.get_json(silent=True)
+    # print(data)
+    selected_cluster_ids = data['selectedClusterIdxs']
+    out_adj_table = data['outAdjTable']
+    #  得到的 json 中 key 是 string，这里转成 int
+    tmp = {}
+    for key in out_adj_table:
+        tmp[int(key)] = out_adj_table[key]
+    out_adj_table = tmp
+    force_nodes, force_edges, filtered_adj_dict = get_line_graph_by_selected_cluster(selected_cluster_ids, out_adj_table)
+    return json.dumps({
+        'force_nodes': force_nodes,
+        'force_edges': force_edges,
+        'filtered_adj_dict': filtered_adj_dict,
     })
 
 

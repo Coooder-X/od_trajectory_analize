@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="PublishConfigData" autoUpload="On explicit save action" serverName="linzhengxuan@10.105.16.24:22 password" remoteFilesAllowedToDisappearOnAutoupload="false" autoUploadExternalChanges="true">
@@ -49,3 +50,5 @@
     <option name="myAutoUpload" value="ON_EXPLICIT_SAVE" />
   </component>
 </project>
+=======
+>>>>>>> Stashed changes
