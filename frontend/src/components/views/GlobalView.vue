@@ -48,17 +48,13 @@
           <div style="margin-bottom: 5px;">
             <b v-if="tableData.length">{{ `当前时间范围: ${timeScope[0]}时-${timeScope[1]}时` }}</b>
             <b v-else>选择时间范围:</b>
-            <el-slider
-              style="margin-bottom: 10px; margin-left: 5px;"
+            <time-selector
               :disabled="!tableData.length"
-              v-model="timeScope"
-              range
-              :format-tooltip="formatTime"
+              :defaultMin="timeScope[0]"
+              :defaultMax="timeScope[1]"
               :min="timeSelection[0]"
               :max="timeSelection.at(-1)"
-              @change="onTimeSelect"
-            >
-            </el-slider>
+              @change="onChangeTimeScope"></time-selector>
           </div>
         </div>
       </div>
@@ -68,14 +64,17 @@
 
 <script lang="ts">
 /* eslint-disable */
+import { debounce } from "@/hooks/gisLayerHooks";
 import { defineComponent, computed, onMounted } from "vue";
 import { Ref, ref } from "vue";
 import { useStore } from "vuex";
+import TimeSelector from "../TimeSelector.vue";
 import ViewHeader from "../ViewHeader.vue";
 
 export default defineComponent({
   components: {
     ViewHeader,
+    TimeSelector,
   },
   name: "GlobalView",
   props: {},
@@ -113,8 +112,12 @@ export default defineComponent({
 
     const onTimeSelect = (event: [number, number]) => {
       console.log(event)
+      timeScope.value[0] = event[0];
+      timeScope.value[1] = event[1];
       store.dispatch('getODPointsFilterByHour', {params: {startHour: timeScope.value[0], endHour: timeScope.value[1]}});
     }
+
+    const onChangeTimeScope = debounce(onTimeSelect, 700);
 
     return {
       dataset,
@@ -123,6 +126,7 @@ export default defineComponent({
       timeScope,
       dateSelection,
       timeSelection,
+      onChangeTimeScope,
       formatDate,
       formatTime,
       changeDataSet,

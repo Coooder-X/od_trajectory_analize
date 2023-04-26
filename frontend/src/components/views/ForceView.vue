@@ -1,7 +1,8 @@
 <template>
   <div class="force-view">
     <view-header viewId="C" title="力导向视图"></view-header>
-    <div id="force" ref="forceDivElement" class="force-content"></div>
+    <div id="force" ref="forceDivElement" class="force-content">
+    </div>
   </div>
 </template>
 
@@ -12,6 +13,7 @@ import { useStore } from "vuex";
 import * as d3 from "d3";
 import ViewHeader from "../ViewHeader.vue";
 import { ForceLink, ForceNode } from "@/global-interface";
+import { useGetCircleByCluster } from "@/hooks/gisLayerHooks";
 
 export default defineComponent({
   components: {
@@ -32,6 +34,7 @@ export default defineComponent({
     const forceTreeNodes: ComputedRef<ForceNode> = computed(
       () => getters.forceTreeNodes
     );
+    const { getCircleByClusterId } = useGetCircleByCluster();
 
     onMounted(() => {
       initLayer();
@@ -47,10 +50,7 @@ export default defineComponent({
     const initLayer = () => {
       const container = document.getElementById("force");
       if(forceSvg.value) {
-        forceSvg.value = d3
-          .select(container)
-          .selectAll("svg")
-          .remove(); 
+        forceSvg.value = d3.select(container).selectAll("svg").remove();
         forceSvg.value = null;
       }
       forceSvg.value = d3
@@ -64,17 +64,25 @@ export default defineComponent({
       groupSvg.value = forceSvg.value
         .append("g")
         .attr("transform", "translate(" + 0 + "," + 0 + ")");
+
+      //  画布的拖动和缩放
+      //创建一个缩放行为
+      const zoom = d3
+        .zoom()
+        .scaleExtent([0.5, 10]) //设置缩放范围
+        .on("zoom", zoomed); //设置缩放事件
+      //为 SVG 添加缩放行为
+      forceSvg.value.call(zoom);
+      //缩放事件处理函数
+      function zoomed(event: any) {
+        groupSvg.value.attr("transform", event.transform); //更新 g 元素的 transform 属性
+      }
     };
 
     const drawGraph = (edges: any, nodes: any) => {
-      groupSvg.value
-        .append("g")
-        .selectAll("line").remove()
-      groupSvg.value
-        .append("g")
-        .selectAll("circle").remove()
-      groupSvg.value
-        .selectAll(".circleText").remove()
+      // groupSvg.value.append("g").selectAll("line").remove();
+      // groupSvg.value.append("g").selectAll("circle").remove();
+      // groupSvg.value.selectAll(".circleText").remove();
       const colorScale = d3
         .scaleOrdinal()
         .domain(d3.range(nodes.length))
@@ -103,18 +111,37 @@ export default defineComponent({
           // if(!d.isFake)
           return 30; //d.value*100;
           // return null
+        })
+        .strength(function (d: any) {
+          // if(d.isFake)
+          // 	return 0
+          return 0.9;
         });
-      // .strength(function(d){
-      // 	// if(d.isFake)
-      // 	// 	return 0
-      // 	return 100
-      // })
 
       //设置图形的中心位置
       forceSimulation
         .force("center")
         .x(width / 2)
         .y(height / 2);
+
+      //定义一个箭头
+      groupSvg.value
+        .append("svg:defs")
+        .append("marker")
+        .attr("id", "arrow") //设置箭头的 id，用于引用
+        .attr("viewBox", "-0 -5 10 10")
+        .attr("refX", 17) //设置箭头距离节点的距离
+        .attr("refY", 0) //设置箭头在 y 轴上的偏移量
+        .attr("orient", "auto") //设置箭头随边的方向旋转
+        .attr("markerWidth", 4) //设置箭头的宽度
+        .attr("markerHeight", 4) //设置箭头的高度
+        .attr("xoverflow", "visible")
+        .append("svg:path")
+        .attr("d", "M 0,-5 L 10 ,0 L 0,5") //使用绝对坐标来绘制三角形
+        .attr("fill", function (d: any, i: number) {
+          return colorScale(i);
+        })
+        .style("stroke", "none");
 
       //绘制边
       const links = groupSvg.value
@@ -123,12 +150,18 @@ export default defineComponent({
         .data(edges)
         .enter()
         .append("line")
+        // .selectAll("path")
+        // .data(edges)
+        // .enter()
+        // .append("path")
+        .attr("marker-end", "url(#arrow)")
         .attr("stroke", function (d: any, i: number) {
           // if(d.isFake)
           return colorScale(i);
           // return null// 'transparent'
         })
-        .attr("stroke-width", 1);
+        .attr("stroke-width", 1)
+        // .attr("fill", "none");
 
       const gs = groupSvg.value
         .selectAll(".circleText")
@@ -149,6 +182,33 @@ export default defineComponent({
         .attr("r", 4)
         .attr("fill", function (d: any, i: number) {
           return colorScale(i);
+        })
+        //  hover 效果
+        .on('mouseover', function(event: MouseEvent, d: any) {
+          d3.select(this).attr('r', 6).style('cursor', 'pointer')
+          const {name} = d;
+          const [sourceCid, targetCid] = name.split('_').map(Number);
+          const c1 = getCircleByClusterId(sourceCid);
+          const c2 = getCircleByClusterId(targetCid);
+          console.log('from-to =', name);
+          c1.attr('r', 8)
+          c2.attr('r', 8)
+        })
+        .on('mouseout', function(event: MouseEvent, d: any) {
+          d3.select(this).attr('r', 4).style('cursor', 'default')
+          const {name} = d;
+          const [sourceCid, targetCid] = name.split('_').map(Number);
+          const c1 = getCircleByClusterId(sourceCid);
+          const c2 = getCircleByClusterId(targetCid);
+          c1.attr('r', 4)
+          c2.attr('r', 4)
+        })
+        .on('click', function(event: MouseEvent, d: any) {
+          console.log(d)
+          const {name} = d;
+          const [sourceCid, targetCid] = name.split('_').map(Number);
+          const clusterCircles: any = getCircleByClusterId(sourceCid);
+          clusterCircles.attr('fill', 'red').attr('r', 10)
         });
       //文字
       // gs.append("text")
@@ -173,6 +233,15 @@ export default defineComponent({
           .attr("y2", function (d: any) {
             return d.target.y;
           });
+          // links.attr("d", function(d: any) {
+          //   var dx = d.target.x - d.source.x,//增量
+          //       dy = d.target.y - d.source.y,
+          //       dr = Math.sqrt(dx * dx + dy * dy);
+          //   return "M" + d.source.x + "," 
+          //   + d.source.y + "A" + dr + "," 
+          //   + dr + " 0 0,1 " + d.target.x + "," 
+          //   + d.target.y;
+          // });
 
         // linksText
         // 	.attr("x",function(d){

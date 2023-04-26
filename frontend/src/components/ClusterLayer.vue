@@ -10,7 +10,7 @@ import { Ref, ref } from "vue";
 import { useStore } from 'vuex';
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from 'mapbox-gl';
-import { Map } from 'mapbox-gl/index'
+import { Map, PointLike } from 'mapbox-gl/index'
 import { MapMode } from '@/map-interface'
 import * as d3 from 'd3';
 import {colorTable} from '@/color-pool'
@@ -36,8 +36,12 @@ export default defineComponent({
     let odIndexList = computed(() => getters.odIndexList);
     const mapMode = computed(() => getters.mapMode);
 
-    const project = (d: Array<number>) => {
+    const project = (d: [number, number]) => {
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));
+    }
+
+    const unproject = (d: [number, number]) => {
+      return props.map.unproject({x: d[0], y: d[1]} as PointLike);
     }
 
     const { 
@@ -46,7 +50,7 @@ export default defineComponent({
       noSelectedSvgs,
       selectedODIdxs,
       selectedClusterIdxs
-    } = useBrush({clusterLayerSvg, odPoints, project});
+    } = useBrush({clusterLayerSvg, odPoints, project, unproject});
     watch(mapMode, () => {
       setBrushLayerVisible(mapMode.value.has(MapMode.SELECT));
     }, { deep: true }); //  watch 监听 Set 对象内容必须添加 deep: true，否则只会监听 Set 对象本身的变化，而不是它的元素的变化
@@ -145,10 +149,10 @@ export default defineComponent({
       // Render method redraws circles
       function render() {
         dots
-          .attr("cx", function(d: Array<number>) {
+          .attr("cx", function(d: [number, number]) {
             return project(d).x;
           })
-          .attr("cy", function(d: Array<number>) {
+          .attr("cy", function(d: [number, number]) {
             return project(d).y;
           });
         // console.log(viewArea.value)
