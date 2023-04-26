@@ -52,7 +52,10 @@ const mapModule = {
   getters: {
     mapMode: (state: MapViewState) => {
       return state.mapMode;
-    }
+    },
+    clusterLayerSvg: (state: MapViewState) => {
+      return state.clusterLayerSvg;
+    },
   },
   modules: {},
 };

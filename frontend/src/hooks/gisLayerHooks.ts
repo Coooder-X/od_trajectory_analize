@@ -1,12 +1,12 @@
-import { computed, ComputedRef, Ref, ref, watch } from 'vue';
+import { computed, ComputedRef, onMounted, Ref, ref, watch } from 'vue';
 import * as d3 from 'd3';
 import { useStore } from 'vuex';
 import { colorTable } from '@/color-pool';
 
 export function useBrush({
-  clusterLayerSvg, odPoints, project
+  clusterLayerSvg, odPoints, project, unproject
 }: {
-  clusterLayerSvg: Ref<any | null>, odPoints: ComputedRef<number[][]>, project: Function
+  clusterLayerSvg: Ref<any | null>, odPoints: ComputedRef<number[][]>, project: Function, unproject: Function
 }) {
   const store = useStore();
   const { getters } = store;
@@ -69,7 +69,7 @@ export function useBrush({
     odCircles = clusterLayerSvg.value.selectAll("circle")
     // 获取刷取范围的坐标
     const selection = event.selection;
-    console.log(selection)
+    console.log([unproject(selection[0]), unproject(selection[1])])
     x0.value = selection[0][0];
     y0.value = selection[0][1];
     x1.value = selection[1][0];
@@ -163,4 +163,49 @@ export function debounce(callback: Function, delay: number) {
         callback(...arguments)
     }, delay)
   }
+}
+
+//  获得 gis 中所有 OD 点的 svg d3 选择集的 hooks
+export function useGetOdCircles() {
+  const store = useStore();
+  const { getters } = store;
+  const odCircles: Ref<any> = ref(null);
+  const clusterLayerSvg: ComputedRef<any | null> = computed(
+    () => getters.clusterLayerSvg
+  );
+
+  watch(clusterLayerSvg, () => {
+    if(clusterLayerSvg.value) {
+      odCircles.value = clusterLayerSvg.value.selectAll("circle")
+    }
+  }, {deep: false, immediate: true});
+
+  return {
+    odCircles,
+  };
+}
+
+//  
+export function useGetCircleByCluster() {
+  const store = useStore();
+  const { getters } = store;
+  const { odCircles } = useGetOdCircles();
+  const odIndexList = computed(() => getters.odIndexList);
+  const pointClusterMap = computed(() => getters.pointClusterMap);
+
+  //  输入簇 id，得到一个 d3 选择集，包含在这个簇中的 OD 点 svg
+  function getCircleByClusterId(clusterId: number) {
+    const result = odCircles.value.filter(function(d: any, i: number) {
+      const index = odIndexList.value[i];
+      if (pointClusterMap.value.get(index) === clusterId) {
+        return true;
+      }
+    });
+    console.log(result)
+    return result;
+  }
+
+  return {
+    getCircleByClusterId
+  };
 }

@@ -13,6 +13,7 @@ import { useStore } from "vuex";
 import * as d3 from "d3";
 import ViewHeader from "../ViewHeader.vue";
 import { ForceLink, ForceNode } from "@/global-interface";
+import { useGetCircleByCluster } from "@/hooks/gisLayerHooks";
 
 export default defineComponent({
   components: {
@@ -33,6 +34,7 @@ export default defineComponent({
     const forceTreeNodes: ComputedRef<ForceNode> = computed(
       () => getters.forceTreeNodes
     );
+    const { getCircleByClusterId } = useGetCircleByCluster();
 
     onMounted(() => {
       initLayer();
@@ -180,6 +182,33 @@ export default defineComponent({
         .attr("r", 4)
         .attr("fill", function (d: any, i: number) {
           return colorScale(i);
+        })
+        //  hover 效果
+        .on('mouseover', function(event: MouseEvent, d: any) {
+          d3.select(this).attr('r', 6).style('cursor', 'pointer')
+          const {name} = d;
+          const [sourceCid, targetCid] = name.split('_').map(Number);
+          const c1 = getCircleByClusterId(sourceCid);
+          const c2 = getCircleByClusterId(targetCid);
+          console.log('from-to =', name);
+          c1.attr('r', 8)
+          c2.attr('r', 8)
+        })
+        .on('mouseout', function(event: MouseEvent, d: any) {
+          d3.select(this).attr('r', 4).style('cursor', 'default')
+          const {name} = d;
+          const [sourceCid, targetCid] = name.split('_').map(Number);
+          const c1 = getCircleByClusterId(sourceCid);
+          const c2 = getCircleByClusterId(targetCid);
+          c1.attr('r', 4)
+          c2.attr('r', 4)
+        })
+        .on('click', function(event: MouseEvent, d: any) {
+          console.log(d)
+          const {name} = d;
+          const [sourceCid, targetCid] = name.split('_').map(Number);
+          const clusterCircles: any = getCircleByClusterId(sourceCid);
+          clusterCircles.attr('fill', 'red').attr('r', 10)
         });
       //文字
       // gs.append("text")
