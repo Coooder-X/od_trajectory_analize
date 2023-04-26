@@ -63,13 +63,21 @@ export default defineComponent({
         dataZoom: [
           {
             filterMode: "filter",
-            type: "inside",
+            type: "slider",
             startValue: disabled? 0 : defaultMin,
             endValue: disabled? 0 : defaultMax,
-          },
-          {
-            start: min,
-            end: max,  //  改成 props 传
+            handleSize: 35,
+            dataBackground: {
+              areaStyle: {
+                color: '#b4cdff'
+              },
+              lineStyle: {
+                width: 2
+              },
+            },
+            textStyle: {
+              fontSize: 17
+            }
           },
         ],
         series: [
