@@ -149,3 +149,4 @@ bin/
 upload/*
 kerberosConf/*
 executeInfo/
+tmp/

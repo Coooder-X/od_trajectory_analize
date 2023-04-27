@@ -46,11 +46,26 @@ def get_total_od_points():
     return res
 
 
-def get_od_points_filter_by_hour(start_hour, end_hour, start_day, end_day):
-    od_points = np.asarray(get_total_od_points(start_day, end_day))
+def get_od_points_filter_by_hour(start_hour, end_hour):
+    od_points = np.asarray(get_total_od_points())
     (part_od_coord_points, index_lst) = od_points_filter_by_hour(od_points, start_hour, end_hour)  # 过滤出所有在该时间段的 od 点
     return {'od_points': part_od_coord_points.tolist(), 'index_lst': index_lst[0].tolist()}
 
+def get_od_points_filter_by_day_and_hour(start_hour, end_hour, start_day, end_day):
+    od_points = np.asarray(get_total_od_points_by_day())
+    (part_od_coord_points, index_lst) = od_points_filter_by_hour(od_points, start_hour, end_hour)  # 过滤出所有在该时间段的 od 点
+    return {'od_points': part_od_coord_points.tolist(), 'index_lst': index_lst[0].tolist()}
+
+def get_total_od_points_by_day(start_day, end_day):
+    start_time = datetime.now()
+    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
+        od_points = pickle.loads(file.read())
+    print('读取文件结束，用时: ', (datetime.now() - start_time))
+    # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556
+    res = []
+    for (idx, od) in enumerate(od_points):
+        res.append(od.tolist())
+    return res
 
 if __name__ == '__main__':
     # print('开始读取OD点')
