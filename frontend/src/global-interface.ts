@@ -12,6 +12,7 @@ export interface GlobalState {
   forceTreeNodes: ForceNode,
   selectedODIdxs: number[],
   selectedClusterIdxs: number[],
+  cidCenterMap: Map<number, [number, number]>,  // <簇id, [lon, lat]>，簇中心点坐标
 }
 
 export type ForceLink = Array<{source: number, target: number, isFake?: boolean}>;

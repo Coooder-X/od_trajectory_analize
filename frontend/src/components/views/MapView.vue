@@ -120,7 +120,7 @@ export default defineComponent({
 
     const doClustering = () => {
       console.log('doClustering')
-      const [startHour, endHour] = store.state.global.timeScope;
+      const [startHour, endHour] = store.getters.timeScope;
       clusteringConfigVisible.value = !clusteringConfigVisible.value
       store.dispatch('getClusteringResult', {params: {k: k.value, theta: theta.value, startHour, endHour}});
       modifyMode(MapMode.CLUSTERED);

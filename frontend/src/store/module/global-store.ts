@@ -4,9 +4,9 @@ import { ActionContext } from 'vuex';
 
 const initState: GlobalState = {
   pointsExist: false,
-  timeScope: [1, 2],
-  dateScope: [8, 10],
-  odPoints: [],
+  dateScope: [1, 2],
+  timeScope: [8, 10],
+  odPoints: [], //  地图上存在的所有 od 点，因此并不是全量的数据。//在后端中，目前全量数据是从一天的 od 点中取一部分点
   odIndexList: [],
   pointClusterMap: new Map(),
   clusterPointMap: new Map(),
@@ -16,6 +16,7 @@ const initState: GlobalState = {
   forceTreeNodes: [],
   selectedODIdxs: [],
   selectedClusterIdxs: [],
+  cidCenterMap: new Map(),
 }
 
 const globalModule = {
@@ -24,6 +25,9 @@ const globalModule = {
     ...initState
   },
   mutations: {
+    setTimeScope(state: GlobalState, payload: [number, number]) {
+      state.timeScope = payload;
+    },
     setAllODPoints(state: GlobalState, payload: Array<[]>) {
       state.odPoints = payload;
       console.log('set points', state.odPoints)
@@ -70,6 +74,12 @@ const globalModule = {
     setSelectedClusterIdxs(state: GlobalState, payload: number[]) {
       state.selectedClusterIdxs = payload;
     },
+    setCidCenterMap(state: GlobalState, payload: {[key: string]: [number, number]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key);
+        state.cidCenterMap.set(k, payload[key]);
+      });
+    },
   },
   actions: {
     getAllODPoints(context: ActionContext<{}, {}>) {
@@ -114,16 +124,20 @@ const globalModule = {
         context.commit('setForceTreeNodes', res.data['force_nodes']);
       });
     },
+    getCidCenterMap(context: ActionContext<{}, {}>, params: any) {
+      console.log('getCidCenterMap')
+      axios({
+        method: 'post',
+        url: '/api/getClusterCenter',
+        data: params,
+      }).then((res) => {
+        console.log('getCidCenterMap gettget')
+        context.commit('setCidCenterMap', res.data['cid_center_coord_dict']);
+      });
+    },
     // createCategory(context: ActionContext<{}, {}>, params: any) {
     //   axios.post('/api/dataset/createCategory', params);
     // },
-    // getFile(context: ActionContext<{}, {}>, params: any) {
-    //   console.log('getFile params', params);
-    //   axios.get('/api/dataset/getFile', params).then((res) => {
-    //     console.log('getFile data', res.data);
-    //     context.commit('getFile', res.data);
-    //   });
-    // }
   },
   getters: {
     pointsExist: (state: GlobalState) => {
@@ -162,6 +176,9 @@ const globalModule = {
     },
     selectedClusterIdxs: (state: GlobalState) => {
       return state.selectedClusterIdxs;
+    },
+    cidCenterMap: (state: GlobalState) => {
+      return state.cidCenterMap;
     },
   },
   modules: {},

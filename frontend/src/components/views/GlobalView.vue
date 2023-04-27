@@ -114,6 +114,7 @@ export default defineComponent({
       console.log(event)
       timeScope.value[0] = event[0];
       timeScope.value[1] = event[1];
+      store.commit('setTimeScope', timeScope.value);
       store.dispatch('getODPointsFilterByHour', {params: {startHour: timeScope.value[0], endHour: timeScope.value[1]}});
     }
 
