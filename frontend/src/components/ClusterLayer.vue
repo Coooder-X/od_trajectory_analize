@@ -87,8 +87,8 @@ export default defineComponent({
     watch([clusterLayerSvg, cidCenterMap], () => {
       console.log('watch cidCenterMap', cidCenterMap)
       if(cidCenterMap.value && clusterLayerSvg.value) {
-        drawODPath(cidCenterMap.value); //  绘制框选后，簇之间的 path
-        updateArrow();
+        // drawODPath(cidCenterMap.value); //  绘制框选后，簇之间的 path
+        // updateArrow();
       }
     }, {deep: true});
 
@@ -106,6 +106,8 @@ export default defineComponent({
 
     //  初始化 od 点图层 svg
     const initLayer = () => {
+      d3.selectAll('svg').remove();
+      clusterLayerSvg.value = null;
       const container = props.map.getCanvasContainer();
       const svg = d3
         .select(container)
@@ -152,7 +154,7 @@ export default defineComponent({
           return "#ff3636"
         });
 
-      drawODPath(cidCenterMap.value); //  绘制框选后，簇之间的 path
+      // drawODPath(cidCenterMap.value); //  绘制框选后，簇之间的 path
 
       // Render method redraws circles
       function render() {
@@ -164,8 +166,8 @@ export default defineComponent({
             return project(d).y;
           });
 
-        moveOdPath(); //  和上面 dots 一样，拖动地图时需要更新 path 的位置，同步移动，同时绑定箭头。
-        updateArrow();
+        // moveOdPath(); //  和上面 dots 一样，拖动地图时需要更新 path 的位置，同步移动，同时绑定箭头。
+        // updateArrow();
       }
 
       // Call render method, and whenever map changes

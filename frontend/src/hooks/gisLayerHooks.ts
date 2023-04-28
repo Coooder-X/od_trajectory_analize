@@ -44,6 +44,7 @@ export function useBrush({
     if(clusterLayerSvg.value) {
       // console.log([clusterLayerSvg.value.attr('width'), clusterLayerSvg.value.attr('height')])
       odCircles = clusterLayerSvg.value.selectAll("circle")
+      console.log('点个数 =', odCircles.size())
       brush = d3.brush()
         .extent([[0, 0], [800, 465]])  //  [clusterLayerSvg.value.attr('width'), clusterLayerSvg.value.attr('height')])
         .on("brush", brushed); // 设置刷取事件的回调函数
