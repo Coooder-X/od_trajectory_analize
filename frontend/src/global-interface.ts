@@ -7,7 +7,8 @@ export interface GlobalState {
   pointClusterMap: Map<number, number>,
   clusterPointMap: Map<number, number[]>,
   inAdjTable: Map<number, number[]>,  //  存储 <D点簇id，[O点簇id]>
-  outAdjTable: Map<number, number[]>,  //  存储 <O点簇id，[D点簇id]>
+  outAdjTable: Map<number, number[]>,  //  存储 <O点簇id，[D点簇id]> (全量)
+  filteredOutAdjTable: Map<number, number[]>, //  筛选过
   forceTreeLinks: ForceLink,
   forceTreeNodes: ForceNode,
   selectedODIdxs: number[],

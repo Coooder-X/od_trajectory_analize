@@ -12,6 +12,7 @@ const initState: GlobalState = {
   clusterPointMap: new Map(),
   inAdjTable: new Map(),
   outAdjTable: new Map(),
+  filteredOutAdjTable: new Map(), //  刷选过滤后的 出边邻接表
   forceTreeLinks: [],
   forceTreeNodes: [],
   selectedODIdxs: [],
@@ -60,6 +61,12 @@ const globalModule = {
       Object.keys(payload).forEach((key: string) => {
         let k = parseInt(key);
         state.outAdjTable.set(k, payload[key]);
+      });
+    },
+    setFilteredOutAdjTable(state: GlobalState, payload: {[key: string]: number[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key);
+        state.filteredOutAdjTable.set(k, payload[key]);
       });
     },
     setForceTreeLinks(state: GlobalState, payload: ForceLink) {
@@ -122,6 +129,7 @@ const globalModule = {
         console.log(res)
         context.commit('setForceTreeLinks', res.data['force_edges']);
         context.commit('setForceTreeNodes', res.data['force_nodes']);
+        context.commit('setFilteredOutAdjTable', res.data['filtered_adj_dict']);
       });
     },
     getCidCenterMap(context: ActionContext<{}, {}>, params: any) {
@@ -164,6 +172,9 @@ const globalModule = {
     },
     outAdjTable: (state: GlobalState) => {
       return state.outAdjTable;
+    },
+    filteredOutAdjTable: (state: GlobalState) => {
+      return state.filteredOutAdjTable;
     },
     forceTreeLinks: (state: GlobalState) => {
       return state.forceTreeLinks;
