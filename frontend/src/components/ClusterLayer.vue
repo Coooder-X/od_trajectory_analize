@@ -14,7 +14,7 @@ import { Map, PointLike } from 'mapbox-gl/index'
 import { MapMode } from '@/map-interface'
 import * as d3 from 'd3';
 import {colorTable} from '@/color-pool'
-import { useBrush, debounce, useDrawODPath, useGetOdCircles } from "@/hooks/gisLayerHooks";
+import { useBrush, debounce, useDrawODPath } from "@/hooks/gisLayerHooks";
 
 export default defineComponent({
   components: {},
@@ -36,7 +36,6 @@ export default defineComponent({
     let cidCenterMap = computed(() => getters.cidCenterMap);
     let odIndexList = computed(() => getters.odIndexList);
     const mapMode = computed(() => getters.mapMode);
-    const { odCircles } = useGetOdCircles();
 
     const project = (d: [number, number]) => {
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));

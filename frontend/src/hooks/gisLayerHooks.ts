@@ -167,44 +167,44 @@ export function debounce(callback: Function, delay: number) {
 }
 
 //  获得 gis 中所有 OD 点的 svg d3 选择集的 hooks
-export function useGetOdCircles() {
-  const store = useStore();
-  const { getters } = store;
-  const odCircles: Ref<any> = ref(null);
-  const clusterLayerSvg: ComputedRef<any | null> = computed(
-    () => getters.clusterLayerSvg
-  );
+// export function useGetOdCircles() {
+//   const store = useStore();
+//   const { getters } = store;
+//   const odCircles: Ref<any> = ref(null);
+//   const clusterLayerSvg: ComputedRef<any | null> = computed(
+//     () => getters.clusterLayerSvg
+//   );
 
-  watch(clusterLayerSvg, () => {
-    if(clusterLayerSvg.value) {
-      odCircles.value = clusterLayerSvg.value.selectAll("circle")
-    }
-  }, {deep: false, immediate: true});
+//   watch(clusterLayerSvg, () => {
+//     if(clusterLayerSvg.value) {
+//       odCircles.value = clusterLayerSvg.value.selectAll("circle")
+//     }
+//   }, {deep: false, immediate: true});
 
-  return {
-    odCircles,
-  };
-}
+//   return {
+//     odCircles,
+//   };
+// }
 
 //  
-export function useGetCircleByCluster(odCircles: Ref<any>) {
+export function useGetCircleByCluster() {
   const store = useStore();
   const { getters } = store;
-  // const { odCircles } = useGetOdCircles();
   const odIndexList = computed(() => getters.odIndexList);
   const pointClusterMap = computed(() => getters.pointClusterMap);
 
   //  输入簇 id，得到一个 d3 选择集，包含在这个簇中的 OD 点 svg
-  function getCircleByClusterId(clusterId: number) {
-    let result: Ref<any> = ref(null);
-    result.value = odCircles.value.filter(function(d: any, i: number) {
+  function getCircleByClusterId(odCircles: any, clusterId: number) {
+    // let result: Ref<any> = ref(null);
+    // result.value = 
+    return odCircles.filter(function(d: any, i: number) {
       const index = odIndexList.value[i];
       if (pointClusterMap.value.get(index) === clusterId) {
         return true;
       }
     });
-    console.log(result)
-    return result;
+    // console.log(result)
+    // return result;
   }
 
   return {

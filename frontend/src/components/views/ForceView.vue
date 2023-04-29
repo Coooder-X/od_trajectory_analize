@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, onMounted, watch, ComputedRef } from "vue";
+import { defineComponent, computed, onMounted, watch, ComputedRef, nextTick } from "vue";
 import { Ref, ref } from "vue";
 import { useStore } from "vuex";
 import * as d3 from "d3";
@@ -28,16 +28,21 @@ export default defineComponent({
     const { getters } = store;
     const forceSvg: Ref<any | null> = ref(null);
     const groupSvg: Ref<any | null> = ref(null);
+    let forceSimulation: any;
     const forceTreeLinks: ComputedRef<ForceLink> = computed(
       () => getters.forceTreeLinks
     );
     const forceTreeNodes: ComputedRef<ForceNode> = computed(
       () => getters.forceTreeNodes
     );
+    const odIndexList = computed(() => getters.odIndexList);
+    const pointClusterMap = computed(() => getters.pointClusterMap);
     const { getCircleByClusterId } = useGetCircleByCluster();
+    const svgCircles: Ref<any> = ref(null);
+    const clusterLayerSvg = computed(() => getters.clusterLayerSvg);
 
     onMounted(() => {
-      initLayer();
+      // initLayer();
     });
 
     watch([forceTreeLinks, forceTreeNodes], () => {
@@ -47,7 +52,27 @@ export default defineComponent({
       }
     });
 
+    const onMouseOver = function(event: 'over' | 'out') {
+      let isOver = (event === 'over');
+      let radius = isOver? 6 : 4;
+      return function(_: MouseEvent, d: any) {
+        d3.select(this).attr('r', radius).style('cursor', isOver? 'pointer':'default');
+        const {name} = d;
+        const [sourceCid, targetCid] = name.split('_').map(Number);
+        const odCircles = clusterLayerSvg.value.selectAll("circle")
+        const c1 = getCircleByClusterId(odCircles, sourceCid);
+        const c2 = getCircleByClusterId(odCircles, targetCid);
+        console.log('from-to =', name);
+        c1.attr('r', radius);
+        c2.attr('r', radius);
+      }
+    }
+
     const initLayer = () => {
+      if(forceSimulation) {
+        forceSimulation.stop();
+        forceSimulation = null;
+      }
       const container = document.getElementById("force");
       if(forceSvg.value) {
         forceSvg.value = d3.select(container).selectAll("svg").remove();
@@ -88,7 +113,7 @@ export default defineComponent({
         .domain(d3.range(nodes.length))
         .range(d3.schemeCategory10);
 
-      const forceSimulation = d3
+      forceSimulation = d3
         .forceSimulation()
         .force(
           "link",
@@ -141,7 +166,9 @@ export default defineComponent({
         .attr("fill", function (d: any, i: number) {
           return colorScale(i);
         })
-        .style("stroke", "none");
+        .style("stroke", function (d: any, i: number) {
+          return colorScale(i);
+        });
 
       //绘制边
       const links = groupSvg.value
@@ -177,39 +204,40 @@ export default defineComponent({
           d3.drag().on("start", started).on("drag", dragged).on("end", ended)
         );
 
-      //绘制节点
-      gs.append("circle")
+      //绘制节点,TODO: 颜色改为数据获取
+      svgCircles.value = gs.append("circle")
         .attr("r", 4)
         .attr("fill", function (d: any, i: number) {
           return colorScale(i);
         })
-        //  hover 效果
-        .on('mouseover', function(event: MouseEvent, d: any) {
-          d3.select(this).attr('r', 6).style('cursor', 'pointer')
-          const {name} = d;
-          const [sourceCid, targetCid] = name.split('_').map(Number);
-          const c1 = getCircleByClusterId(sourceCid);
-          const c2 = getCircleByClusterId(targetCid);
-          console.log('from-to =', name);
-          c1.attr('r', 8)
-          c2.attr('r', 8)
-        })
-        .on('mouseout', function(event: MouseEvent, d: any) {
-          d3.select(this).attr('r', 4).style('cursor', 'default')
-          const {name} = d;
-          const [sourceCid, targetCid] = name.split('_').map(Number);
-          const c1 = getCircleByClusterId(sourceCid);
-          const c2 = getCircleByClusterId(targetCid);
-          c1.attr('r', 4)
-          c2.attr('r', 4)
-        })
+        .on('mouseover', onMouseOver('over'))
+        .on('mouseout', onMouseOver('out'))
         .on('click', function(event: MouseEvent, d: any) {
           console.log(d)
           const {name} = d;
           const [sourceCid, targetCid] = name.split('_').map(Number);
-          const clusterCircles: any = getCircleByClusterId(sourceCid);
-          clusterCircles.attr('fill', 'red').attr('r', 10)
+          const odCircles = clusterLayerSvg.value.selectAll("circle")
+          const c1 = getCircleByClusterId(odCircles, sourceCid);
+          const c2 = getCircleByClusterId(odCircles, targetCid);
+          // c1.value.attr('r', 10)
+
+          // const line = d3.line()
+          //   .x((da: any) => da.x)
+          //   .y((da: any) => da.y);
+
+          // const svg = getters.clusterLayerSvg;
+
+          // let c11 = d3.select(c1.value.node())
+          // let c21 = d3.select(c2.value.node())
+          // let paths = [{x: c11.attr('cx'), y: c11.attr('cy')}, 
+          //   {x: c21.attr('cx'), y: c21.attr('cy')}]
+          // console.log(paths)
+          // svg.append("path")
+          //   .datum(paths)
+          //   .attr("d", line)
+          //   .attr('stroke-width', 5)
         });
+
       //文字
       // gs.append("text")
       //   .attr("x", -10)
