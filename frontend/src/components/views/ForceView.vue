@@ -3,6 +3,10 @@
     <view-header viewId="C" title="力导向视图"></view-header>
     <div id="force" ref="forceDivElement" class="force-content">
     </div>
+    <polar-heat-map
+      v-if="headMapVisible"
+      :svg="forceNodeSvg">
+    </polar-heat-map>
   </div>
 </template>
 
@@ -14,10 +18,12 @@ import * as d3 from "d3";
 import ViewHeader from "../ViewHeader.vue";
 import { ForceLink, ForceNode } from "@/global-interface";
 import { useGetCircleByCluster } from "@/hooks/gisLayerHooks";
+import PolarHeatMap from "../PolarHeatMap.vue";
 
 export default defineComponent({
   components: {
     ViewHeader,
+    PolarHeatMap,
   },
   name: "ForceView",
   props: {},
@@ -40,6 +46,8 @@ export default defineComponent({
     const { getCircleByClusterId } = useGetCircleByCluster();
     const svgCircles: Ref<any> = ref(null);
     const clusterLayerSvg = computed(() => getters.clusterLayerSvg);
+    const headMapVisible: Ref<Boolean> = ref(false);
+    const forceNodeSvg: Ref<any | null> = ref(null);
 
     onMounted(() => {
       // initLayer();
@@ -56,7 +64,8 @@ export default defineComponent({
       let isOver = (event === 'over');
       let radius = isOver? 6 : 4;
       return function(_: MouseEvent, d: any) {
-        d3.select(this).attr('r', radius).style('cursor', isOver? 'pointer':'default');
+        const self = d3.select(this);
+        self.attr('r', radius).style('cursor', isOver? 'pointer':'default');
         const {name} = d;
         const [sourceCid, targetCid] = name.split('_').map(Number);
         const odCircles = clusterLayerSvg.value.selectAll("circle")
@@ -65,6 +74,37 @@ export default defineComponent({
         console.log('from-to =', name);
         c1.attr('r', radius);
         c2.attr('r', radius);
+      }
+    }
+
+    const onMouseClick = function(event: 'open' | 'close') {
+      let isOpen = (event === 'open');
+      let radius = isOpen? 6 : 4;
+      return function(_: MouseEvent, d: any) {
+        const self = d3.select(this);
+        const odCircles = clusterLayerSvg.value.selectAll("circle")
+        if (isOpen) {
+          //  处理地图点的高亮
+          const {name} = d;
+          const [sourceCid, targetCid] = name.split('_').map(Number);
+          const c1 = getCircleByClusterId(odCircles, sourceCid);
+          const c2 = getCircleByClusterId(odCircles, targetCid);
+          console.log('from-to =', name);
+          c1.attr('r', radius);
+          c2.attr('r', radius);
+          //  处理极坐标热力图的显示
+          // const regex = /translate\((\d+\.\d+),(\d+\.\d+)\)/;
+          // const [__, x, y] = d3.select(self.node().parentNode).attr('transform').match(regex);
+          forceNodeSvg.value = d3.select(self.node().parentNode);
+        } else {
+          odCircles.attr('r', 4);
+          forceNodeSvg.value = null;
+        }
+        _.stopPropagation();
+        if (isOpen && headMapVisible.value) {
+          headMapVisible.value = false;
+        }
+        headMapVisible.value = isOpen;
       }
     }
 
@@ -84,7 +124,8 @@ export default defineComponent({
         .attr("width", `${width}px`)
         .attr("height", `${height}px`)
         .style("position", "absolute")
-        .style("z-index", 2);
+        .style("z-index", 2)
+        .on('click', onMouseClick('close'));
 
       groupSvg.value = forceSvg.value
         .append("g")
@@ -200,9 +241,9 @@ export default defineComponent({
           const cirY = d.y;
           return "translate(" + cirX + "," + cirY + ")";
         })
-        .call(
-          d3.drag().on("start", started).on("drag", dragged).on("end", ended)
-        );
+        // .call(
+        //   d3.drag().on("start", started).on("drag", dragged).on("end", ended)
+        // );
 
       //绘制节点,TODO: 颜色改为数据获取
       svgCircles.value = gs.append("circle")
@@ -212,31 +253,7 @@ export default defineComponent({
         })
         .on('mouseover', onMouseOver('over'))
         .on('mouseout', onMouseOver('out'))
-        .on('click', function(event: MouseEvent, d: any) {
-          console.log(d)
-          const {name} = d;
-          const [sourceCid, targetCid] = name.split('_').map(Number);
-          const odCircles = clusterLayerSvg.value.selectAll("circle")
-          const c1 = getCircleByClusterId(odCircles, sourceCid);
-          const c2 = getCircleByClusterId(odCircles, targetCid);
-          // c1.value.attr('r', 10)
-
-          // const line = d3.line()
-          //   .x((da: any) => da.x)
-          //   .y((da: any) => da.y);
-
-          // const svg = getters.clusterLayerSvg;
-
-          // let c11 = d3.select(c1.value.node())
-          // let c21 = d3.select(c2.value.node())
-          // let paths = [{x: c11.attr('cx'), y: c11.attr('cy')}, 
-          //   {x: c21.attr('cx'), y: c21.attr('cy')}]
-          // console.log(paths)
-          // svg.append("path")
-          //   .datum(paths)
-          //   .attr("d", line)
-          //   .attr('stroke-width', 5)
-        });
+        .on('click', onMouseClick('open'))
 
       //文字
       // gs.append("text")
@@ -304,7 +321,10 @@ export default defineComponent({
       }
     };
 
-    return {};
+    return {
+      forceNodeSvg,
+      headMapVisible,
+    };
   },
 });
 </script>
