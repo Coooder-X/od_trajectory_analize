@@ -4,6 +4,9 @@
       <global-view class="global-view"></global-view>
       <map-view class="map-view"></map-view>
       <force-view></force-view>
+      <trajectory-view></trajectory-view>
+      <feature-view></feature-view>
+      <result-view></result-view>
     </div>
   </div>
 </template>
@@ -13,6 +16,9 @@ import { defineComponent } from 'vue';
 import MapView from '@/components/views/MapView.vue';
 import GlobalView from '@/components/views/GlobalView.vue'
 import ForceView from '@/components/views/ForceView.vue';
+import TrajectoryView from '@/components/views/TrajectoryView.vue';
+import FeatureView from '@/components/views/FeatureView.vue';
+import ResultView from '@/components/views/ResultView.vue';
 
 export default defineComponent({
   name: 'RootContainer',
@@ -20,6 +26,9 @@ export default defineComponent({
     MapView,
     GlobalView,
     ForceView,
+    TrajectoryView,
+    FeatureView,
+    ResultView,
   },
   setup() {
     
@@ -55,7 +64,7 @@ export default defineComponent({
 }
 
 .main {
-  height: 1000px;
+  height: 1100px;
   width: 100%;
   background-color: rgb(230, 230, 230);
   border-width: 2px;

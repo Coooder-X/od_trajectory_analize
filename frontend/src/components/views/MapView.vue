@@ -1,6 +1,6 @@
 <template>
   <div class="map-view">
-    <view-header viewId="A" title="地图视图"></view-header>
+    <view-header viewId="B" title="地图视图"></view-header>
     <div class="map-view-content">
       <div class="side-bar">
         <div class="side-bar-button" @click="toggleClusterLayer($event)">

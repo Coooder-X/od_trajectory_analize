@@ -4,7 +4,7 @@ import { ActionContext } from 'vuex';
 
 const initState: GlobalState = {
   pointsExist: false,
-  dateScope: [1, 2],
+  dateScope: [0, 1],
   timeScope: [8, 10],
   odPoints: [], //  地图上存在的所有 od 点，因此并不是全量的数据。//在后端中，目前全量数据是从一天的 od 点中取一部分点
   odIndexList: [],
@@ -28,6 +28,9 @@ const globalModule = {
   mutations: {
     setTimeScope(state: GlobalState, payload: [number, number]) {
       state.timeScope = payload;
+    },
+    setDateScope(state: GlobalState, payload: [number, number]) {
+      state.dateScope = payload;
     },
     setAllODPoints(state: GlobalState, payload: Array<[]>) {
       state.odPoints = payload;
@@ -157,6 +160,9 @@ const globalModule = {
     },
     timeScope: (state: GlobalState) => {
       return state.timeScope;
+    },
+    dateScope: (state: GlobalState) => {
+      return state.dateScope;
     },
     pointClusterMap: (state: GlobalState) => {
       return state.pointClusterMap;

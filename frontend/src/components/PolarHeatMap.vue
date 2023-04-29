@@ -20,7 +20,8 @@ export default defineComponent({
     const heatMapGroup: Ref<any> = ref(null);
 
     // 定义颜色比例尺
-    const color = d3.scaleSequential(d3.interpolateViridis).domain([0, 1]); // 假设数据的值在0到1之间
+    const color = d3.scaleSequential(d3.interpolateHcl("white", "red")) // 修改插值函数
+    .domain([0, 1]); // 设置标度域
 
     // 定义角度比例尺
     const angle = d3
@@ -86,7 +87,7 @@ export default defineComponent({
         .attr("y", 0 - 100)
         .attr("text-anchor", "middle")
         .attr("font-size", "18px")
-        .text("极坐标热力图示例");
+        .text("历史OD对热度概论");
 
       // 添加一个图例
       // const legend = props.svg
