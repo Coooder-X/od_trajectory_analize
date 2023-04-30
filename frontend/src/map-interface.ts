@@ -5,6 +5,7 @@ export const MapMode = {
   // HIDE_POINTS: 'hide_points',
   CLUSTERED: 'clustered',
   SELECT: 'select',
+  CHOOSE_POINT: 'choose_point',
 }
 
 export interface MapViewState {

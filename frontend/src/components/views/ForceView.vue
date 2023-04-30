@@ -19,6 +19,7 @@ import ViewHeader from "../ViewHeader.vue";
 import { ForceLink, ForceNode } from "@/global-interface";
 import { useGetCircleByCluster } from "@/hooks/gisLayerHooks";
 import PolarHeatMap from "../PolarHeatMap.vue";
+import { MapMode } from "@/map-interface";
 
 export default defineComponent({
   components: {
@@ -60,6 +61,18 @@ export default defineComponent({
       }
     });
 
+    const toggleShowMapOdPair = (srcCid: number, tgtCid: number, isAdd: boolean) => {
+      //  hover 时让地图视图出现OD对，用 sessionStorate 传递参数
+      store.commit('toggleMapMode', MapMode.CHOOSE_POINT);
+      if (isAdd) {
+        sessionStorage.setItem('odPair', JSON.stringify({
+          srcCid, tgtCid
+        }));
+      } else {
+        sessionStorage.removeItem('odPair');
+      }
+    }
+
     const onMouseOver = function(event: 'over' | 'out') {
       let isOver = (event === 'over');
       let radius = isOver? 6 : 4;
@@ -68,6 +81,7 @@ export default defineComponent({
         self.attr('r', radius).style('cursor', isOver? 'pointer':'default');
         const {name} = d;
         const [sourceCid, targetCid] = name.split('_').map(Number);
+        toggleShowMapOdPair(sourceCid, targetCid, isOver);
         const odCircles = clusterLayerSvg.value.selectAll("circle")
         const c1 = getCircleByClusterId(odCircles, sourceCid);
         const c2 = getCircleByClusterId(odCircles, targetCid);

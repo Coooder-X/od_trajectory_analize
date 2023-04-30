@@ -91,6 +91,13 @@ export default defineComponent({
       }
     }, {deep: true});
 
+    watch([mapMode], () => {
+      if(cidCenterMap.value && clusterLayerSvg.value) {
+        drawODPath(cidCenterMap.value); //  hover力导向节点后，簇之间的 path
+        updateArrow();
+      }
+    }, {deep: true});
+
     //  监听 od 点数据变化，如果时间范围改变，则重新绘制 od 点
     watch(odPoints, (newValue: number[][], oldValue: number[][]) => {
       if(!clusterLayerSvg.value) {
@@ -153,7 +160,7 @@ export default defineComponent({
           return "#ff3636"
         });
 
-      // drawODPath(cidCenterMap.value); //  绘制框选后，簇之间的 path
+      drawODPath(cidCenterMap.value); //  hover力导向节点后，簇之间的 path
 
       // Render method redraws circles
       function render() {
@@ -165,8 +172,8 @@ export default defineComponent({
             return project(d).y;
           });
 
-        // moveOdPath(); //  和上面 dots 一样，拖动地图时需要更新 path 的位置，同步移动，同时绑定箭头。
-        // updateArrow();
+        moveOdPath(); //  和上面 dots 一样，拖动地图时需要更新 path 的位置，同步移动，同时绑定箭头。
+        updateArrow();
       }
 
       // Call render method, and whenever map changes

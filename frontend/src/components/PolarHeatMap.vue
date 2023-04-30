@@ -87,7 +87,7 @@ export default defineComponent({
         .attr("y", 0 - 100)
         .attr("text-anchor", "middle")
         .attr("font-size", "18px")
-        .text("历史OD对热度概论");
+        .text("历史OD对热度概览");
 
       // 添加一个图例
       // const legend = props.svg
