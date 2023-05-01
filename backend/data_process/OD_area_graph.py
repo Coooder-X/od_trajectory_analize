@@ -13,47 +13,50 @@ from graph_process.Graph import Graph
 from graph_process.Point import Point
 from test import adj, cids
 
+from data_process.od_pair_process import get_total_od_points
+
 
 def build_od_graph(point_cluster_dict: dict, total_od_points, index_lst: list):
     """
     2 个作用：
     1、生成适用于力导向布局的 json 邻接表和节点数组
     2、生成 map<int, set<int>> 形式的邻接表，用于传给前端 store 使用（如刷选功能）
-    :param point_cluster_dict
+    :param point_cluster_dict: 根据时间过滤后的，当前时间段内的
     :param total_od_points [[lon, lat, time, trj_id, flag], [], ...] trj_id 是轨迹id，flag==0 表示 O 点，1表示 D 点
     :param index_lst: od_points 【全量】 od 点对应的索引
     :return json_adj_table: 元素形式为 {'source': st, 'target': ed} 的数组，st、ed 为簇索引
     :return json_nodes: 数组，每个元素形式为 {'name': i}, i 是 od 点在全量 od 点中的索引
     :return adj_table: 邻接表，map<int, set<int>> 形式的，存储簇索引标识的簇之间的邻接关系
     """
-    json_adj_table = []
-    json_nodes = set()
     out_adj_table = {}
     in_adj_table = {}
-    for i in index_lst:
-        json_nodes.add(point_cluster_dict[i])
-        # json_nodes.append({'name': i})
-        for j in index_lst:
-            cid_i, cid_j = point_cluster_dict[i], point_cluster_dict[j]
-            if total_od_points[i][3] == total_od_points[j][3] and cid_i != cid_j:
-                (st, ed) = (cid_i, cid_j) if total_od_points[i][4] == 0 else (cid_j, cid_i)
-                json_adj_table.append({'source': st, 'target': ed})
-                if st not in out_adj_table:
-                    out_adj_table[st] = set()
-                out_adj_table[st].add(ed)
-                if ed not in in_adj_table:
-                    in_adj_table[ed] = set()
-                in_adj_table[ed].add(st)
+    for pid in index_lst:
+        od = total_od_points[pid]  # 当前 od 点具体数据
+        trj_id = od[4]  # 当前 od 是 O 还是 D 点
+        if trj_id == 0:  # 如果当前 od 点是 O 点，则找到对应的 D 点所在簇，更新 出边邻接表
+            src_cid = point_cluster_dict[pid]
+            if pid + 1 >= len(total_od_points) or pid + 1 not in point_cluster_dict:  # 若不存在 pid+1 或这个 D 点所在簇不在当前时间段内出现，则跳过
+                continue
+            if src_cid not in out_adj_table:
+                out_adj_table[src_cid] = set()
+            out_adj_table[src_cid].add(point_cluster_dict[pid + 1])
+        else:  # 如果当前 od 点是 D 点，则找到对应的 O 点所在簇，更新 入边邻接表
+            tgt_cid = point_cluster_dict[pid]
+            if pid - 1 < 0 or pid - 1 not in point_cluster_dict:  # 若不存在 pid-1 或这个 O 点所在簇不在当前时间段内出现，则跳过
+                continue
+            if tgt_cid not in in_adj_table:
+                in_adj_table[tgt_cid] = set()
+            in_adj_table[tgt_cid].add(point_cluster_dict[pid - 1])
+
     new_out_adj_table = {}
     new_in_adj_table = {}
-    new_json_nodes = []
-    for cid in json_nodes:
-        new_json_nodes.append({'id': cid})
+
     for k in out_adj_table:
         new_out_adj_table[k] = list(out_adj_table[k])
     for k in in_adj_table:
         new_in_adj_table[k] = list(in_adj_table[k])
-    return json_adj_table, new_json_nodes, new_out_adj_table, new_in_adj_table
+    return new_out_adj_table, new_in_adj_table
+    '''json_adj_table, new_json_nodes,'''
 
 
 def get_line_graph_by_selected_cluster(selected_cluster_ids, out_adj_dict):
@@ -121,6 +124,29 @@ def get_line_graph_by_selected_cluster(selected_cluster_ids, out_adj_dict):
         p1, p2 = edge[0], edge[1]
         force_edges.append({ 'source': f'{p1[0]}_{p1[1]}', 'target': f'{p2[0]}_{p2[1]}' })
     return force_nodes, force_edges, filtered_adj_dict
+
+
+def get_cluster_center_coord(cluster_point_dict: dict, selected_cluster_idxs: list):
+    """
+    :param cluster_point_dict 簇id 到 OD点 id数组 的映射
+    :param selected_cluster_idxs: 选择到的所有簇的 id
+    :return cid_center_coord_dict: Map<簇id, [lon, lat]> 的映射，存储簇中心点的坐标
+    """
+    cid_center_coord_dict = {}
+    # total_od_points [[lon, lat, time, trj_id, flag], [], ...] trj_id 是轨迹id，flag==0 表示 O 点，1表示 D 点
+    total_od_points = get_total_od_points()  # 当天全量的 od 点数据 TODO：于淼的数据处理完成后，从那个接口拿
+
+    for cid in selected_cluster_idxs:
+        p_idxs = cluster_point_dict[cid]  # 这里是根据全量的簇内点计算的中心点，而不是框选出的当前时间段的！！！
+        n = len(p_idxs)
+        avg_lon, avg_lat = 0, 0
+        for pid in p_idxs:
+            lon, lat = total_od_points[pid][0], total_od_points[pid][1]
+            avg_lon += lon / n
+            avg_lat += lat / n
+        cid_center_coord_dict[cid] = [avg_lon, avg_lat]
+
+    return cid_center_coord_dict
 
 
 if __name__ == '__main__':
