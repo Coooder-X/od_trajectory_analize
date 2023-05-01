@@ -4,18 +4,20 @@ import { ActionContext } from 'vuex';
 
 const initState: GlobalState = {
   pointsExist: false,
-  timeScope: [1, 2],
-  dateScope: [8, 10],
-  odPoints: [],
+  dateScope: [0, 1],
+  timeScope: [8, 10],
+  odPoints: [], //  地图上存在的所有 od 点，因此并不是全量的数据。//在后端中，目前全量数据是从一天的 od 点中取一部分点
   odIndexList: [],
   pointClusterMap: new Map(),
   clusterPointMap: new Map(),
   inAdjTable: new Map(),
   outAdjTable: new Map(),
+  filteredOutAdjTable: new Map(), //  刷选过滤后的 出边邻接表
   forceTreeLinks: [],
   forceTreeNodes: [],
   selectedODIdxs: [],
   selectedClusterIdxs: [],
+  cidCenterMap: new Map(),
 }
 
 const globalModule = {
@@ -24,6 +26,12 @@ const globalModule = {
     ...initState
   },
   mutations: {
+    setTimeScope(state: GlobalState, payload: [number, number]) {
+      state.timeScope = payload;
+    },
+    setDateScope(state: GlobalState, payload: [number, number]) {
+      state.dateScope = payload;
+    },
     setAllODPoints(state: GlobalState, payload: Array<[]>) {
       state.odPoints = payload;
       console.log('set points', state.odPoints)
@@ -58,6 +66,12 @@ const globalModule = {
         state.outAdjTable.set(k, payload[key]);
       });
     },
+    setFilteredOutAdjTable(state: GlobalState, payload: {[key: string]: number[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key);
+        state.filteredOutAdjTable.set(k, payload[key]);
+      });
+    },
     setForceTreeLinks(state: GlobalState, payload: ForceLink) {
       state.forceTreeLinks = payload;
     },
@@ -69,6 +83,12 @@ const globalModule = {
     },
     setSelectedClusterIdxs(state: GlobalState, payload: number[]) {
       state.selectedClusterIdxs = payload;
+    },
+    setCidCenterMap(state: GlobalState, payload: {[key: string]: [number, number]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key);
+        state.cidCenterMap.set(k, payload[key]);
+      });
     },
   },
   actions: {
@@ -112,18 +132,23 @@ const globalModule = {
         console.log(res)
         context.commit('setForceTreeLinks', res.data['force_edges']);
         context.commit('setForceTreeNodes', res.data['force_nodes']);
+        context.commit('setFilteredOutAdjTable', res.data['filtered_adj_dict']);
+      });
+    },
+    getCidCenterMap(context: ActionContext<{}, {}>, params: any) {
+      console.log('getCidCenterMap')
+      axios({
+        method: 'post',
+        url: '/api/getClusterCenter',
+        data: params,
+      }).then((res) => {
+        console.log('getCidCenterMap gettget')
+        context.commit('setCidCenterMap', res.data['cid_center_coord_dict']);
       });
     },
     // createCategory(context: ActionContext<{}, {}>, params: any) {
     //   axios.post('/api/dataset/createCategory', params);
     // },
-    // getFile(context: ActionContext<{}, {}>, params: any) {
-    //   console.log('getFile params', params);
-    //   axios.get('/api/dataset/getFile', params).then((res) => {
-    //     console.log('getFile data', res.data);
-    //     context.commit('getFile', res.data);
-    //   });
-    // }
   },
   getters: {
     pointsExist: (state: GlobalState) => {
@@ -135,6 +160,9 @@ const globalModule = {
     },
     timeScope: (state: GlobalState) => {
       return state.timeScope;
+    },
+    dateScope: (state: GlobalState) => {
+      return state.dateScope;
     },
     pointClusterMap: (state: GlobalState) => {
       return state.pointClusterMap;
@@ -151,6 +179,9 @@ const globalModule = {
     outAdjTable: (state: GlobalState) => {
       return state.outAdjTable;
     },
+    filteredOutAdjTable: (state: GlobalState) => {
+      return state.filteredOutAdjTable;
+    },
     forceTreeLinks: (state: GlobalState) => {
       return state.forceTreeLinks;
     },
@@ -162,6 +193,9 @@ const globalModule = {
     },
     selectedClusterIdxs: (state: GlobalState) => {
       return state.selectedClusterIdxs;
+    },
+    cidCenterMap: (state: GlobalState) => {
+      return state.cidCenterMap;
     },
   },
   modules: {},
