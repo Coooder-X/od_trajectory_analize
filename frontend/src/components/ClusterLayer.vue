@@ -84,14 +84,6 @@ export default defineComponent({
       }, 1000)
     );
 
-    watch([clusterLayerSvg, cidCenterMap], () => {
-      console.log('watch cidCenterMap', cidCenterMap)
-      if(cidCenterMap.value && clusterLayerSvg.value) {
-        // drawODPath(cidCenterMap.value); //  绘制框选后，簇之间的 path
-        // updateArrow();
-      }
-    }, {deep: true});
-
     watch([mapMode], () => {
       if(cidCenterMap.value && clusterLayerSvg.value) {
         drawODPath(cidCenterMap.value); //  hover力导向节点后，簇之间的 path

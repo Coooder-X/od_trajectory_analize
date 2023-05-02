@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ActionContext } from 'vuex';
 
 const initState: MapViewState = {
+  map: null,
   clusterLayerSvg: null,
   odLayerSvg: null,
   trjLayerSvg: null,
@@ -18,6 +19,9 @@ const mapModule = {
     ...initState
   },
   mutations: {
+    setMap(state: MapViewState, payload: any) {
+      state.map = payload;
+    },
     setClusterLayerSvg(state: MapViewState, payload: SVGAElement) {
       state.clusterLayerSvg = payload;
     },
@@ -55,6 +59,9 @@ const mapModule = {
     },
     clusterLayerSvg: (state: MapViewState) => {
       return state.clusterLayerSvg;
+    },
+    map: (state: MapViewState) => {
+      return state.map;
     },
   },
   modules: {},

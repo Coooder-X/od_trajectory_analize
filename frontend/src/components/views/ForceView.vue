@@ -22,6 +22,10 @@ import { useGetCircleByCluster } from "@/hooks/gisLayerHooks";
 import PolarHeatMap from "../PolarHeatMap.vue";
 import PoiPanel from "../PoiPanel.vue";
 import { MapMode } from "@/map-interface";
+import { colorTable } from "@/color-pool";
+import { calLenColor, calNodeColor } from "@/utils";
+
+const StrokeWidth = 3;
 
 export default defineComponent({
   components: {
@@ -46,13 +50,16 @@ export default defineComponent({
       () => getters.forceTreeNodes
     );
     const odIndexList = computed(() => getters.odIndexList);
-    const pointClusterMap = computed(() => getters.pointClusterMap);
+    const odPoints = computed(() => getters.odPoints);
+    const cidCenterMap = computed(() => getters.cidCenterMap);
+    const clusterPointMap = computed(() => getters.clusterPointMap);
     const { getCircleByClusterId } = useGetCircleByCluster();
     const svgCircles: Ref<any> = ref(null);
     const clusterLayerSvg = computed(() => getters.clusterLayerSvg);
     const headMapVisible: Ref<Boolean> = ref(false);
     const poiPanelVisible: Ref<Boolean> = ref(false);
     const forceNodeSvg: Ref<any | null> = ref(null);
+    const map = computed(() => getters.map);
 
     watch([forceTreeLinks, forceTreeNodes], () => {
       if(forceTreeNodes && forceTreeLinks) {
@@ -76,25 +83,36 @@ export default defineComponent({
     const onMouseOverLink = (event: 'over' | 'out') => {
       let isOver = (event === 'over');
       let radius = isOver? 6 : 4;
-      let strokeWidth = isOver? 3.5 : 2;
+      let strokeWidth = isOver? StrokeWidth * 1.5 : StrokeWidth;
       return function(_: MouseEvent, d: any) {
         _.stopPropagation();
         d3.select(this)
           .attr('stroke-width', strokeWidth)
           .style('cursor', isOver? 'pointer':'default');
+
+        //  联动地图视图的簇高亮
         const {source} = d;
         const transCid: number = parseInt(source.name.split('_')[1]);
         const odCircles = clusterLayerSvg.value.selectAll("circle")
         const c = getCircleByClusterId(odCircles, transCid);
         c.attr('r', radius);
+
+        //  将和 hover 到的边代表着相同簇的边也高亮加粗/恢复
+        d3.selectAll('#force-links').filter((d: any) => {
+          const { source: {name} } = d;
+          const cid: number = parseInt(name.split('_')[1]);
+          return cid === transCid;
+        }).attr('stroke-width', strokeWidth)
       }
     }
 
     const onMouseOver = function(event: 'over' | 'out') {
       let isOver = (event === 'over');
-      let radius = isOver? 6 : 4;
+      let mapRadius = isOver? 6 : 4;
       return function(_: MouseEvent, d: any) {
         const self = d3.select(this);
+        const r = parseInt(d.avgLen);
+        let radius = isOver? r * 1.5 : r;
         self.attr('r', radius).style('cursor', isOver? 'pointer':'default');
         const {name} = d;
         const [sourceCid, targetCid] = name.split('_').map(Number);
@@ -102,9 +120,9 @@ export default defineComponent({
         const odCircles = clusterLayerSvg.value.selectAll("circle")
         const c1 = getCircleByClusterId(odCircles, sourceCid);
         const c2 = getCircleByClusterId(odCircles, targetCid);
-        console.log('from-to =', name);
-        c1.attr('r', radius);
-        c2.attr('r', radius);
+        console.log('from-to =', name, 'trjNum', d.trjNum, 'r', d.avgLen);
+        c1.attr('r', mapRadius);
+        c2.attr('r', mapRadius);
       }
     }
 
@@ -178,13 +196,12 @@ export default defineComponent({
     };
 
     const drawGraph = (edges: any, nodes: any) => {
-      // groupSvg.value.append("g").selectAll("line").remove();
-      // groupSvg.value.append("g").selectAll("circle").remove();
-      // groupSvg.value.selectAll(".circleText").remove();
-      const colorScale = d3
-        .scaleOrdinal()
-        .domain(d3.range(nodes.length))
-        .range(d3.schemeCategory10);
+      const nodeColorMap = calNodeColor(nodes, clusterPointMap.value, odPoints.value);
+      nodes = calLenColor(nodes, cidCenterMap.value, map.value);
+      // const colorScale = d3
+      //   .scaleOrdinal()
+      //   .domain(d3.range(nodes.length))
+      //   .range(d3.schemeCategory10);
 
       forceSimulation = d3
         .forceSimulation()
@@ -205,7 +222,7 @@ export default defineComponent({
         .force("link")
         .links(edges)
         .distance(function (d: any) {
-          return d.value || 30;
+          return d.value * 1.7 || 30;
         })
         .strength(function (d: any) {
           return 0.2;
@@ -220,38 +237,53 @@ export default defineComponent({
       //定义一个箭头
       groupSvg.value
         .append("svg:defs")
+        .selectAll('marker')
+        .data(edges)
+        .enter()
         .append("marker")
-        .attr("id", "arrow") //设置箭头的 id，用于引用
+        .attr("id", function(d: any, i: number) {
+          return `arrow_${i}`
+        }) //设置箭头的 id，用于引用
+        // .attr("id", "arrow") //设置箭头的 id，用于引用
         .attr("viewBox", "-0 -5 10 10")
-        .attr("refX", 15.5) //设置箭头距离节点的距离
+        .attr("refX", function(d: any) { //设置箭头距离节点的距离
+          return 7 + d.target.avgLen;
+        })
         .attr("refY", 0) //设置箭头在 y 轴上的偏移量
         .attr("orient", "auto") //设置箭头随边的方向旋转
-        .attr("markerWidth", 3) //设置箭头的宽度
-        .attr("markerHeight", 3) //设置箭头的高度
+        .attr("markerWidth", 4) //设置箭头的宽度
+        .attr("markerHeight", 4) //设置箭头的高度
         .attr("xoverflow", "visible")
         .append("svg:path")
         .attr("d", "M 0,-5 L 10 ,0 L 0,5") //使用绝对坐标来绘制三角形
         .attr("fill", function (d: any, i: number) {
-          return colorScale(i);
+          const { source } = d;
+          const { name } = source;
+          const cid = parseInt(name.split('_')[1]);
+          return colorTable[cid];
         })
-        .style("stroke", function (d: any, i: number) {
-          return colorScale(i);
-        });
 
       //绘制边
       const links = groupSvg.value
         .append("g")
-        .selectAll("line")
-        .data(edges)
-        .enter()
-        .append("line")
-        // .selectAll("path")
+        // .selectAll("line")
         // .data(edges)
         // .enter()
-        // .append("path")
-        .attr("marker-end", "url(#arrow)")
+        // .append("line")
+        .selectAll("path")
+        .data(edges)
+        .enter()
+        .append("path")
+        .attr('id', 'force-links')
+        // .attr("marker-end", "url(#arrow)")
+        .attr("marker-end", function(d: any, i: number) {
+          return `url(#arrow_${i})`
+        })
         .attr("stroke", function (d: any, i: number) {
-          return colorScale(i);
+          const { source } = d;
+          const { name } = source;
+          const cid = parseInt(name.split('_')[1]);
+          return colorTable[cid];
         })
         .style('display', function(d: any) {  //  fake 边不显示，不触发事件
           if (d.isFake)
@@ -259,14 +291,14 @@ export default defineComponent({
           else
             return 'visible';
         })
-        .attr("stroke-width", 2)
+        .attr("stroke-width", StrokeWidth)
         .on('mouseover', onMouseOverLink('over'))
         .on('mouseout', onMouseOverLink('out'))
         .on('click', function(_: MouseEvent, d: any) {
           _.stopPropagation();  //  防止 click 后又同时出发 forceSvg 的点击空白处 click
           poiPanelVisible.value = true;
         })
-        // .attr("fill", "none");
+        .attr("fill", "none");
 
       const gs = groupSvg.value
         .selectAll(".circleText")
@@ -284,10 +316,15 @@ export default defineComponent({
 
       //绘制节点,TODO: 颜色改为数据获取
       svgCircles.value = gs.append("circle")
-        .attr("r", 4)
-        .attr("fill", function (d: any, i: number) {
-          return colorScale(i);
+        .attr("r", function(d: any) {
+          return d.avgLen || 2;
         })
+        .attr("fill", function (d: any, i: number) {
+          // return colorScale(i);
+          return nodeColorMap.get(d.name);
+        })
+        .attr("stroke-width", 0.8)
+        .attr('stroke', 'black')
         .on('mouseover', onMouseOver('over'))
         .on('mouseout', onMouseOver('out'))
         .on('click', onMouseClick('open'))
@@ -302,6 +339,16 @@ export default defineComponent({
       //   });
 
       function ticked() {
+        links.attr("d", function(d: any) {
+          const dx = d.target.x - d.source.x,//增量
+              dy = d.target.y - d.source.y,
+              dr = Math.pow(Math.sqrt(dx * dx + dy * dy), 1.1);
+          return "M" + d.source.x + "," 
+          + d.source.y + "A" + dr + "," 
+          + dr + " 0 0,1 " + d.target.x + "," 
+          + d.target.y;
+        });
+
         links
           .attr("x1", function (d: any) {
             return d.source.x;
@@ -315,15 +362,6 @@ export default defineComponent({
           .attr("y2", function (d: any) {
             return d.target.y;
           });
-          // links.attr("d", function(d: any) {
-          //   var dx = d.target.x - d.source.x,//增量
-          //       dy = d.target.y - d.source.y,
-          //       dr = Math.sqrt(dx * dx + dy * dy);
-          //   return "M" + d.source.x + "," 
-          //   + d.source.y + "A" + dr + "," 
-          //   + dr + " 0 0,1 " + d.target.x + "," 
-          //   + d.target.y;
-          // });
 
         // linksText
         // 	.attr("x",function(d){

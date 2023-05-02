@@ -9,6 +9,7 @@ export const MapMode = {
 }
 
 export interface MapViewState {
+  map: any,
   clusterLayerSvg: any,
   odLayerSvg: any,
   trjLayerSvg: any,
