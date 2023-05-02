@@ -191,6 +191,29 @@ def fuse_fake_edge_into_linegraph(force_nodes, force_edges, edge_name_dist_map: 
     return force_edges
 
 
+def get_cluster_center_coord(cluster_point_dict: dict, selected_cluster_idxs: list):
+    """
+    :param cluster_point_dict 簇id 到 OD点 id数组 的映射
+    :param selected_cluster_idxs: 选择到的所有簇的 id
+    :return cid_center_coord_dict: Map<簇id, [lon, lat]> 的映射，存储簇中心点的坐标
+    """
+    cid_center_coord_dict = {}
+    # total_od_points [[lon, lat, time, trj_id, flag], [], ...] trj_id 是轨迹id，flag==0 表示 O 点，1表示 D 点
+    total_od_points = get_total_od_points()  # 当天全量的 od 点数据 TODO：于淼的数据处理完成后，从那个接口拿
+
+    for cid in selected_cluster_idxs:
+        p_idxs = cluster_point_dict[cid]  # 这里是根据全量的簇内点计算的中心点，而不是框选出的当前时间段的！！！
+        n = len(p_idxs)
+        avg_lon, avg_lat = 0, 0
+        for pid in p_idxs:
+            lon, lat = total_od_points[pid][0], total_od_points[pid][1]
+            avg_lon += lon / n
+            avg_lat += lat / n
+        cid_center_coord_dict[cid] = [avg_lon, avg_lat]
+
+    return cid_center_coord_dict
+
+
 if __name__ == '__main__':
     k, theta = 8, 10
     print('开始读取OD点')
