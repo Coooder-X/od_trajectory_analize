@@ -7,6 +7,7 @@
       v-if="headMapVisible"
       :svg="forceNodeSvg">
     </polar-heat-map>
+    <poi-panel v-if="poiPanelVisible" style="z-index: 5000;"></poi-panel>
   </div>
 </template>
 
@@ -19,12 +20,14 @@ import ViewHeader from "../ViewHeader.vue";
 import { ForceLink, ForceNode } from "@/global-interface";
 import { useGetCircleByCluster } from "@/hooks/gisLayerHooks";
 import PolarHeatMap from "../PolarHeatMap.vue";
+import PoiPanel from "../PoiPanel.vue";
 import { MapMode } from "@/map-interface";
 
 export default defineComponent({
   components: {
     ViewHeader,
     PolarHeatMap,
+    PoiPanel,
   },
   name: "ForceView",
   props: {},
@@ -48,11 +51,8 @@ export default defineComponent({
     const svgCircles: Ref<any> = ref(null);
     const clusterLayerSvg = computed(() => getters.clusterLayerSvg);
     const headMapVisible: Ref<Boolean> = ref(false);
+    const poiPanelVisible: Ref<Boolean> = ref(false);
     const forceNodeSvg: Ref<any | null> = ref(null);
-
-    onMounted(() => {
-      // initLayer();
-    });
 
     watch([forceTreeLinks, forceTreeNodes], () => {
       if(forceTreeNodes && forceTreeLinks) {
@@ -70,6 +70,23 @@ export default defineComponent({
         }));
       } else {
         sessionStorage.removeItem('odPair');
+      }
+    }
+
+    const onMouseOverLink = (event: 'over' | 'out') => {
+      let isOver = (event === 'over');
+      let radius = isOver? 6 : 4;
+      let strokeWidth = isOver? 3.5 : 2;
+      return function(_: MouseEvent, d: any) {
+        _.stopPropagation();
+        d3.select(this)
+          .attr('stroke-width', strokeWidth)
+          .style('cursor', isOver? 'pointer':'default');
+        const {source} = d;
+        const transCid: number = parseInt(source.name.split('_')[1]);
+        const odCircles = clusterLayerSvg.value.selectAll("circle")
+        const c = getCircleByClusterId(odCircles, transCid);
+        c.attr('r', radius);
       }
     }
 
@@ -95,6 +112,7 @@ export default defineComponent({
       let isOpen = (event === 'open');
       let radius = isOpen? 6 : 4;
       return function(_: MouseEvent, d: any) {
+        _.stopPropagation();
         const self = d3.select(this);
         const odCircles = clusterLayerSvg.value.selectAll("circle")
         if (isOpen) {
@@ -113,8 +131,8 @@ export default defineComponent({
         } else {
           odCircles.attr('r', 4);
           forceNodeSvg.value = null;
+          poiPanelVisible.value = false;
         }
-        _.stopPropagation();
         if (isOpen && headMapVisible.value) {
           headMapVisible.value = false;
         }
@@ -187,15 +205,10 @@ export default defineComponent({
         .force("link")
         .links(edges)
         .distance(function (d: any) {
-          //每一边的长度
-          // if(!d.isFake)
-          return 30; //d.value*100;
-          // return null
+          return d.value || 30;
         })
         .strength(function (d: any) {
-          // if(d.isFake)
-          // 	return 0
-          return 0.9;
+          return 0.2;
         });
 
       //设置图形的中心位置
@@ -210,11 +223,11 @@ export default defineComponent({
         .append("marker")
         .attr("id", "arrow") //设置箭头的 id，用于引用
         .attr("viewBox", "-0 -5 10 10")
-        .attr("refX", 17) //设置箭头距离节点的距离
+        .attr("refX", 15.5) //设置箭头距离节点的距离
         .attr("refY", 0) //设置箭头在 y 轴上的偏移量
         .attr("orient", "auto") //设置箭头随边的方向旋转
-        .attr("markerWidth", 4) //设置箭头的宽度
-        .attr("markerHeight", 4) //设置箭头的高度
+        .attr("markerWidth", 3) //设置箭头的宽度
+        .attr("markerHeight", 3) //设置箭头的高度
         .attr("xoverflow", "visible")
         .append("svg:path")
         .attr("d", "M 0,-5 L 10 ,0 L 0,5") //使用绝对坐标来绘制三角形
@@ -238,11 +251,21 @@ export default defineComponent({
         // .append("path")
         .attr("marker-end", "url(#arrow)")
         .attr("stroke", function (d: any, i: number) {
-          // if(d.isFake)
           return colorScale(i);
-          // return null// 'transparent'
         })
-        .attr("stroke-width", 1)
+        .style('display', function(d: any) {  //  fake 边不显示，不触发事件
+          if (d.isFake)
+            return 'none';
+          else
+            return 'visible';
+        })
+        .attr("stroke-width", 2)
+        .on('mouseover', onMouseOverLink('over'))
+        .on('mouseout', onMouseOverLink('out'))
+        .on('click', function(_: MouseEvent, d: any) {
+          _.stopPropagation();  //  防止 click 后又同时出发 forceSvg 的点击空白处 click
+          poiPanelVisible.value = true;
+        })
         // .attr("fill", "none");
 
       const gs = groupSvg.value
@@ -338,6 +361,7 @@ export default defineComponent({
     return {
       forceNodeSvg,
       headMapVisible,
+      poiPanelVisible,
     };
   },
 });
@@ -353,6 +377,6 @@ export default defineComponent({
 
 .force-content {
   width: 100%;
-  height: 100%;
+  height: calc(100% - 35px);
 }
 </style>

@@ -133,19 +133,20 @@ const globalModule = {
         context.commit('setForceTreeLinks', res.data['force_edges']);
         context.commit('setForceTreeNodes', res.data['force_nodes']);
         context.commit('setFilteredOutAdjTable', res.data['filtered_adj_dict']);
-      });
-    },
-    getCidCenterMap(context: ActionContext<{}, {}>, params: any) {
-      console.log('getCidCenterMap')
-      axios({
-        method: 'post',
-        url: '/api/getClusterCenter',
-        data: params,
-      }).then((res) => {
-        console.log('getCidCenterMap gettget')
         context.commit('setCidCenterMap', res.data['cid_center_coord_dict']);
       });
     },
+    // getCidCenterMap(context: ActionContext<{}, {}>, params: any) {
+    //   console.log('getCidCenterMap')
+    //   axios({
+    //     method: 'post',
+    //     url: '/api/getClusterCenter',
+    //     data: params,
+    //   }).then((res) => {
+    //     console.log('getCidCenterMap gettget')
+    //     context.commit('setCidCenterMap', res.data['cid_center_coord_dict']);
+    //   });
+    // },
     // createCategory(context: ActionContext<{}, {}>, params: any) {
     //   axios.post('/api/dataset/createCategory', params);
     // },

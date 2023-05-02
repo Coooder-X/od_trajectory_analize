@@ -67,19 +67,20 @@ export default defineComponent({
         getters.outAdjTable.forEach(function(value: number[], key: number) {
           adjTable[key] = value;
         });
-        store.dispatch('getLineGraph', {
-          selectedClusterIdxs: selectedClusterIdxs.value,
-          outAdjTable: adjTable,
-        });
         //  获取每个簇中心的坐标
         const clusterPointObj: {[key: number]: number[]} = {}
         clusterPointMap.value.forEach(function(value: number[], key: number) {
           clusterPointObj[key] = value;
         });
-        store.dispatch('getCidCenterMap', {
+        store.dispatch('getLineGraph', {
+          selectedClusterIdxs: selectedClusterIdxs.value,
+          outAdjTable: adjTable,
           cluster_point_dict: clusterPointObj,
-          selected_cluster_idxs: selectedClusterIdxs.value,
         });
+        // store.dispatch('getCidCenterMap', {
+        //   cluster_point_dict: clusterPointObj,
+        //   selected_cluster_idxs: selectedClusterIdxs.value,
+        // });
       }, 1000)
     );
 
