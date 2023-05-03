@@ -2,6 +2,11 @@
   <div class="force-view">
     <view-header viewId="C" title="力导向视图"></view-header>
     <div id="force" ref="forceDivElement" class="force-content">
+      <div class="toolbar">
+        考虑地理空间关系：
+        <el-switch v-model="withSpaceDist">
+        </el-switch>
+      </div>
     </div>
     <polar-heat-map
       v-if="headMapVisible"
@@ -19,6 +24,7 @@ import * as d3 from "d3";
 import ViewHeader from "../ViewHeader.vue";
 import { ForceLink, ForceNode } from "@/global-interface";
 import { useGetCircleByCluster } from "@/hooks/gisLayerHooks";
+import { getHullPaths, updateGroups } from "@/hooks/polygonHullHooks";
 import PolarHeatMap from "../PolarHeatMap.vue";
 import PoiPanel from "../PoiPanel.vue";
 import { MapMode } from "@/map-interface";
@@ -60,8 +66,10 @@ export default defineComponent({
     const poiPanelVisible: Ref<Boolean> = ref(false);
     const forceNodeSvg: Ref<any | null> = ref(null);
     const map = computed(() => getters.map);
+    const communityGroup = computed(() => getters.communityGroup);
+    const withSpaceDist: Ref<Boolean> = ref(true);  //  线图是否考虑空间距离
 
-    watch([forceTreeLinks, forceTreeNodes], () => {
+    watch([withSpaceDist, forceTreeLinks, forceTreeNodes], () => {
       if(forceTreeNodes && forceTreeLinks) {
         initLayer();
         drawGraph(forceTreeLinks.value, forceTreeNodes.value);
@@ -165,6 +173,7 @@ export default defineComponent({
       }
       const container = document.getElementById("force");
       if(forceSvg.value) {
+        forceSvg.value.selectAll('#hull_paths').remove();
         forceSvg.value = d3.select(container).selectAll("svg").remove();
         forceSvg.value = null;
       }
@@ -180,6 +189,8 @@ export default defineComponent({
       groupSvg.value = forceSvg.value
         .append("g")
         .attr("transform", "translate(" + 0 + "," + 0 + ")");
+
+      groupSvg.value.selectAll('#hull_paths').remove();
 
       //  画布的拖动和缩放
       //创建一个缩放行为
@@ -198,6 +209,8 @@ export default defineComponent({
     const drawGraph = (edges: any, nodes: any) => {
       const nodeColorMap = calNodeColor(nodes, clusterPointMap.value, odPoints.value);
       nodes = calLenColor(nodes, cidCenterMap.value, map.value);
+      if (!withSpaceDist.value)
+        edges = edges.filter((edge: any) => !edge.isFake);
       // const colorScale = d3
       //   .scaleOrdinal()
       //   .domain(d3.range(nodes.length))
@@ -222,7 +235,9 @@ export default defineComponent({
         .force("link")
         .links(edges)
         .distance(function (d: any) {
-          return d.value * 1.7 || 30;
+          if (withSpaceDist.value)
+            return d.value * 1.7;
+          return 30;
         })
         .strength(function (d: any) {
           return 0.2;
@@ -233,6 +248,12 @@ export default defineComponent({
         .force("center")
         .x(width / 2)
         .y(height / 2);
+
+      //  获取凸包，社区检测的结果
+      let paths: any = null;
+      if (communityGroup.value) {
+        paths = getHullPaths(communityGroup.value, groupSvg.value);
+      }
 
       //定义一个箭头
       groupSvg.value
@@ -363,6 +384,9 @@ export default defineComponent({
             return d.target.y;
           });
 
+        // 绘制凸包，距离结果
+        updateGroups(communityGroup.value, paths, svgCircles.value);
+
         // linksText
         // 	.attr("x",function(d){
         // 	return (d.source.x+d.target.x)/2;
@@ -400,6 +424,7 @@ export default defineComponent({
       forceNodeSvg,
       headMapVisible,
       poiPanelVisible,
+      withSpaceDist,
     };
   },
 });
@@ -416,5 +441,22 @@ export default defineComponent({
 .force-content {
   width: 100%;
   height: calc(100% - 35px);
+}
+
+.toolbar {
+  overflow: hidden;
+  border: 3px silver solid;
+  border-radius: 5px;
+  margin-left: 3px;
+  margin-top: 3px;
+  width: 190px;
+  padding: 5px;
+  display: inline-block;
+  /* display: inline-flex; */
+  /* vertical-align: middle; */
+  /* float: left; */
+  position: absolute;
+  background-color: white;
+  z-index: 5000;
 }
 </style>

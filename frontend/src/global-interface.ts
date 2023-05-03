@@ -14,6 +14,7 @@ export interface GlobalState {
   selectedODIdxs: number[],
   selectedClusterIdxs: number[],
   cidCenterMap: Map<number, [number, number]>,  // <簇id, [lon, lat]>，簇中心点坐标
+  communityGroup: Map<number, string[]>,  //  社区发现的距离结果，元素是力导向图节点名称的数组，元素如 '12_34'
 }
 
 export type ForceLink = Array<{source: number, target: number, isFake?: boolean, value: number}>;

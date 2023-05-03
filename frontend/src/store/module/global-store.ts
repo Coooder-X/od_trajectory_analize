@@ -18,6 +18,7 @@ const initState: GlobalState = {
   selectedODIdxs: [],
   selectedClusterIdxs: [],
   cidCenterMap: new Map(),
+  communityGroup: new Map(),
 }
 
 const globalModule = {
@@ -90,6 +91,14 @@ const globalModule = {
         state.cidCenterMap.set(k, payload[key]);
       });
     },
+    setCommunityGroup(state: GlobalState, payload: {[key: number]: string[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key);
+        if (payload[k].length > 0) {
+          state.communityGroup.set(k, payload[k]);
+        }
+      });
+    },
   },
   actions: {
     getAllODPoints(context: ActionContext<{}, {}>) {
@@ -134,6 +143,7 @@ const globalModule = {
         context.commit('setForceTreeNodes', res.data['force_nodes']);
         context.commit('setFilteredOutAdjTable', res.data['filtered_adj_dict']);
         context.commit('setCidCenterMap', res.data['cid_center_coord_dict']);
+        context.commit('setCommunityGroup', res.data['community_group']);
       });
     },
     // getCidCenterMap(context: ActionContext<{}, {}>, params: any) {
@@ -197,6 +207,9 @@ const globalModule = {
     },
     cidCenterMap: (state: GlobalState) => {
       return state.cidCenterMap;
+    },
+    communityGroup: (state: GlobalState) => {
+      return state.communityGroup;
     },
   },
   modules: {},

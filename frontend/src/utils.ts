@@ -65,7 +65,7 @@ export function calNodeColor(forceNodes: ForceNode, clusterPointMap: Map<number,
     // .range(["white", "salmon"]); // 颜色范围
     // .range([d3.rgb(0, 136, 255).toString(), d3.rgb(255,255,255).toString(), d3.rgb(227, 0, 0).toString()]); // 颜色范围
     // .range([d3.rgb(80, 122, 175).toString(), d3.rgb(247, 247, 233).toString(), d3.rgb(190,92,55).toString()]); // 颜色范围
-    .range(['rgb(80, 122, 175)', 'rgb(247, 247, 233)', 'rgb(190,92,55)']);
+    .range(['rgb(80, 122, 175)', 'rgb(247, 247, 233)', '#ff4c4c']);
     // .range(["#375093", "#83A121"]); // 颜色范围
 
   //  归一化，分配颜色
