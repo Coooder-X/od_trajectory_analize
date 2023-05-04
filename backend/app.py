@@ -31,7 +31,8 @@ def hello_world():  # put application's code here
 
 @app.route('/getTotalODPoints', methods=['get', 'post'])
 def get_total_od_points():
-    return json.dumps(od_pair_process.get_hour_od_points())
+    # return json.dumps(od_pair_process.get_hour_od_points())
+    return json.dumps(od_pair_process.get_total_od_points())
 
 
 @app.route('/getODPointsFilterByHour', methods=['get', 'post'])
@@ -59,7 +60,7 @@ def get_cluster_result():
 
     res = od_pair_process.get_od_points_filter_by_hour(start_hour, end_hour)
     index_lst = res['index_lst']
-    part_od_points = res['od_points']
+    part_od_points = res['part_od_points']
     new_point_cluster_dict, new_cluster_point_dict = cluster_filter_by_hour(index_lst, point_cluster_dict)
     print('过滤后的点数：', len(index_lst))
     print('过滤后的的簇数：', len(new_cluster_point_dict.keys()))
@@ -70,7 +71,7 @@ def get_cluster_result():
         'index_lst': index_lst,
         'point_cluster_dict': point_cluster_dict,
         'cluster_point_dict': new_cluster_point_dict,
-        'od_points': part_od_points,
+        'part_od_points': part_od_points,
         # 'json_adj_table': json_adj_table,
         # 'json_nodes': json_nodes,
         'out_adj_table': out_adj_table,
@@ -167,14 +168,14 @@ def get_line_graph():
     print('完全线图-边数', len(force_edges))
 
     # ============== 社区发现代码 ===============
-    # # 为 line graph 添加属性，目前属性是随意值 TODO：属性改成轨迹特征聚类后的簇id，聚合成的一个整数　value
-    # lg = update_graph_with_attr(lg)
-    # # 对线图进行图聚类，得到社区发现
-    # point_cluster_dict, cluster_point_dict = get_cluster(lg, 7)
-    # print('point_cluster_dict', point_cluster_dict)
-    # print('cluster_point_dict', cluster_point_dict)
-    # #  将带属性的线图 networkx 对象存在全局缓存中
-    # cache.set('line_graph', lg, timeout=0)
+    # 为 line graph 添加属性，目前属性是随意值 TODO：属性改成轨迹特征聚类后的簇id，聚合成的一个整数　value
+    lg = update_graph_with_attr(lg)
+    # 对线图进行图聚类，得到社区发现
+    point_cluster_dict, cluster_point_dict = get_cluster(lg, 8)
+    print('point_cluster_dict', point_cluster_dict)
+    print('cluster_point_dict', cluster_point_dict)
+    #  将带属性的线图 networkx 对象存在全局缓存中
+    cache.set('line_graph', lg, timeout=0)
     # ============== 社区发现代码 ===============
 
     return json.dumps({
@@ -182,6 +183,7 @@ def get_line_graph():
         'force_edges': force_edges,
         'filtered_adj_dict': filtered_adj_dict,
         'cid_center_coord_dict': cid_center_coord_dict,
+        'community_group': cluster_point_dict,
     })
 
 

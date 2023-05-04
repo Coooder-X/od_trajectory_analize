@@ -52,7 +52,7 @@ def get_total_od_points():
 def get_od_points_filter_by_hour(start_hour, end_hour):
     od_points = np.asarray(get_total_od_points())
     (part_od_coord_points, index_lst) = od_points_filter_by_hour(od_points, start_hour, end_hour)  # 过滤出所有在该时间段的 od 点
-    return {'od_points': part_od_coord_points.tolist(), 'index_lst': index_lst[0].tolist()}
+    return {'part_od_points': part_od_coord_points.tolist(), 'index_lst': index_lst[0].tolist()}
 
 
 # def get_trj_by_od_ids(od_index: list):

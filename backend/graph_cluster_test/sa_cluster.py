@@ -3,7 +3,11 @@ import numpy as np
 
 
 def get_cluster(G, k=5):
-
+    """
+    :param G: 线图的 networkx 对象
+    :param k: k-means 的簇数
+    :return cluster_point_dict: map<graph_cluster_id, ['12_34', '34_56']>，值是数值，其中的元素是线图节点的名称
+    """
     # adj matrix: links
     links = np.asarray(nx.to_numpy_matrix(G, dtype=np.float64))
     # attr 'value' of each id
@@ -83,8 +87,10 @@ def get_cluster(G, k=5):
     # cluster_averages = np.empty((k,n))
 
     unstable = True
+    limit_step = 50
 
-    while unstable:
+    while unstable and limit_step > 0:
+        limit_step -= 1
         for i in range(n):
             curr_cluster[i] = np.argmax(random_walk[i, centroid])
         if np.array_equal(curr_cluster, past_cluster):
@@ -116,7 +122,7 @@ def get_cluster(G, k=5):
             which_cluster = np.where(curr_cluster == i)[0]
             if which_cluster.size != 0:
                 obj += np.mean(random_walk[which_cluster, which_cluster])
-            print(which_cluster.size)
+            # print(which_cluster.size)
 
         print('obj', obj)
     print('curr', curr_cluster)
@@ -129,7 +135,9 @@ def get_cluster(G, k=5):
         node_list = list(G.nodes())
         for node_id in node_idxs_in_cluster:
             node = node_list[node_id]
-            cluster_point_dict[i].append(G.nodes[node]['name'])
+            node_name = G.nodes[node]['name'].split('-')
+            node_name = f'{node_name[0]}_{node_name[1]}'
+            cluster_point_dict[i].append(node_name)
             # print(G.nodes[node]['name'])
         # cluster_point_dict[i] = np.where(curr_cluster == i)[0].tolist()
     point_cluster_dict = curr_cluster.tolist()
