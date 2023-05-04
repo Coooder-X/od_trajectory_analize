@@ -60,8 +60,9 @@ def build_od_graph(point_cluster_dict: dict, total_od_points, index_lst: list):
     '''json_adj_table, new_json_nodes,'''
 
 
-def get_line_graph_by_selected_cluster(selected_cluster_ids, out_adj_dict):
+def get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_dict):
     """
+    :param selected_cluster_ids_in_brush: 一个数组，存储地图中选取框框内的簇的id
     :param selected_cluster_ids: 一个数组，存储地图中已选的所有簇的id
     :param out_adj_dict: 当天数据中所有簇的全量的邻接表，out_adj_dict[x] 存储簇 id 为 x 的簇，会到达的簇的 id 数组
     :return force_nodes: 转换成的线图的节点数组
@@ -80,6 +81,9 @@ def get_line_graph_by_selected_cluster(selected_cluster_ids, out_adj_dict):
         # 如果 to_cid 是 cid 的邻接点，则应该加入【过滤邻接表】中
         for to_cid in selected_cluster_ids:
             if to_cid == cid:
+                continue
+            # 如果起终点都不在地图选取框框内的，就过滤掉
+            if cid not in selected_cluster_ids_in_brush and to_cid not in selected_cluster_ids_in_brush:
                 continue
             if cid in out_adj_dict and to_cid in out_adj_dict[cid]:
                 print(cid, to_cid)
