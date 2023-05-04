@@ -12,6 +12,8 @@ from data_process.DT_graph_clustering import delaunay_clustering, cluster_filter
 
 app = Flask(__name__)
 CORS(app, resources=r'/*')
+
+
 #  python -m flask run
 
 # out_adj_dict = {}
@@ -33,6 +35,61 @@ def get_od_points_filter_by_hour():
     print(start_hour, end_hour)
     # return json.dumps({'od_points':od_pair_process.get_hour_od_points()})
     return json.dumps(od_pair_process.get_od_points_filter_by_hour(start_hour, end_hour))
+
+
+@app.route('/getODPointsFilterByDayAndHour', methods=['get', 'post'])
+def get_od_points_filter_by_day_and_hour():
+    start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
+                                               request.args.get('endDay', type=int), \
+                                               request.args.get('startHour', 0, type=int), \
+                                               request.args.get('endHour', 24, type=int)
+    print(start_day, end_day, start_hour, end_hour)
+    # return json.dumps({'od_points':od_pair_process.get_hour_od_points()})
+    x =  od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)
+    return json.dumps(od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour))
+
+
+@app.route('/getTrjNum', methods=['get'])
+def get_trj_num():
+    start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
+                                               request.args.get('endDay', type=int), \
+                                               request.args.get('startHour', 0, type=int), \
+                                               request.args.get('endHour', 24, type=int)
+    print(start_day, end_day, start_hour, end_hour)
+    # return json.dumps({'od_points':od_pair_process.get_hour_od_points()})
+    trj_num = len(od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)['od_points'])
+    print(trj_num)
+    return json.dumps({'trj_num': trj_num})
+
+
+@app.route('/getTrjNumByHour', methods=['get'])
+def get_trj_num_by_hour():
+    date = request.args.get('date', type=int)
+    print("输入参数为%d日" % date)
+    res = od_pair_process.trj_num_by_hour(date)
+    return json.dumps({'nums': res})
+
+
+@app.route('/getTrjNumByOd', methods=['get'])
+def get_trj_num_by_od():
+    date, num = request.args.get('date', type=int), request.args.get('num', type=int)
+    src_id_list, tgt_id_list = request.args.getlist('src_id_list'), request.args.getlist('tgt_id_list')
+    total_od_points = get_od_points_filter_by_day_and_hour(date - num, date, 0, 24)
+    res = []
+    for d in range(date - num, date + 1):
+        num = []
+        for h in range(24):
+            count = 0
+            for src_id in src_id_list:
+                for tgt_id in tgt_id:
+                    src = total_od_points[src_id]
+                    tgt = total_od_points[tgt]
+                    if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] == d and tgt[5] == d and h * 24 <= \
+                            src[2] <= (h + 1) * 24 and h * 24 <= tgt[2] <= (h + 1) * 24:
+                        count = count + 1
+            num.append(count)
+        res.append(num)
+    return res
 
 
 @app.route('/getClusteringResult', methods=['get', 'post'])
