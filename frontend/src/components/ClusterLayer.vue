@@ -36,6 +36,7 @@ export default defineComponent({
     let cidCenterMap = computed(() => getters.cidCenterMap);
     let odIndexList = computed(() => getters.odIndexList);
     const mapMode = computed(() => getters.mapMode);
+    const withSpaceDist = computed(() => getters.withSpaceDist);
 
     const project = (d: [number, number]) => {
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));
@@ -78,6 +79,7 @@ export default defineComponent({
           selectedClusterIdxs: selectedClusterIdxs.value,
           outAdjTable: adjTable,
           cluster_point_dict: clusterPointObj,
+          withSpaceDist: withSpaceDist.value,
         });
         // store.dispatch('getCidCenterMap', {
         //   cluster_point_dict: clusterPointObj,
