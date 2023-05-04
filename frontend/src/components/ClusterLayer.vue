@@ -52,7 +52,8 @@ export default defineComponent({
       selectedSvgs,
       noSelectedSvgs,
       selectedODIdxs,
-      selectedClusterIdxs
+      selectedClusterIdxs,
+      selectedClusterIdxsInBrush,
     } = useBrush({clusterLayerSvg, project, unproject});
 
     watch(mapMode, () => {
@@ -73,6 +74,7 @@ export default defineComponent({
           clusterPointObj[key] = value;
         });
         store.dispatch('getLineGraph', {
+          selectedClusterIdxsInBrush: selectedClusterIdxsInBrush.value,
           selectedClusterIdxs: selectedClusterIdxs.value,
           outAdjTable: adjTable,
           cluster_point_dict: clusterPointObj,

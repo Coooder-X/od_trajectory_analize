@@ -24,6 +24,7 @@ export function useBrush({
   let noSelectedSvgs: Ref<any> = ref([]); //  存储未被刷选的 circle svg
   let selectedODIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 od 点索引
   let selectedClusterIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 簇的索引
+  let selectedClusterIdxsInBrush: Ref<number[]> = ref([]);
 
   console.log('clusterLayerSvg', clusterLayerSvg)
   let odCircles: any
@@ -102,6 +103,7 @@ export function useBrush({
     //  记录【框框内 + 框框外关联的 所有簇】包含的 簇 id
     const selectedClusterIdxSet: Set<number> = new Set(selectedClusterIdxs.value);
     selectedClusterIdxs.value = [...selectedClusterIdxSet];
+    selectedClusterIdxsInBrush.value = [...selectedClusterIdxSet];
     
     selectedClusterIdxs.value.forEach((clusterIdx: number) => {
       //  根据【框框内的所有簇 id】，得到框框外与其有邻接关系的簇 id
@@ -149,6 +151,7 @@ export function useBrush({
     noSelectedSvgs,
     selectedODIdxs,
     selectedClusterIdxs,
+    selectedClusterIdxsInBrush,
   }
 }
 
