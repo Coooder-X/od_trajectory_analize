@@ -18,9 +18,14 @@ export default defineComponent({
     defaultMin: Number,
     defaultMax: Number,
     disabled: Boolean,
+    dataRange: {
+      type: Number,
+      required: true,
+    }
   },
   emits: ['change'],
   setup(props, { emit }) {
+    const {dataRange} = props;
     type EChartsOption = echarts.EChartsOption;
     let chartDom: HTMLElement;
     let timeSelector: any; 
@@ -31,7 +36,7 @@ export default defineComponent({
     let times: number[] = [];
     data.value = [];
 
-    for (let i = 0; i < 24; i++) {
+    for (let i = dataRange === 31? 1:0; i <= (dataRange === 31? 31:23); i++) {
       times.push(i);
       data.value.push(Math.random());
     }
@@ -105,7 +110,7 @@ export default defineComponent({
 <style scoped>
 .time-selector {
   bottom: 0px;
-  left: -30px;  /*  改成 props 传 */
+  left: -20px;  /*  改成 props 传 */
   position: absolute;
   width: 360px;
   height: 300px;
@@ -113,8 +118,9 @@ export default defineComponent({
 }
 .time-selector-container {
   position: relative;
-  width: 320px;
+  width: 360px;
   height: 50px;
+  left: -20px;
   /* background-color: antiquewhite; */
   overflow: hidden;
 }

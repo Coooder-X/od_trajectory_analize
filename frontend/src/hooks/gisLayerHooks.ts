@@ -1,12 +1,13 @@
 import { computed, ComputedRef, onMounted, Ref, ref, watch } from 'vue';
+import { MapMode } from '@/map-interface';
 import * as d3 from 'd3';
 import { useStore } from 'vuex';
 import { colorTable } from '@/color-pool';
 
 export function useBrush({
-  clusterLayerSvg, odPoints, project, unproject
+  clusterLayerSvg, project, unproject
 }: {
-  clusterLayerSvg: Ref<any | null>, odPoints: ComputedRef<number[][]>, project: Function, unproject: Function
+  clusterLayerSvg: Ref<any | null>, project: Function, unproject: Function
 }) {
   const store = useStore();
   const { getters } = store;
@@ -23,6 +24,7 @@ export function useBrush({
   let noSelectedSvgs: Ref<any> = ref([]); //  存储未被刷选的 circle svg
   let selectedODIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 od 点索引
   let selectedClusterIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 簇的索引
+  let selectedClusterIdxsInBrush: Ref<number[]> = ref([]);
 
   console.log('clusterLayerSvg', clusterLayerSvg)
   let odCircles: any
@@ -44,6 +46,7 @@ export function useBrush({
     if(clusterLayerSvg.value) {
       // console.log([clusterLayerSvg.value.attr('width'), clusterLayerSvg.value.attr('height')])
       odCircles = clusterLayerSvg.value.selectAll("circle")
+      console.log('点个数 =', odCircles.size())
       brush = d3.brush()
         .extent([[0, 0], [800, 465]])  //  [clusterLayerSvg.value.attr('width'), clusterLayerSvg.value.attr('height')])
         .on("brush", brushed); // 设置刷取事件的回调函数
@@ -100,6 +103,7 @@ export function useBrush({
     //  记录【框框内 + 框框外关联的 所有簇】包含的 簇 id
     const selectedClusterIdxSet: Set<number> = new Set(selectedClusterIdxs.value);
     selectedClusterIdxs.value = [...selectedClusterIdxSet];
+    selectedClusterIdxsInBrush.value = [...selectedClusterIdxSet];
     
     selectedClusterIdxs.value.forEach((clusterIdx: number) => {
       //  根据【框框内的所有簇 id】，得到框框外与其有邻接关系的簇 id
@@ -147,6 +151,7 @@ export function useBrush({
     noSelectedSvgs,
     selectedODIdxs,
     selectedClusterIdxs,
+    selectedClusterIdxsInBrush,
   }
 }
 
@@ -166,46 +171,170 @@ export function debounce(callback: Function, delay: number) {
 }
 
 //  获得 gis 中所有 OD 点的 svg d3 选择集的 hooks
-export function useGetOdCircles() {
-  const store = useStore();
-  const { getters } = store;
-  const odCircles: Ref<any> = ref(null);
-  const clusterLayerSvg: ComputedRef<any | null> = computed(
-    () => getters.clusterLayerSvg
-  );
+// export function useGetOdCircles() {
+//   const store = useStore();
+//   const { getters } = store;
+//   const odCircles: Ref<any> = ref(null);
+//   const clusterLayerSvg: ComputedRef<any | null> = computed(
+//     () => getters.clusterLayerSvg
+//   );
 
-  watch(clusterLayerSvg, () => {
-    if(clusterLayerSvg.value) {
-      odCircles.value = clusterLayerSvg.value.selectAll("circle")
-    }
-  }, {deep: false, immediate: true});
+//   watch(clusterLayerSvg, () => {
+//     if(clusterLayerSvg.value) {
+//       odCircles.value = clusterLayerSvg.value.selectAll("circle")
+//     }
+//   }, {deep: false, immediate: true});
 
-  return {
-    odCircles,
-  };
-}
+//   return {
+//     odCircles,
+//   };
+// }
 
 //  
 export function useGetCircleByCluster() {
   const store = useStore();
   const { getters } = store;
-  const { odCircles } = useGetOdCircles();
   const odIndexList = computed(() => getters.odIndexList);
   const pointClusterMap = computed(() => getters.pointClusterMap);
 
   //  输入簇 id，得到一个 d3 选择集，包含在这个簇中的 OD 点 svg
-  function getCircleByClusterId(clusterId: number) {
-    const result = odCircles.value.filter(function(d: any, i: number) {
+  function getCircleByClusterId(odCircles: any, clusterId: number) {
+    // let result: Ref<any> = ref(null);
+    // result.value = 
+    return odCircles.filter(function(d: any, i: number) {
       const index = odIndexList.value[i];
       if (pointClusterMap.value.get(index) === clusterId) {
         return true;
       }
     });
-    console.log(result)
-    return result;
+    // console.log(result)
+    // return result;
   }
 
   return {
     getCircleByClusterId
   };
+}
+
+export function useDrawODPath(project: Function, clusterLayerSvg: Ref<any>) {
+  
+  const store = useStore();
+  const { getters } = store;
+  const { filteredOutAdjTable } = getters;
+  type Coord = {x: number, y: number};
+  const odPairList: Ref<Array<[Coord, Coord]>> = ref([]);
+  let links: any = null;
+  let line: any = null;
+  let svgMarker: Ref<any> = ref(null);
+  const odArrows: Ref<any> = ref(null);
+  const mapMode = computed(() => getters.mapMode);
+
+  function setMarker(svgPath: any) {
+    let marker = svgPath //  设置箭头
+      .append("svg:defs")
+      .append("marker")
+      .attr("id", "od_arrow") //设置箭头的 id，用于引用
+      .attr("viewBox", "-0 -5 10 10")
+      .attr("refX", 8) //设置箭头距离节点的距离
+      .attr("refY", 0) //设置箭头在 y 轴上的偏移量
+      .attr("orient", "auto") //设置箭头随边的方向旋转
+      .attr("markerWidth", 2.5) //设置箭头的宽度
+      .attr("markerHeight", 2.5) //设置箭头的高度
+      .attr("xoverflow", "visible");
+    svgMarker.value = marker;
+  }
+
+  function drawODPath(cidCenterMap: Map<number, [number, number]>) {
+    if (!mapMode.value.has(MapMode.CHOOSE_POINT)) {
+      d3.select('#paths').select('path').remove();
+      d3.select('#one_od').remove();
+      return;
+    }
+
+    const odPairs = JSON.parse(sessionStorage.getItem("odPairs")!);
+    odPairList.value = [];
+    for (const odPair of odPairs) {
+      const [srcCid, tgtCid] = odPair;
+      const oCenterCoord = cidCenterMap.get(srcCid)!;
+      const dCenterCoord = cidCenterMap.get(tgtCid)!;
+      odPairList.value.push([
+        {x: oCenterCoord[0], y: oCenterCoord[1]},
+        {x: dCenterCoord[0], y: dCenterCoord[1]}
+      ]);
+    }
+
+    // for(let item of filteredOutAdjTable) {
+    //   let [key, value]: [number, number[]] = item;
+    //   if(Object.keys(value).length === 0)
+    //     continue;
+    //   const oCenterCoord = cidCenterMap.get(key)!;
+    //   value.forEach((cid: number) => {
+    //     const dCenterCoord = cidCenterMap.get(cid)!;
+    //     odPairList.value.push([
+    //       {x: oCenterCoord[0], y: oCenterCoord[1]},
+    //       {x: dCenterCoord[0], y: dCenterCoord[1]}
+    //     ]);
+    //   })
+    // };
+
+    const g = d3.select('#paths')
+
+    // g.select('path').remove();
+    console.log('path', g.select('path'))
+
+    line = d3.line()
+      .x(function(d: any) { return project([d.x, d.y]).x; })
+      .y(function(d: any) { return project([d.x, d.y]).y; })
+      .curve(d3.curveBasis);
+    
+    // 使用选择集绑定数据和path元素
+    links = g.selectAll("path")
+      .data(odPairList.value);   //  绑定odPairList数组
+
+    links.enter()
+      .append("path")
+      .attr("d", line)
+      .attr('id', 'one_od')
+      .attr("marker-end", "url(#od_arrow)")
+      .attr("stroke", 'rgb(255 108 55)')
+      .attr('opacity', 1)
+      .attr("stroke-width", 9)
+      .attr("stroke-dasharray", "1,0") // 设置虚线间隔为1px和0px
+
+    // 使用exit()函数删除多余的path元素，如果有的话
+    links.exit().remove();    
+    odArrows.value = clusterLayerSvg.value.select('#paths').selectAll('path');
+  }
+
+  function moveOdPath() {
+    if (!mapMode.value.has(MapMode.CHOOSE_POINT)) {
+      d3.select('#paths').select('path').remove();
+      d3.select('#one_od').remove();
+      return;
+    }
+    odArrows.value.attr('d', line);
+  }
+
+  function updateArrow() {
+    if (!mapMode.value.has(MapMode.CHOOSE_POINT)) {
+      d3.select('#paths').select('path').remove();
+      d3.select('#one_od').remove();
+      return;
+    }
+    svgMarker.value
+      .append("path")
+      .attr("d", "M 0,-5 L 10 ,0 L 0,5") //使用绝对坐标来绘制三角形
+      .attr('fill', 'rgb(255 108 55)')
+      .attr('stroke', 'none')
+      .attr("stroke-dasharray", "1,0") // 设置虚线间隔为1px和0px
+  }
+
+  return {
+    setMarker,
+    drawODPath,
+    moveOdPath,
+    odArrows,
+    odPairList,
+    updateArrow,
+  }
 }

@@ -27,6 +27,7 @@ import { Marker, Map } from "mapbox-gl/index";
 import ClusterLayer from "./ClusterLayer.vue";
 import RightClickMenu from "./right-click-menu.vue";
 import { useRightClick } from "@/hooks/rightClickHooks";
+import store from "@/store/store";
 
 export default defineComponent({
   components: {
@@ -59,6 +60,8 @@ export default defineComponent({
             // [, ]] //东北方坐标,用于控制缩放范围
             attributionControl: false //  不展示 mapbox 的官网信息
         });
+
+        store.commit('setMap', map.value);
 
         map.value.addControl(new mapboxgl.NavigationControl(), "top-right");  //  导航
 

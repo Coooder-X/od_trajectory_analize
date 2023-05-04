@@ -32,19 +32,17 @@
       <div class="info-comp">
         <div class="selec-box">
           <div style="margin-bottom: 5px;">
-            <b v-if="tableData.length">{{ `当前日期范围: 5月${dateScope[0]}日-5月${dateScope[1]}日` }}</b>
+            <b v-if="tableData.length">{{ `当前日期范围: 5月${dateScope[0]+1}日-5月${dateScope[1]+1}日` }}</b>
             <b v-else>选择日期范围:</b>
           </div>
-          <el-slider
-            style="margin-bottom: 10px; margin-left: 5px;"
+          <time-selector
             :disabled="!tableData.length"
-            v-model="dateScope"
-            range
-            :format-tooltip="formatDate"
+            :defaultMin="dateScope[0]"
+            :defaultMax="dateScope[1]"
             :min="dateSelection[0]"
             :max="dateSelection.at(-1)"
-          >
-          </el-slider>
+            :dataRange="31"
+            @change="onChangeDateScope"></time-selector>
           <div style="margin-bottom: 5px;">
             <b v-if="tableData.length">{{ `当前时间范围: ${timeScope[0]}时-${timeScope[1]}时` }}</b>
             <b v-else>选择时间范围:</b>
@@ -54,6 +52,7 @@
               :defaultMax="timeScope[1]"
               :min="timeSelection[0]"
               :max="timeSelection.at(-1)"
+              :dataRange="24"
               @change="onChangeTimeScope"></time-selector>
           </div>
         </div>
@@ -87,37 +86,40 @@ export default defineComponent({
     const dateScope: Ref<[number, number]> = ref([] as any);
     const timeScope: Ref<[number, number]> = ref([] as any);
 
+    store.dispatch('getAllODPoints');
+
     const changeDataSet = () => {
       //  后面加上逻辑：修改数据集后，才显示 gis 轨迹点
       tableData.value = new Array(20).fill(0).map((_, index) => {
         return { name: `2020年5月${index + 1}日杭州市出租车GPS轨迹点数据.h5` };
       });
-      dateSelection.value = new Array(20).fill(0).map((_, index) => index + 1);
+      dateSelection.value = new Array(20).fill(0).map((_, index) => index);
       timeSelection.value = new Array(24).fill(0).map((_, index) => index + 1);
       dateScope.value = [dateSelection.value[0], dateSelection.value[1]];
       timeScope.value = [timeSelection.value[7], timeSelection.value[9]];
       //  初始化时间后，第一次取数据初始化 gis 视图
       onTimeSelect(timeScope.value);
-    };
-
-    const formatDate = (value: number) => {
-      if (tableData.value.length == 0) return "无数据";
-      return `5月${value}日`;
-    };
-
-    const formatTime = (value: number) => {
-      if (tableData.value.length == 0) return "无数据";
-      return `${value}时`;
+      onDateSelect(dateScope.value);
     };
 
     const onTimeSelect = (event: [number, number]) => {
       console.log(event)
       timeScope.value[0] = event[0];
       timeScope.value[1] = event[1];
+      store.commit('setTimeScope', timeScope.value);
       store.dispatch('getODPointsFilterByHour', {params: {startHour: timeScope.value[0], endHour: timeScope.value[1]}});
     }
 
+    const onDateSelect = (event: [number, number]) => {
+      console.log(event)
+      dateScope.value[0] = event[0];
+      dateScope.value[1] = event[1];
+      store.commit('setDateScope', dateScope.value);
+      // store.dispatch('getODPointsFilterByHour', {params: {startHour: timeScope.value[0], endHour: timeScope.value[1]}});
+    }
+
     const onChangeTimeScope = debounce(onTimeSelect, 700);
+    const onChangeDateScope = debounce(onDateSelect, 700);
 
     return {
       dataset,
@@ -127,8 +129,7 @@ export default defineComponent({
       dateSelection,
       timeSelection,
       onChangeTimeScope,
-      formatDate,
-      formatTime,
+      onChangeDateScope,
       changeDataSet,
       onTimeSelect,
     };

@@ -4,18 +4,23 @@ import { ActionContext } from 'vuex';
 
 const initState: GlobalState = {
   pointsExist: false,
-  timeScope: [1, 2],
-  dateScope: [8, 10],
-  odPoints: [],
+  dateScope: [0, 1],
+  timeScope: [8, 10],
+  odPoints: [], //  当天的全量 OD 点数据。//在后端中，目前全量数据是从一天的 od 点中取一部分点
+  partOdPoints: [], //  地图上存在的所有 od 点，因此并不是全量的数据，是小时段筛选后的。
   odIndexList: [],
   pointClusterMap: new Map(),
   clusterPointMap: new Map(),
   inAdjTable: new Map(),
   outAdjTable: new Map(),
+  filteredOutAdjTable: new Map(), //  刷选过滤后的 出边邻接表
   forceTreeLinks: [],
   forceTreeNodes: [],
   selectedODIdxs: [],
   selectedClusterIdxs: [],
+  cidCenterMap: new Map(),
+  communityGroup: new Map(),
+  withSpaceDist: false,
 }
 
 const globalModule = {
@@ -24,9 +29,18 @@ const globalModule = {
     ...initState
   },
   mutations: {
+    setTimeScope(state: GlobalState, payload: [number, number]) {
+      state.timeScope = payload;
+    },
+    setDateScope(state: GlobalState, payload: [number, number]) {
+      state.dateScope = payload;
+    },
     setAllODPoints(state: GlobalState, payload: Array<[]>) {
       state.odPoints = payload;
       console.log('set points', state.odPoints)
+    },
+    setPartODPoints(state: GlobalState, payload: Array<number[]>) {
+      state.partOdPoints = payload;
     },
     setPointsExist(state: GlobalState, payload: Boolean) {
       state.pointsExist = payload;
@@ -58,6 +72,12 @@ const globalModule = {
         state.outAdjTable.set(k, payload[key]);
       });
     },
+    setFilteredOutAdjTable(state: GlobalState, payload: {[key: string]: number[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key);
+        state.filteredOutAdjTable.set(k, payload[key]);
+      });
+    },
     setForceTreeLinks(state: GlobalState, payload: ForceLink) {
       state.forceTreeLinks = payload;
     },
@@ -69,6 +89,23 @@ const globalModule = {
     },
     setSelectedClusterIdxs(state: GlobalState, payload: number[]) {
       state.selectedClusterIdxs = payload;
+    },
+    setCidCenterMap(state: GlobalState, payload: {[key: string]: [number, number]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key);
+        state.cidCenterMap.set(k, payload[key]);
+      });
+    },
+    setCommunityGroup(state: GlobalState, payload: {[key: number]: string[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key);
+        if (payload[k].length > 0) {
+          state.communityGroup.set(k, payload[k]);
+        }
+      });
+    },
+    setWithSpaceDist(state: GlobalState, payload: Boolean) {
+      state.withSpaceDist = payload;
     },
   },
   actions: {
@@ -84,7 +121,7 @@ const globalModule = {
       axios.get('/api/getODPointsFilterByHour', params).then((res) => {
         console.log('getODPointsFilterByHour', res, res.status === 200);
         //  设置 od 点的坐标数组和 index 序号数组
-        context.commit('setAllODPoints', res.data['od_points']);
+        context.commit('setPartODPoints', res.data['part_od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
         context.commit('setPointsExist', res.status === 200);
       })
@@ -95,7 +132,7 @@ const globalModule = {
         //  设置 od 点的坐标数组和 index 序号数组
         context.commit('setPointClusterMap', res.data['point_cluster_dict']);
         context.commit('setClusterPointMap', res.data['cluster_point_dict']);
-        context.commit('setAllODPoints', res.data['od_points']);
+        context.commit('setPartODPoints', res.data['part_od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
         // context.commit('setForceTreeLinks', res.data['json_adj_table']);
         // context.commit('setForceTreeNodes', res.data['json_nodes']);
@@ -112,18 +149,25 @@ const globalModule = {
         console.log(res)
         context.commit('setForceTreeLinks', res.data['force_edges']);
         context.commit('setForceTreeNodes', res.data['force_nodes']);
+        context.commit('setFilteredOutAdjTable', res.data['filtered_adj_dict']);
+        context.commit('setCidCenterMap', res.data['cid_center_coord_dict']);
+        context.commit('setCommunityGroup', res.data['community_group']);
       });
     },
+    // getCidCenterMap(context: ActionContext<{}, {}>, params: any) {
+    //   console.log('getCidCenterMap')
+    //   axios({
+    //     method: 'post',
+    //     url: '/api/getClusterCenter',
+    //     data: params,
+    //   }).then((res) => {
+    //     console.log('getCidCenterMap gettget')
+    //     context.commit('setCidCenterMap', res.data['cid_center_coord_dict']);
+    //   });
+    // },
     // createCategory(context: ActionContext<{}, {}>, params: any) {
     //   axios.post('/api/dataset/createCategory', params);
     // },
-    // getFile(context: ActionContext<{}, {}>, params: any) {
-    //   console.log('getFile params', params);
-    //   axios.get('/api/dataset/getFile', params).then((res) => {
-    //     console.log('getFile data', res.data);
-    //     context.commit('getFile', res.data);
-    //   });
-    // }
   },
   getters: {
     pointsExist: (state: GlobalState) => {
@@ -133,8 +177,14 @@ const globalModule = {
     odPoints: (state: GlobalState) => {
       return state.odPoints;
     },
+    partOdPoints: (state: GlobalState) => {
+      return state.partOdPoints;
+    },
     timeScope: (state: GlobalState) => {
       return state.timeScope;
+    },
+    dateScope: (state: GlobalState) => {
+      return state.dateScope;
     },
     pointClusterMap: (state: GlobalState) => {
       return state.pointClusterMap;
@@ -151,6 +201,9 @@ const globalModule = {
     outAdjTable: (state: GlobalState) => {
       return state.outAdjTable;
     },
+    filteredOutAdjTable: (state: GlobalState) => {
+      return state.filteredOutAdjTable;
+    },
     forceTreeLinks: (state: GlobalState) => {
       return state.forceTreeLinks;
     },
@@ -162,6 +215,15 @@ const globalModule = {
     },
     selectedClusterIdxs: (state: GlobalState) => {
       return state.selectedClusterIdxs;
+    },
+    cidCenterMap: (state: GlobalState) => {
+      return state.cidCenterMap;
+    },
+    communityGroup: (state: GlobalState) => {
+      return state.communityGroup;
+    },
+    withSpaceDist: (state: GlobalState) => {
+      return state.withSpaceDist;
     },
   },
   modules: {},

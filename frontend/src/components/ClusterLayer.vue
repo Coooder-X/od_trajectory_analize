@@ -5,7 +5,7 @@
 
 <script lang="ts">
 /* eslint-disable */
-import { computed, ComputedRef, defineComponent, PropType, watch } from "vue";
+import { computed, ComputedRef, defineComponent, onMounted, PropType, watch } from "vue";
 import { Ref, ref } from "vue";
 import { useStore } from 'vuex';
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -14,7 +14,7 @@ import { Map, PointLike } from 'mapbox-gl/index'
 import { MapMode } from '@/map-interface'
 import * as d3 from 'd3';
 import {colorTable} from '@/color-pool'
-import { useBrush, debounce } from "@/hooks/gisLayerHooks";
+import { useBrush, debounce, useDrawODPath } from "@/hooks/gisLayerHooks";
 
 export default defineComponent({
   components: {},
@@ -30,15 +30,19 @@ export default defineComponent({
     const store = useStore();
     const { getters } = store;
 
-    // let pointsExist = computed(() => getters.pointsExist);
-    let odPoints: ComputedRef<number[][]> = computed(() => getters.odPoints);
+    let partOdPoints: ComputedRef<number[][]> = computed(() => getters.partOdPoints);
     let pointClusterMap = computed(() => getters.pointClusterMap);
+    let clusterPointMap = computed(() => getters.clusterPointMap);
+    let cidCenterMap = computed(() => getters.cidCenterMap);
     let odIndexList = computed(() => getters.odIndexList);
     const mapMode = computed(() => getters.mapMode);
+    const withSpaceDist = computed(() => getters.withSpaceDist);
 
     const project = (d: [number, number]) => {
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));
     }
+
+    const { drawODPath, moveOdPath, setMarker, updateArrow } = useDrawODPath(project, clusterLayerSvg);
 
     const unproject = (d: [number, number]) => {
       return props.map.unproject({x: d[0], y: d[1]} as PointLike);
@@ -49,22 +53,13 @@ export default defineComponent({
       selectedSvgs,
       noSelectedSvgs,
       selectedODIdxs,
-      selectedClusterIdxs
-    } = useBrush({clusterLayerSvg, odPoints, project, unproject});
+      selectedClusterIdxs,
+      selectedClusterIdxsInBrush,
+    } = useBrush({clusterLayerSvg, project, unproject});
+
     watch(mapMode, () => {
       setBrushLayerVisible(mapMode.value.has(MapMode.SELECT));
     }, { deep: true }); //  watch 监听 Set 对象内容必须添加 deep: true，否则只会监听 Set 对象本身的变化，而不是它的元素的变化
-
-    // let viewArea = computed(() => {
-    //   const canvas = props.map.getCanvas()
-    //   const w = canvas.width
-    //   const h = canvas.height
-    //   const cUL = props.map.unproject([0,0]).toArray();
-    //   const cLR = props.map.unproject([w,h]).toArray();
-    //   const coordinates = [cUL, cLR];
-    //   console.log('角坐标:', coordinates)
-    //   return coordinates;
-    // })
 
     watch([selectedODIdxs, selectedClusterIdxs],
       debounce(() => {  //  节流，不然每次 brush 调用都存 store，性能非常差
@@ -74,29 +69,48 @@ export default defineComponent({
         getters.outAdjTable.forEach(function(value: number[], key: number) {
           adjTable[key] = value;
         });
+        //  获取每个簇中心的坐标
+        const clusterPointObj: {[key: number]: number[]} = {}
+        clusterPointMap.value.forEach(function(value: number[], key: number) {
+          clusterPointObj[key] = value;
+        });
         store.dispatch('getLineGraph', {
+          selectedClusterIdxsInBrush: selectedClusterIdxsInBrush.value,
           selectedClusterIdxs: selectedClusterIdxs.value,
           outAdjTable: adjTable,
+          cluster_point_dict: clusterPointObj,
+          withSpaceDist: withSpaceDist.value,
         });
+        // store.dispatch('getCidCenterMap', {
+        //   cluster_point_dict: clusterPointObj,
+        //   selected_cluster_idxs: selectedClusterIdxs.value,
+        // });
       }, 1000)
     );
 
+    watch([mapMode], () => {
+      if(cidCenterMap.value && clusterLayerSvg.value) {
+        drawODPath(cidCenterMap.value); //  hover力导向节点后，簇之间的 path
+        updateArrow();
+      }
+    }, {deep: true});
+
     //  监听 od 点数据变化，如果时间范围改变，则重新绘制 od 点
-    watch(odPoints, (newValue: number[][], oldValue: number[][]) => {
+    watch(partOdPoints, (newValue: number[][], oldValue: number[][]) => {
       if(!clusterLayerSvg.value) {
         initLayer();
       }
-      // console.log('repaint')
-      paintLayer(clusterLayerSvg.value, odPoints.value);
+      paintLayer(clusterLayerSvg.value, partOdPoints.value);
     });
 
     watch(pointClusterMap, () => {
-      // console.log('repaint')
-      paintLayer(clusterLayerSvg.value, odPoints.value);
+      paintLayer(clusterLayerSvg.value, partOdPoints.value);
     })
 
     //  初始化 od 点图层 svg
     const initLayer = () => {
+      d3.selectAll('svg').remove();
+      clusterLayerSvg.value = null;
       const container = props.map.getCanvasContainer();
       const svg = d3
         .select(container)
@@ -107,6 +121,8 @@ export default defineComponent({
         .style("z-index", 2);
       
       let g = svg.append('g').attr('id', 'point_group')
+      const svgPath = svg.append('g').attr('id', 'paths');
+      setMarker(svgPath); //  只在 initLayer 时给 paths 图层设置一次箭头的配置（多次设置则箭头消失），便于后续在link上添加箭头
 
       //  将轨迹点图层的 svg 更新到 store
       clusterLayerSvg.value = svg
@@ -116,7 +132,7 @@ export default defineComponent({
     const paintLayer = (svg: any, pointsData: number[][]) => {
       //  如果已存在绘制的 od 点，清空再绘制新的
       svg
-        .selectAll("#od_points")
+        .selectAll("circle")
         .remove()
 
       let g = svg.select('#point_group')
@@ -127,7 +143,9 @@ export default defineComponent({
         .data(pointsData)
         .enter()
         .append("circle")
-        .attr('id', 'od_points')
+        .attr('id', function(d: any, i: number) {
+          return odIndexList.value[i];
+        })
         .attr("r", 4)
         .attr('stroke', 'black')
         .attr('stroke-width', '0.5px')
@@ -139,12 +157,7 @@ export default defineComponent({
           return "#ff3636"
         });
 
-      // dots = dots.filter(function(point: number[]) {
-      //   const area = viewArea.value;
-      //   if(point[0] >= area[0][0] && point[0] <= area[1][0] && point[1] <= area[0][1] && point[1] >= area[1][1])
-      //     return true;
-      //   return false;
-      // })
+      drawODPath(cidCenterMap.value); //  hover力导向节点后，簇之间的 path
 
       // Render method redraws circles
       function render() {
@@ -155,7 +168,9 @@ export default defineComponent({
           .attr("cy", function(d: [number, number]) {
             return project(d).y;
           });
-        // console.log(viewArea.value)
+
+        moveOdPath(); //  和上面 dots 一样，拖动地图时需要更新 path 的位置，同步移动，同时绑定箭头。
+        updateArrow();
       }
 
       // Call render method, and whenever map changes
