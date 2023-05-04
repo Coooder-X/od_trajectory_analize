@@ -20,6 +20,7 @@ const initState: GlobalState = {
   selectedClusterIdxs: [],
   cidCenterMap: new Map(),
   communityGroup: new Map(),
+  withSpaceDist: false,
 }
 
 const globalModule = {
@@ -102,6 +103,9 @@ const globalModule = {
           state.communityGroup.set(k, payload[k]);
         }
       });
+    },
+    setWithSpaceDist(state: GlobalState, payload: Boolean) {
+      state.withSpaceDist = payload;
     },
   },
   actions: {
@@ -217,6 +221,9 @@ const globalModule = {
     },
     communityGroup: (state: GlobalState) => {
       return state.communityGroup;
+    },
+    withSpaceDist: (state: GlobalState) => {
+      return state.withSpaceDist;
     },
   },
   modules: {},

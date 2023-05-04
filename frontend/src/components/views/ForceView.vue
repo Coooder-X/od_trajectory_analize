@@ -4,7 +4,7 @@
     <div id="force" ref="forceDivElement" class="force-content">
       <div class="toolbar">
         考虑地理空间关系：
-        <el-switch v-model="withSpaceDist">
+        <el-switch :value="withSpaceDist" @change="changeWithSpaceDist">
         </el-switch>
       </div>
     </div>
@@ -67,7 +67,7 @@ export default defineComponent({
     const forceNodeSvg: Ref<any | null> = ref(null);
     const map = computed(() => getters.map);
     const communityGroup = computed(() => getters.communityGroup);
-    const withSpaceDist: Ref<Boolean> = ref(true);  //  线图是否考虑空间距离
+    const withSpaceDist = computed(() => getters.withSpaceDist);  //  线图是否考虑空间距离
 
     watch([withSpaceDist, forceTreeLinks, forceTreeNodes], () => {
       if(forceTreeNodes && forceTreeLinks) {
@@ -75,6 +75,10 @@ export default defineComponent({
         drawGraph(forceTreeLinks.value, forceTreeNodes.value);
       }
     });
+
+    const changeWithSpaceDist = (value: boolean) => {
+      store.commit('setWithSpaceDist', value);
+    }
 
     const toggleShowMapOdPair = (srcCid: number, tgtCid: number, isAdd: boolean) => {
       //  hover 时让地图视图出现OD对，用 sessionStorate 传递参数
@@ -211,6 +215,8 @@ export default defineComponent({
       nodes = calLenColor(nodes, cidCenterMap.value, map.value);
       if (!withSpaceDist.value)
         edges = edges.filter((edge: any) => !edge.isFake);
+      // else
+      //   edges = edges.filter((edge: any) => !edge.singleFake);
       // const colorScale = d3
       //   .scaleOrdinal()
       //   .domain(d3.range(nodes.length))
@@ -425,6 +431,7 @@ export default defineComponent({
       headMapVisible,
       poiPanelVisible,
       withSpaceDist,
+      changeWithSpaceDist,
     };
   },
 });
