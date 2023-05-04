@@ -137,6 +137,7 @@ def get_cluster_center_coords():
 def get_line_graph():
     data = request.get_json(silent=True)
     # print(data)
+    selected_cluster_ids_in_brush = data['selectedClusterIdxsInBrush']
     selected_cluster_ids = data['selectedClusterIdxs']
     out_adj_table = data['outAdjTable']
     cluster_point_dict = data['cluster_point_dict']
@@ -147,7 +148,7 @@ def get_line_graph():
     out_adj_table = tmp
     # print(out_adj_table)
     # 计算线图，返回适用于 d3 的结构和邻接表 ===========================
-    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids, out_adj_table)
+    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_table)
 
     #  计算簇中心坐标 ========================================
     tmp = {}
