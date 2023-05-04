@@ -67,7 +67,7 @@ export function calNodeColor(forceNodes: ForceNode, clusterPointMap: Map<number,
   const nodeColorPicker = d3.scaleLinear()
     // .domain([min_num - 1, max_num + 1]) // 数值范围
     // .range(['rgb(247, 247, 233)', '#ff4c4c']);
-    .domain([min_num - 1, (max_num + min_num) / 2, max_num + 1]) // 数值范围
+    .domain([min_num, (max_num + min_num) / 2, max_num]) // 数值范围
     // .range(["white", "salmon"]); // 颜色范围
     // .range([d3.rgb(0, 136, 255).toString(), d3.rgb(255,255,255).toString(), d3.rgb(227, 0, 0).toString()]); // 颜色范围
     // .range([d3.rgb(80, 122, 175).toString(), d3.rgb(247, 247, 233).toString(), d3.rgb(190,92,55).toString()]); // 颜色范围
@@ -77,8 +77,8 @@ export function calNodeColor(forceNodes: ForceNode, clusterPointMap: Map<number,
   //  归一化，分配颜色
   const range = max_num - min_num;
   nodeNumMap.forEach((value: number, key: string) => {
-    value = range * (value - min_num) / (max_num - min_num);
     nodeColorMap.set(key, nodeColorPicker(value));
+    value = range * (value - min_num) / (max_num - min_num);
   });
 
   return nodeColorMap;

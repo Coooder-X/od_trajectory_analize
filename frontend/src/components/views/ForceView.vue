@@ -17,6 +17,7 @@
 </template>
 
 <script lang="ts">
+/* eslint-disable */
 import { defineComponent, computed, onMounted, watch, ComputedRef, nextTick } from "vue";
 import { Ref, ref } from "vue";
 import { useStore } from "vuex";
@@ -80,15 +81,15 @@ export default defineComponent({
       store.commit('setWithSpaceDist', value);
     }
 
-    const toggleShowMapOdPair = (srcCid: number, tgtCid: number, isAdd: boolean) => {
+    const toggleShowMapOdPair = (pairCids: [number, number][], isAdd: boolean) => {
       //  hover 时让地图视图出现OD对，用 sessionStorate 传递参数
       store.commit('toggleMapMode', MapMode.CHOOSE_POINT);
       if (isAdd) {
-        sessionStorage.setItem('odPair', JSON.stringify({
-          srcCid, tgtCid
-        }));
+        sessionStorage.setItem('odPairs', JSON.stringify(
+          pairCids
+        ));
       } else {
-        sessionStorage.removeItem('odPair');
+        sessionStorage.removeItem('odPairs');
       }
     }
 
@@ -115,6 +116,20 @@ export default defineComponent({
           const cid: number = parseInt(name.split('_')[1]);
           return cid === transCid;
         }).attr('stroke-width', strokeWidth)
+
+        //  hover 一个 link 时，所有代表着相同簇的边所关联到的点（OD对）都在地图视图展示
+        const cidPairs: [number, number][] = [];
+        d3.selectAll('#force-links').filter((d: any) => {
+          const { source: {name} } = d;
+          const cid: number = parseInt(name.split('_')[1]);
+          return cid === transCid;
+        }).each((d: any) => {
+          const { source: {name: name1}, target: {name: name2} } = d;
+          const [src1, tgt1] = name1.split('_').map(Number);
+          const [src2, tgt2] = name2.split('_').map(Number);
+          cidPairs.push([src1, tgt1], [src2, tgt2]);
+        });
+        toggleShowMapOdPair(cidPairs, isOver);
       }
     }
 
@@ -128,7 +143,7 @@ export default defineComponent({
         self.attr('r', radius).style('cursor', isOver? 'pointer':'default');
         const {name} = d;
         const [sourceCid, targetCid] = name.split('_').map(Number);
-        toggleShowMapOdPair(sourceCid, targetCid, isOver);
+        toggleShowMapOdPair([[sourceCid, targetCid]], isOver);
         const odCircles = clusterLayerSvg.value.selectAll("circle")
         const c1 = getCircleByClusterId(odCircles, sourceCid);
         const c2 = getCircleByClusterId(odCircles, targetCid);
@@ -243,7 +258,7 @@ export default defineComponent({
         .distance(function (d: any) {
           if (withSpaceDist.value)
             return d.value * 1.7;
-          return 30;
+          return 50;
         })
         .strength(function (d: any) {
           return 0.2;

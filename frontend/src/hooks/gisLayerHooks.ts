@@ -251,14 +251,17 @@ export function useDrawODPath(project: Function, clusterLayerSvg: Ref<any>) {
       return;
     }
 
-    const odPair = JSON.parse(sessionStorage.getItem("odPair")!);
-    const { srcCid, tgtCid } = odPair;
-    const oCenterCoord = cidCenterMap.get(srcCid)!;
-    const dCenterCoord = cidCenterMap.get(tgtCid)!;
-    odPairList.value = [[
-      {x: oCenterCoord[0], y: oCenterCoord[1]},
-      {x: dCenterCoord[0], y: dCenterCoord[1]}
-    ]];
+    const odPairs = JSON.parse(sessionStorage.getItem("odPairs")!);
+    odPairList.value = [];
+    for (const odPair of odPairs) {
+      const [srcCid, tgtCid] = odPair;
+      const oCenterCoord = cidCenterMap.get(srcCid)!;
+      const dCenterCoord = cidCenterMap.get(tgtCid)!;
+      odPairList.value.push([
+        {x: oCenterCoord[0], y: oCenterCoord[1]},
+        {x: dCenterCoord[0], y: dCenterCoord[1]}
+      ]);
+    }
 
     // for(let item of filteredOutAdjTable) {
     //   let [key, value]: [number, number[]] = item;
@@ -293,8 +296,8 @@ export function useDrawODPath(project: Function, clusterLayerSvg: Ref<any>) {
       .attr("d", line)
       .attr('id', 'one_od')
       .attr("marker-end", "url(#od_arrow)")
-      .attr("stroke", '#4472C4')
-      .attr('opacity', 0.9)
+      .attr("stroke", 'rgb(255 108 55)')
+      .attr('opacity', 1)
       .attr("stroke-width", 9)
       .attr("stroke-dasharray", "1,0") // 设置虚线间隔为1px和0px
 
@@ -321,7 +324,7 @@ export function useDrawODPath(project: Function, clusterLayerSvg: Ref<any>) {
     svgMarker.value
       .append("path")
       .attr("d", "M 0,-5 L 10 ,0 L 0,5") //使用绝对坐标来绘制三角形
-      .attr('fill', '#4472C4')
+      .attr('fill', 'rgb(255 108 55)')
       .attr('stroke', 'none')
       .attr("stroke-dasharray", "1,0") // 设置虚线间隔为1px和0px
   }
