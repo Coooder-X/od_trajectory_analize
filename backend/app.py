@@ -10,7 +10,7 @@ import _thread
 from data_process.od_pair_process import get_odpair_space_similarity
 from graph_cluster_test.sa_cluster import update_graph_with_attr, get_cluster
 from data_process.OD_area_graph import build_od_graph, get_line_graph_by_selected_cluster, get_cluster_center_coord, \
-    fuse_fake_edge_into_linegraph
+    fuse_fake_edge_into_linegraph  #, aggregate_single_points
 from data_process import od_pair_process
 from data_process.DT_graph_clustering import delaunay_clustering, cluster_filter_by_hour, draw_DT_clusters
 
@@ -141,6 +141,8 @@ def get_line_graph():
     selected_cluster_ids = data['selectedClusterIdxs']
     out_adj_table = data['outAdjTable']
     cluster_point_dict = data['cluster_point_dict']
+    with_space_dist = data['withSpaceDist']
+    # with_space_dist: 是否考虑空间距离，如果不考虑，则把离散的点都连上 fake 边，保证它们聚集在一块，不会扩散到整个屏幕
     #  得到的 json 中 key 是 string，这里转成 int
     tmp = {}
     for key in out_adj_table:
@@ -163,10 +165,15 @@ def get_line_graph():
     edge_name_dist_map = get_odpair_space_similarity(selected_cluster_ids, cid_center_coord_dict, force_nodes)
 
     #  将线图加入 fake 边，并给边添加距离，成为考虑 OD 对空间关系的线图 ===============================
+    # if with_space_dist:
     force_edges = fuse_fake_edge_into_linegraph(force_nodes, force_edges, edge_name_dist_map)
 
     print('完全线图-点数', len(force_nodes))
     print('完全线图-边数', len(force_edges))
+
+    # if not with_space_dist:
+    #     force_edges = aggregate_single_points(force_nodes, force_edges, filtered_adj_dict)
+    #     print('单独点聚合后-边数', len(force_edges))
 
     # ============== 社区发现代码 ===============
     # 为 line graph 添加属性，目前属性是随意值 TODO：属性改成轨迹特征聚类后的簇id，聚合成的一个整数　value

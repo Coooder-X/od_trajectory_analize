@@ -133,6 +133,41 @@ def get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_c
     return force_nodes, force_edges, filtered_adj_dict, line_graph
 
 
+# def aggregate_single_points(force_nodes, force_edges, filtered_adj_dict):
+#     """
+#     :param with_space_dict: 是否考虑空间距离，如果不考虑，则把离散的点都连上 fake 边，保证它们聚集在一块，不会扩散到整个屏幕
+#     """
+#     single_points_names = []
+#     for node in force_nodes:
+#         flag = False
+#         for edge in force_edges:
+#             if edge['source'] == node['name'] or edge['target'] == node['name']:
+#                 flag = True
+#                 break
+#         if not flag:
+#             single_points_names.append(node['name'])
+#
+#         # src_cid, tgt_cid = list(map(int, node['name'].split('_')))
+#         # if len(filtered_adj_dict[tgt_cid]) > 0:
+#         #     continue
+#         # flag = True
+#         # for cid in filtered_adj_dict:
+#         #     if src_cid in filtered_adj_dict[cid]:
+#         #         flag = False
+#         #         break
+#         # if flag:
+#         #     continue
+#         # single_points_names.append(node['name'])
+#
+#     print('离散点个数：', len(single_points_names))
+#
+#     for i in range(len(single_points_names)):
+#         for j in range(i+1, len(single_points_names)):
+#             src_name, tgt_name = single_points_names[i], single_points_names[j]
+#             force_edges.append({ 'source': f'{src_name}', 'target': f'{tgt_name}', 'singleFake': True })
+#     return force_edges
+
+
 def get_cluster_center_coord(cluster_point_dict: dict, selected_cluster_idxs: list):
     """
     :param cluster_point_dict 簇id 到 OD点 id数组 的映射
