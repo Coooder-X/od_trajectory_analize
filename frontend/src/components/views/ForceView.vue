@@ -343,6 +343,8 @@ export default defineComponent({
         .attr("fill", "none");
 
       const gs = groupSvg.value
+        .append('g')
+        .attr('id', 'force-nodes')
         .selectAll(".circleText")
         .data(nodes)
         .enter()
