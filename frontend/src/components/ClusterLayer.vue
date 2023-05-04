@@ -30,7 +30,7 @@ export default defineComponent({
     const store = useStore();
     const { getters } = store;
 
-    let odPoints: ComputedRef<number[][]> = computed(() => getters.odPoints);
+    let partOdPoints: ComputedRef<number[][]> = computed(() => getters.partOdPoints);
     let pointClusterMap = computed(() => getters.pointClusterMap);
     let clusterPointMap = computed(() => getters.clusterPointMap);
     let cidCenterMap = computed(() => getters.cidCenterMap);
@@ -53,7 +53,7 @@ export default defineComponent({
       noSelectedSvgs,
       selectedODIdxs,
       selectedClusterIdxs
-    } = useBrush({clusterLayerSvg, odPoints, project, unproject});
+    } = useBrush({clusterLayerSvg, project, unproject});
 
     watch(mapMode, () => {
       setBrushLayerVisible(mapMode.value.has(MapMode.SELECT));
@@ -92,15 +92,15 @@ export default defineComponent({
     }, {deep: true});
 
     //  监听 od 点数据变化，如果时间范围改变，则重新绘制 od 点
-    watch(odPoints, (newValue: number[][], oldValue: number[][]) => {
+    watch(partOdPoints, (newValue: number[][], oldValue: number[][]) => {
       if(!clusterLayerSvg.value) {
         initLayer();
       }
-      paintLayer(clusterLayerSvg.value, odPoints.value);
+      paintLayer(clusterLayerSvg.value, partOdPoints.value);
     });
 
     watch(pointClusterMap, () => {
-      paintLayer(clusterLayerSvg.value, odPoints.value);
+      paintLayer(clusterLayerSvg.value, partOdPoints.value);
     })
 
     //  初始化 od 点图层 svg

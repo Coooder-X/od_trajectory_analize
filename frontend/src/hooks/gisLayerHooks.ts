@@ -5,9 +5,9 @@ import { useStore } from 'vuex';
 import { colorTable } from '@/color-pool';
 
 export function useBrush({
-  clusterLayerSvg, odPoints, project, unproject
+  clusterLayerSvg, project, unproject
 }: {
-  clusterLayerSvg: Ref<any | null>, odPoints: ComputedRef<number[][]>, project: Function, unproject: Function
+  clusterLayerSvg: Ref<any | null>, project: Function, unproject: Function
 }) {
   const store = useStore();
   const { getters } = store;

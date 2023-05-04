@@ -35,6 +35,7 @@ export function calLenColor(forceNodes: ForceNode, cidCenterMap: Map<number, [nu
 
 //  返回取色map，通过力导向节点的 name 获取对应颜色。颜色代表OD对内轨迹数，即OD对的热度。渐变为 蓝-白-红，从低到高。
 export function calNodeColor(forceNodes: ForceNode, clusterPointMap: Map<number, number[]>, odPoints: Array<number[]>) {
+  console.log('total len', odPoints.length)
   let min_num = 9999999, max_num = -1;
   const nodeNumMap: Map<string, number> = new Map();
   const nodeColorMap: Map<string, string> = new Map();
@@ -42,14 +43,16 @@ export function calNodeColor(forceNodes: ForceNode, clusterPointMap: Map<number,
     //  计算这对 OD 对之间，轨迹的数量
     const {name} = node;
     const [srcCid, tgtCid] = name.split('_').map(Number);
-    const [srcCluster, tgtCluster] = [clusterPointMap.get(srcCid), clusterPointMap.get(tgtCid)];
+    const [srcCluster, tgtCluster] = [clusterPointMap.get(srcCid)!, clusterPointMap.get(tgtCid)!];
     let cnt = 0;
-    for (const srcP in srcCluster) {
-      for (const tgtP in tgtCluster) {
-        const oP = odPoints[Number(srcP)];
-        const dP = odPoints[Number(tgtP)];
-        if (oP[3] === dP[3] && oP[4] == 0 && dP[4] === 1) {  //  这两个 OD 点轨迹 ID 相同，属于同一条轨迹。符合方向，则计数
+    // console.log(srcCluster.length, tgtCluster.length)
+    for (const srcP of srcCluster) {
+      const oP = odPoints[srcP];
+      for (const tgtP of tgtCluster) {
+        const dP = odPoints[tgtP];
+        if (oP[3] === dP[3] && oP[4] === 0 && dP[4] === 1) {  //  这两个 OD 点轨迹 ID 相同，属于同一条轨迹。符合方向，则计数
           cnt++;
+          break;
         }
       }
     }
@@ -57,11 +60,14 @@ export function calNodeColor(forceNodes: ForceNode, clusterPointMap: Map<number,
     max_num = Math.max(max_num, cnt);
     nodeNumMap.set(name, cnt);
     node.trjNum = cnt;
+    // console.log('cnt =', cnt)
   });
 
   // 创建一个线性比例尺
   const nodeColorPicker = d3.scaleLinear()
-    .domain([min_num, (max_num + min_num) / 2, max_num]) // 数值范围
+    // .domain([min_num - 1, max_num + 1]) // 数值范围
+    // .range(['rgb(247, 247, 233)', '#ff4c4c']);
+    .domain([min_num - 1, (max_num + min_num) / 2, max_num + 1]) // 数值范围
     // .range(["white", "salmon"]); // 颜色范围
     // .range([d3.rgb(0, 136, 255).toString(), d3.rgb(255,255,255).toString(), d3.rgb(227, 0, 0).toString()]); // 颜色范围
     // .range([d3.rgb(80, 122, 175).toString(), d3.rgb(247, 247, 233).toString(), d3.rgb(190,92,55).toString()]); // 颜色范围

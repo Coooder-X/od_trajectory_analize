@@ -86,6 +86,8 @@ export default defineComponent({
     const dateScope: Ref<[number, number]> = ref([] as any);
     const timeScope: Ref<[number, number]> = ref([] as any);
 
+    store.dispatch('getAllODPoints');
+
     const changeDataSet = () => {
       //  后面加上逻辑：修改数据集后，才显示 gis 轨迹点
       tableData.value = new Array(20).fill(0).map((_, index) => {

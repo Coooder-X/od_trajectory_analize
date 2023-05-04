@@ -6,7 +6,8 @@ const initState: GlobalState = {
   pointsExist: false,
   dateScope: [0, 1],
   timeScope: [8, 10],
-  odPoints: [], //  地图上存在的所有 od 点，因此并不是全量的数据。//在后端中，目前全量数据是从一天的 od 点中取一部分点
+  odPoints: [], //  当天的全量 OD 点数据。//在后端中，目前全量数据是从一天的 od 点中取一部分点
+  partOdPoints: [], //  地图上存在的所有 od 点，因此并不是全量的数据，是小时段筛选后的。
   odIndexList: [],
   pointClusterMap: new Map(),
   clusterPointMap: new Map(),
@@ -36,6 +37,9 @@ const globalModule = {
     setAllODPoints(state: GlobalState, payload: Array<[]>) {
       state.odPoints = payload;
       console.log('set points', state.odPoints)
+    },
+    setPartODPoints(state: GlobalState, payload: Array<number[]>) {
+      state.partOdPoints = payload;
     },
     setPointsExist(state: GlobalState, payload: Boolean) {
       state.pointsExist = payload;
@@ -113,7 +117,7 @@ const globalModule = {
       axios.get('/api/getODPointsFilterByHour', params).then((res) => {
         console.log('getODPointsFilterByHour', res, res.status === 200);
         //  设置 od 点的坐标数组和 index 序号数组
-        context.commit('setAllODPoints', res.data['od_points']);
+        context.commit('setPartODPoints', res.data['part_od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
         context.commit('setPointsExist', res.status === 200);
       })
@@ -124,7 +128,7 @@ const globalModule = {
         //  设置 od 点的坐标数组和 index 序号数组
         context.commit('setPointClusterMap', res.data['point_cluster_dict']);
         context.commit('setClusterPointMap', res.data['cluster_point_dict']);
-        context.commit('setAllODPoints', res.data['od_points']);
+        context.commit('setPartODPoints', res.data['part_od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
         // context.commit('setForceTreeLinks', res.data['json_adj_table']);
         // context.commit('setForceTreeNodes', res.data['json_nodes']);
@@ -168,6 +172,9 @@ const globalModule = {
     },
     odPoints: (state: GlobalState) => {
       return state.odPoints;
+    },
+    partOdPoints: (state: GlobalState) => {
+      return state.partOdPoints;
     },
     timeScope: (state: GlobalState) => {
       return state.timeScope;
