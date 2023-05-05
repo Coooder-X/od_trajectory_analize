@@ -13,18 +13,18 @@ export function useBrush({
   const { getters } = store;
   const { inAdjTable, outAdjTable } = getters;
   const mapMode = getters.mapMode;
-  let pointClusterMap = computed(() => getters.pointClusterMap);
-  let clusterPointMap = computed(() => getters.clusterPointMap);
-  let odIndexList = computed(() => getters.odIndexList);
+  const pointClusterMap = computed(() => getters.pointClusterMap);
+  const clusterPointMap = computed(() => getters.clusterPointMap);
+  const odIndexList = computed(() => getters.odIndexList);
   const x0 = ref(0);
   const y0 = ref(0);
   const x1 = ref(0);
   const y1 = ref(0);
-  let selectedSvgs: Ref<any> = ref([]); //  存储被刷选的 circle svg
-  let noSelectedSvgs: Ref<any> = ref([]); //  存储未被刷选的 circle svg
-  let selectedODIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 od 点索引
-  let selectedClusterIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 簇的索引
-  let selectedClusterIdxsInBrush: Ref<number[]> = ref([]);
+  const selectedSvgs: Ref<any> = ref([]); //  存储被刷选的 circle svg
+  const noSelectedSvgs: Ref<any> = ref([]); //  存储未被刷选的 circle svg
+  const selectedODIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 od 点索引
+  const selectedClusterIdxs: Ref<number[]> = ref([]);  //  存储被刷选的 簇的索引
+  const selectedClusterIdxsInBrush: Ref<number[]> = ref([]);
 
   console.log('clusterLayerSvg', clusterLayerSvg)
   let odCircles: any
@@ -107,17 +107,17 @@ export function useBrush({
     
     selectedClusterIdxs.value.forEach((clusterIdx: number) => {
       //  根据【框框内的所有簇 id】，得到框框外与其有邻接关系的簇 id
-      let relatedClusterIds = new Set([...(inAdjTable.get(clusterIdx) || []), ...(outAdjTable.get(clusterIdx) || [])]);
-      for(let relaCid of relatedClusterIds) {
+      const relatedClusterIds = new Set([...(inAdjTable.get(clusterIdx) || []), ...(outAdjTable.get(clusterIdx) || [])]);
+      for(const relaCid of relatedClusterIds) {
         selectedClusterIdxSet.add(relaCid)
       }
     });
     //  更新 已选的所有 簇id 数组
     selectedClusterIdxs.value = [...selectedClusterIdxSet]
     //  根据已选的所有 簇id，得到已选的所有 od 点 id
-    for(let cid of selectedClusterIdxSet) {
+    for(const cid of selectedClusterIdxSet) {
       const pInCluster = clusterPointMap.value.get(cid);
-        for(let pid of pInCluster) {
+        for(const pid of pInCluster) {
           selectedODSet.add(pid);
         }
     }
@@ -156,9 +156,9 @@ export function useBrush({
 }
 
 export function debounce(callback: Function, delay: number) {
-  var timer: number | undefined = undefined
+  let timer: number | undefined = undefined
   return function() { //  下面用了arguments，所以这里要返回function而不是箭头函数
-    var firstClick = !timer
+    const firstClick = !timer
     if(!firstClick) {
       clearTimeout(timer)
     }
@@ -225,29 +225,29 @@ export function useDrawODPath(project: Function, clusterLayerSvg: Ref<any>) {
   const odPairList: Ref<Array<[Coord, Coord]>> = ref([]);
   let links: any = null;
   let line: any = null;
-  let svgMarker: Ref<any> = ref(null);
+  const svgMarker: Ref<any> = ref(null);
   const odArrows: Ref<any> = ref(null);
   const mapMode = computed(() => getters.mapMode);
 
   function setMarker(svgPath: any) {
-    let marker = svgPath //  设置箭头
+    const marker = svgPath //  设置箭头
       .append("svg:defs")
       .append("marker")
       .attr("id", "od_arrow") //设置箭头的 id，用于引用
       .attr("viewBox", "-0 -5 10 10")
-      .attr("refX", 8) //设置箭头距离节点的距离
+      .attr("refX", 3) //设置箭头距离节点的距离
       .attr("refY", 0) //设置箭头在 y 轴上的偏移量
       .attr("orient", "auto") //设置箭头随边的方向旋转
-      .attr("markerWidth", 2.5) //设置箭头的宽度
-      .attr("markerHeight", 2.5) //设置箭头的高度
+      .attr("markerWidth", 2.8) //设置箭头的宽度
+      .attr("markerHeight", 2.8) //设置箭头的高度
       .attr("xoverflow", "visible");
     svgMarker.value = marker;
   }
 
   function drawODPath(cidCenterMap: Map<number, [number, number]>) {
     if (!mapMode.value.has(MapMode.CHOOSE_POINT)) {
-      d3.select('#paths').select('path').remove();
-      d3.select('#one_od').remove();
+      d3.select('#paths').selectAll('path').remove();
+      d3.selectAll('#one_od').remove();
       return;
     }
 
@@ -298,7 +298,7 @@ export function useDrawODPath(project: Function, clusterLayerSvg: Ref<any>) {
       .attr("marker-end", "url(#od_arrow)")
       .attr("stroke", 'rgb(255 108 55)')
       .attr('opacity', 1)
-      .attr("stroke-width", 9)
+      .attr("stroke-width", 4)
       .attr("stroke-dasharray", "1,0") // 设置虚线间隔为1px和0px
 
     // 使用exit()函数删除多余的path元素，如果有的话
@@ -308,8 +308,8 @@ export function useDrawODPath(project: Function, clusterLayerSvg: Ref<any>) {
 
   function moveOdPath() {
     if (!mapMode.value.has(MapMode.CHOOSE_POINT)) {
-      d3.select('#paths').select('path').remove();
-      d3.select('#one_od').remove();
+      d3.select('#paths').selectAll('path').remove();
+      d3.selectAll('#one_od').remove();
       return;
     }
     odArrows.value.attr('d', line);
@@ -317,8 +317,8 @@ export function useDrawODPath(project: Function, clusterLayerSvg: Ref<any>) {
 
   function updateArrow() {
     if (!mapMode.value.has(MapMode.CHOOSE_POINT)) {
-      d3.select('#paths').select('path').remove();
-      d3.select('#one_od').remove();
+      d3.select('#paths').selectAll('path').remove();
+      d3.selectAll('#one_od').remove();
       return;
     }
     svgMarker.value
