@@ -130,7 +130,7 @@ dmypy.json
 
 .classpath
 .project
-.idea
+.idea/*
 .settings/*
 conf/
 target
@@ -149,3 +149,4 @@ bin/
 upload/*
 kerberosConf/*
 executeInfo/
+backend/tmp/
