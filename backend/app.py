@@ -1,4 +1,5 @@
 import json
+import pickle
 from datetime import datetime
 
 import numpy as np
@@ -7,6 +8,7 @@ from flask_caching import Cache
 from flask_cors import CORS
 import _thread
 
+from poi_process.new_read_poi import get_poi_type_filter_by_radius, config_dict, getPOI_Coor, buildKDTree, meters2lonlat_list, lonlat2meters_poi
 from data_process.od_pair_process import get_odpair_space_similarity
 from graph_cluster_test.sa_cluster import update_graph_with_attr, get_cluster
 from data_process.OD_area_graph import build_od_graph, get_line_graph_by_selected_cluster, get_cluster_center_coord, \
@@ -26,6 +28,32 @@ cache = Cache(app)
 
 @app.route('/')
 def hello_world():  # put application's code here
+    start_time = datetime.now()
+    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+        obj = pickle.loads(f.read())
+        total_poi_coor = obj['total_poi_coor']
+        file_id_poi_id_dict = obj['file_id_poi_id_dict']
+        poi_id_file_id_dict = obj['poi_id_file_id_dict']
+        kdtree = obj['kdtree']
+        cache.set('file_id_poi_id_dict', file_id_poi_id_dict)
+        cache.set('poi_id_file_id_dict', poi_id_file_id_dict)
+        cache.set('total_poi_coor', total_poi_coor)
+        cache.set('kdtree', kdtree)
+        print('total_poi_coor', kdtree)
+        print('读取POI文件结束，用时: ', (datetime.now() - start_time))
+    # start_time = datetime.now()
+    # total_poi_coor, file_id_poi_id_dict, poi_id_file_id_dict = getPOI_Coor(config_dict['poi_dir'])
+    # total_poi_coor = lonlat2meters_poi(total_poi_coor)
+    # kdtree = buildKDTree(total_poi_coor)
+    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
+    #     picklestring = pickle.dumps({
+    #         'total_poi_coor': total_poi_coor,
+    #         'file_id_poi_id_dict': file_id_poi_id_dict,
+    #         'poi_id_file_id_dict': poi_id_file_id_dict,
+    #         'kdtree': kdtree,
+    #     })
+    #     f.write(picklestring)
+    # print('写入文件结束，用时: ', (datetime.now() - start_time))
     return 'Hello World!'
 
 
@@ -67,10 +95,15 @@ def get_cluster_result():
     out_adj_table, in_adj_table = build_od_graph(new_point_cluster_dict, od_points, index_lst)
     print(out_adj_table)
     # draw_DT_clusters(new_cluster_point_dict, total_od_coord_points, k, theta, start_hour, end_hour, set(index_lst))
+
+    total_cluster_point_dict = {}
+    for key in cluster_point_dict:
+        total_cluster_point_dict[key] = list(cluster_point_dict[key])
     return json.dumps({
         'index_lst': index_lst,
         'point_cluster_dict': point_cluster_dict,
-        'cluster_point_dict': new_cluster_point_dict,
+        'cluster_point_dict': total_cluster_point_dict,
+        'part_cluster_point_dict': new_cluster_point_dict,
         'part_od_points': part_od_points,
         # 'json_adj_table': json_adj_table,
         # 'json_nodes': json_nodes,
@@ -192,6 +225,19 @@ def get_line_graph():
         'filtered_adj_dict': filtered_adj_dict,
         'cid_center_coord_dict': cid_center_coord_dict,
         'community_group': cluster_point_dict,
+    })
+
+
+@app.route('/getPoiInfoByPoint', methods=['post'])
+def get_poi_info_by_point():
+    data = request.get_json(silent=True)
+    point_in_cluster, radius = data['point_in_cluster'], int(data['radius'])
+
+    poi_id_file_id_dict = cache.get('poi_id_file_id_dict')
+    kdtree = cache.get('kdtree')
+    poi_type_dict = get_poi_type_filter_by_radius(point_in_cluster, poi_id_file_id_dict, config_dict, kdtree, radius)
+    return json.dumps({
+        'poi_type_dict': poi_type_dict,
     })
 
 
