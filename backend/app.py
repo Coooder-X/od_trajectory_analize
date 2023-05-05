@@ -53,7 +53,6 @@ def get_od_points_filter_by_day_and_hour():
                                                request.args.get('endHour', 24, type=int)
     print(start_day, end_day, start_hour, end_hour)
     # return json.dumps({'od_points':od_pair_process.get_hour_od_points()})
-    x =  od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)
     return json.dumps(od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour))
 
 
@@ -65,7 +64,8 @@ def get_trj_num():
                                                request.args.get('endHour', 24, type=int)
     print(start_day, end_day, start_hour, end_hour)
     # return json.dumps({'od_points':od_pair_process.get_hour_od_points()})
-    trj_num = len(od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)['od_points'])
+    x = od_pair_process.get_trj_num_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)
+    trj_num = len(od_pair_process.get_trj_num_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)['trips'])
     print(trj_num)
     return json.dumps({'trj_num': trj_num})
 

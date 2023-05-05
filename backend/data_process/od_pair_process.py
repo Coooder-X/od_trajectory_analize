@@ -3,6 +3,7 @@ import math
 import pickle
 from datetime import datetime
 
+import numpy
 import numpy as np
 
 from data_process.DT_graph_clustering import od_points_filter_by_hour
@@ -121,6 +122,56 @@ def get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour=0, end_h
     (part_od_coord_points, index_lst) = od_points_filter_by_hour(od_points, start_hour, end_hour)  # 过滤出所有在该时间段的 od 点
     return {'od_points': part_od_coord_points.tolist(), 'index_lst': index_lst[0].tolist()}
 
+def get_trj_num_filter_by_day_and_hour(start_day, end_day, start_hour=0, end_hour=24):
+    trips = get_trj_num_filter_by_day(start_day, end_day)
+    part_od_coord_trips, index_list = trips_filter_by_hour(trips, start_hour, end_hour)
+    return {'trips': part_od_coord_trips, 'index_lst': index_list}
+
+def trips_filter_by_hour(trips, start_hour, end_hour):
+    print(len(trips))
+    index_list = []
+    res = []
+    for i in range(len(trips)):
+        if start_hour * 3600 <= trips[i][2][2] <= end_hour * 3600:
+            index_list.append(i)
+            res.append(trips[i])
+    return res, index_list
+
+def get_trj_num_filter_by_day(start_day, end_day, start_hour=0, end_hour=24):
+    res = []
+    start_time = datetime.now()
+    for i in range(start_day, end_day + 1):
+        data_target_path = "/tmp/" + "202005" + str(i).zfill(2) + "_trj.pkl"
+        data_source_path = "/home/linzhengxuan/project/5月/05月" + str(i).zfill(2) + "日/202005" + str(i).zfill(
+            2) + "_hz.h5"
+        if not os.path.exists(data_target_path):
+            filter_step = 1
+            get_trips_and_save_as_pkl_file(data_source_path, data_target_path, filter_step, i)
+        with open(data_target_path, 'rb') as file:
+            od_points = pickle.loads(file.read())
+        print('读取文件结束，用时: ', (datetime.now() - start_time))
+        # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556
+        for (idx, od) in enumerate(od_points):
+            res.append(od)
+    return res
+
+def get_trips_and_save_as_pkl_file(data_source_path, data_target_path, filter_step, day):
+    trips = get_total_trips(data_source_path, filter_step, day)
+    start_time = datetime.now()
+    with open(data_target_path, 'wb') as f:
+        picklestring = pickle.dumps(trips)
+        f.write(picklestring)
+    print('写入文件结束，用时: ', (datetime.now() - start_time))
+
+def get_total_trips(data_source_path, filter_step, day, use_cell=False):
+    res = []
+    trips, lines = get_trips_and_lines(data_source_path, filter_step, use_cell)
+    for index, trip in enumerate(trips):
+        tmp = [[index], [day]]
+        for t in trip:
+            tmp.append(t.tolist())
+        res.append(tmp)
+    return res
 
 def get_total_od_points_by_day(start_day, end_day):
     res = []
@@ -131,7 +182,7 @@ def get_total_od_points_by_day(start_day, end_day):
             2) + "_hz.h5"
         if not os.path.exists(data_target_path):
             filter_step = 1
-            get_odpoints_and_save_as_pkl_file(data_source_path, data_target_path, filter_step)
+            get_odpoints_and_save_as_pkl_file(data_source_path, data_target_path, filter_step, i)
         with open(data_target_path, 'rb') as file:
             od_points = pickle.loads(file.read())
         print('读取文件结束，用时: ', (datetime.now() - start_time))
@@ -141,7 +192,7 @@ def get_total_od_points_by_day(start_day, end_day):
     return res
 
 
-def get_odpoints_and_save_as_pkl_file(data_source_path, data_target_path, filter_step, use_cell=False):
+def get_odpoints_and_save_as_pkl_file(data_source_path, data_target_path, filter_step, day, use_cell=False):
     od_points = get_endpoints(data_source_path, filter_step, use_cell)
     start_time = datetime.now()
     with open(data_target_path, 'wb') as f:
@@ -154,9 +205,8 @@ def get_endpoints(data_source_path, filter_step, day, use_cell=False):
     points = []
     trips, lines = get_trips_and_lines(data_source_path, filter_step, use_cell)
     for index, trip in enumerate(trips):
-        points.append(trip[0])
-        points.append(trip[-1])
-
+        points.append(np.append(trip[0], [index, 0, day]))
+        points.append(np.append(trip[-1],  [index, 1, day]))
     return points
 
 
@@ -203,7 +253,7 @@ def get_trips_and_lines(data_source_path, filter_step, use_cell=False):
 def trj_num_by_hour(date):
     res = []
     for i in range(24):
-        res.append(len(get_od_points_filter_by_day_and_hour(date, date, i, i + 1)['od_points']))
+        res.append(len(get_trj_num_filter_by_day_and_hour(date, date, i, i + 1)['trips']))
     return res
 
 if __name__ == '__main__':
