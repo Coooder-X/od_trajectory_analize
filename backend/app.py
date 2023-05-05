@@ -6,6 +6,7 @@ from flask import Flask, request
 from flask_caching import Cache
 from flask_cors import CORS
 import _thread
+import utils
 
 from data_process.od_pair_process import get_odpair_space_similarity
 from graph_cluster_test.sa_cluster import update_graph_with_attr, get_cluster
@@ -89,9 +90,9 @@ def get_trj_num_by_od():
         for h in range(24):
             count = 0
             for src_id in src_id_list:
-                for tgt_id in tgt_id:
+                for tgt_id in tgt_id_list:
                     src = total_od_points[src_id]
-                    tgt = total_od_points[tgt]
+                    tgt = total_od_points[tgt_id]
                     if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] == d and tgt[5] == d and h * 24 <= \
                             src[2] <= (h + 1) * 24 and h * 24 <= tgt[2] <= (h + 1) * 24:
                         count = count + 1
@@ -99,6 +100,59 @@ def get_trj_num_by_od():
         res.append(num)
     return res
 
+
+@app.route('/calSpeed', methods=['get'])
+def calSpeed():
+    start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
+                                               request.args.get('endDay', type=int), \
+                                               request.args.get('startHour', 0, type=int), \
+                                               request.args.get('endHour', 24, type=int)
+    trj_id = request.args.get('trjId', 0, type=int)
+    print(start_day, end_day, start_hour, end_hour, trj_id)
+    total_trips = od_pair_process.get_trj_num_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)['trips']
+    trips = total_trips[trj_id]
+    mean_speed = calTwoPointSpeed(trips[2], trips[len(trips) - 1])
+    max_speed = -1
+    min_speed = 999999
+    for i in range(3, len(trips)):
+        tmp_speed = calTwoPointSpeed(trips[i - 1], trips[i])
+        min_speed = min(min_speed, tmp_speed)
+        max_speed = max(max_speed, tmp_speed)
+
+    mean_speed_level = judgeSpeedLevel(mean_speed)
+    max_speed_level = judgeSpeedLevel(max_speed)
+    min_speed_level = judgeSpeedLevel(min_speed)
+    return json.dumps(
+        {
+            'trjId': trj_id,
+            'startDay': start_day,
+            'endDay': end_day,
+            'meanSpeed': mean_speed,
+            'meanSpeedLevel': mean_speed_level,
+            'maxSpeed': max_speed,
+            'maxSpeedLevel': max_speed_level,
+            'minSpeed': min_speed,
+            'minSpeedLevel': min_speed_level
+        }
+    )
+
+
+def judgeSpeedLevel(speed):
+    if speed <= 20:
+        return 1
+    elif speed < 40:
+        return 2
+    elif speed < 60:
+        return 3
+    else:
+        return 4
+
+
+def calTwoPointSpeed(p0, p1):
+    xo, yo = utils.lonlat2meters(p0[0], p0[1])
+    xd, yd = utils.lonlat2meters(p1[0], p1[1])
+    time = p1[2] - p0[2]
+    return utils.cal_meter_dist((xo, yo), (xd, yd)) * 3.6 / time
 
 @app.route('/getClusteringResult', methods=['get', 'post'])
 def get_cluster_result():
