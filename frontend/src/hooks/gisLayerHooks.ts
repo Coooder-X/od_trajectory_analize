@@ -49,7 +49,8 @@ export function useBrush({
       console.log('点个数 =', odCircles.size())
       brush = d3.brush()
         .extent([[0, 0], [800, 465]])  //  [clusterLayerSvg.value.attr('width'), clusterLayerSvg.value.attr('height')])
-        .on("brush", brushed); // 设置刷取事件的回调函数
+        .on("brush", brushed) // 设置刷取事件的回调函数
+        .on('end', endBrush)
     
       // 在画布上添加刷取元素
       brushLayer = clusterLayerSvg.value.append("g")
@@ -137,6 +138,18 @@ export function useBrush({
         d3.select(this).style("fill", "lightblue");
       }
     });
+    odCircles.attr('stroke', 'black');
+  }
+
+  function endBrush() {
+    //  确定选区停止拖拽后，未选中的 OD 点，不展示，防止画面太乱干扰分析
+    noSelectedSvgs.value.forEach((item: any, i: number) => {
+      if (i % 1000 === 1)
+        console.log('item', item)
+      item
+        .style('fill', 'transparent')
+        .attr('stroke', 'transparent')
+    })
   }
 
   function setBrushLayerVisible(value: boolean) {
