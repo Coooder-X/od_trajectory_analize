@@ -11,6 +11,7 @@ const initState: GlobalState = {
   odIndexList: [],
   pointClusterMap: new Map(),
   clusterPointMap: new Map(),
+  partClusterPointMap: new Map(),
   inAdjTable: new Map(),
   outAdjTable: new Map(),
   filteredOutAdjTable: new Map(), //  刷选过滤后的 出边邻接表
@@ -58,6 +59,12 @@ const globalModule = {
       Object.keys(payload).forEach((key: string) => {
         let k = parseInt(key)
         state.clusterPointMap.set(k, payload[k]);
+      })
+    },
+    setPartClusterPointMap(state: GlobalState, payload: {[key: number]: number[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key)
+        state.partClusterPointMap.set(k, payload[k]);
       })
     },
     setInAdjTable(state: GlobalState, payload: {[key: string]: number[]}) {
@@ -132,6 +139,7 @@ const globalModule = {
         //  设置 od 点的坐标数组和 index 序号数组
         context.commit('setPointClusterMap', res.data['point_cluster_dict']);
         context.commit('setClusterPointMap', res.data['cluster_point_dict']);
+        context.commit('setPartClusterPointMap', res.data['part_cluster_point_dict']);
         context.commit('setPartODPoints', res.data['part_od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
         // context.commit('setForceTreeLinks', res.data['json_adj_table']);
@@ -191,6 +199,9 @@ const globalModule = {
     },
     clusterPointMap: (state: GlobalState) => {
       return state.clusterPointMap;
+    },
+    partClusterPointMap: (state: GlobalState) => {
+      return state.partClusterPointMap;
     },
     odIndexList: (state: GlobalState) => {
       return state.odIndexList;

@@ -7,6 +7,7 @@ export interface GlobalState {
   odIndexList: number[],
   pointClusterMap: Map<number, number>,
   clusterPointMap: Map<number, number[]>,
+  partClusterPointMap: Map<number, number[]>,
   inAdjTable: Map<number, number[]>,  //  存储 <D点簇id，[O点簇id]>
   outAdjTable: Map<number, number[]>,  //  存储 <O点簇id，[D点簇id]> (全量)
   filteredOutAdjTable: Map<number, number[]>, //  筛选过

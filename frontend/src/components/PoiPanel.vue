@@ -10,47 +10,57 @@
 import { defineComponent, onMounted, Ref, ref, watch } from "vue";
 import * as echarts from "echarts";
 import * as d3 from "d3";
+import axios from "axios";
 
 export default defineComponent({
   components: {},
   name: "PoiPanel",
-  props: {},
+  props: {
+    coords: {
+      type: Array,
+      required: true
+    }
+  },
   setup(props) {
     type EChartsOption = echarts.EChartsOption;
     let barChartDom: HTMLElement;
     let barChart: any;
     let barChartOption: EChartsOption;
     const colorMap: Map<string, string> = new Map();
+    const barChartData: Ref<any> = ref([]);
+
+    axios({
+      method: 'post',
+      url: '/api/getPoiInfoByPoint',
+      data: {
+        point_in_cluster: props.coords,
+        radius: 160
+      },
+    }).then((res: any) => {
+      console.log(res)
+      barChartData.value = res.data['poi_type_dict'];
+    });
+
+    watch(barChartData, () => {
+      barChartData.value.sort((a: any, b: any) => b.value - a.value)
+      setChartOption(barChartData.value);
+    });
 
     onMounted(() => {
       barChartDom = document.getElementById("bar-chart")!;
       barChart = echarts.init(barChartDom);
-      const data = [
-        { type: "Mon", value: 12 },
-        { type: "Tue", value: 34 },
-        { type: "Wed", value: 54 },
-        { type: "Thu", value: 10 },
-        { type: "Fri", value: 32 },
-        { type: "Sat", value: 35 },
-        { type: "Sun", value: 122 },
-        { type: "asd", value: 76 },
-        { type: "sdf", value: 14 },
-        { type: "agftr", value: 52 },
-        { type: "asdw", value: 32 },
-      ];
-      const num = data.length;
 
       // 创建一个序数比例尺，使用d3.schemeCategory10作为颜色域
       var color = d3
         .scaleOrdinal()
-        .domain(data.map(d => d.type)) // 设置定义域为数据
+        .domain(barChartData.value.map((d: any) => d.type)) // 设置定义域为数据
         .range(d3.schemePaired.concat(["#808080", "#c0c0c0"])); // 设置值域为10种颜色
 
       // 输出每个数据对应的颜色
-      data.forEach(function (d: any, i: number) {
+      barChartData.value.forEach(function (d: any, i: number) {
         colorMap.set(d.type, color(i));
       });
-      setChartOption(data);
+      setChartOption(barChartData.value);
     });
 
     const setChartOption = (data: any[]) => {
@@ -61,13 +71,23 @@ export default defineComponent({
         xAxis: {
           type: "category",
           data: data.map((d: any) => d.type),
+          axisTick: {
+            show: true,
+            
+          },
+          axisLabel: {
+            show: true,
+            interval: 0,
+            rotate: -35
+          }
         },
         yAxis: {
           type: "value",
+          minInterval: 1
         },
         series: [
           {
-            data: data.map((d: any, i: number) => {
+            data: data.map((d: any) => {
               return {
                 value: d.value,
                 itemStyle: {
@@ -81,7 +101,7 @@ export default defineComponent({
         grid: {
           left: "38px",
           top: "30px",
-          bottom: "20px",
+          bottom: "45px",
         },
         legend: {
           type: "scroll",
@@ -112,7 +132,7 @@ export default defineComponent({
 }
 
 .bar-chart {
-  height: 140px;
+  height: 160px;
   background-color: white;
   border-radius: 7px;
 }
