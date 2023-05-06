@@ -123,7 +123,7 @@ def get_trj_num_by_od():
     month = request.args.get('month', 5, type=int)
     date, num = request.args.get('date', type=int), request.args.get('num', type=int)
     src_id_list, tgt_id_list = request.args.getlist('src_id_list'), request.args.getlist('tgt_id_list')
-    total_od_points = get_od_points_filter_by_day_and_hour(month, date - num, date, 0, 24)
+    total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, date - num, date, 0, 24)['od_points']
     res = []
     for d in range(date - num, date + 1):
         num = []
@@ -134,7 +134,7 @@ def get_trj_num_by_od():
                     src = total_od_points[src_id]
                     tgt = total_od_points[tgt_id]
                     if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] == d and tgt[5] == d and h * 24 <= \
-                            src[2] <= (h + 1) * 24 and h * 24 <= tgt[2] <= (h + 1) * 24:
+                            src[2] <= (h + 1) * 24:
                         count = count + 1
             num.append(count)
         res.append(num)
