@@ -8,6 +8,7 @@ from flask_caching import Cache
 from flask_cors import CORS
 import _thread
 import utils
+import os
 
 from poi_process.new_read_poi import get_poi_type_filter_by_radius, config_dict, getPOI_Coor, buildKDTree, meters2lonlat_list, lonlat2meters_poi
 from data_process.od_pair_process import get_odpair_space_similarity
@@ -76,42 +77,81 @@ def get_od_points_filter_by_hour():
 
 @app.route('/getODPointsFilterByDayAndHour', methods=['get', 'post'])
 def get_od_points_filter_by_day_and_hour():
+    month = request.args.get('month', 5, type=int)
+    start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
+                                               request.args.get('endDay', type=int), \
+                                               request.args.get('startHour', 0, type=int), \
+                                               request.args.get('endHour', 24, type=int)
+    print(month, start_day, end_day, start_hour, end_hour)
+    # return json.dumps({'od_points':od_pair_process.get_hour_od_points()})
+    return json.dumps({month: od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)})
+
+
+@app.route('/getTrjNumByDayAndHour', methods=['get'])
+def get_trj_num_by_day_and_hour():
+    month = request.args.get('month', 5, type=int)
     start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
                                                request.args.get('endDay', type=int), \
                                                request.args.get('startHour', 0, type=int), \
                                                request.args.get('endHour', 24, type=int)
     print(start_day, end_day, start_hour, end_hour)
-    # return json.dumps({'od_points':od_pair_process.get_hour_od_points()})
-    return json.dumps(od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour))
-
-
-@app.route('/getTrjNum', methods=['get'])
-def get_trj_num():
-    start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
-                                               request.args.get('endDay', type=int), \
-                                               request.args.get('startHour', 0, type=int), \
-                                               request.args.get('endHour', 24, type=int)
-    print(start_day, end_day, start_hour, end_hour)
-    # return json.dumps({'od_points':od_pair_process.get_hour_od_points()})
-    x = od_pair_process.get_trj_num_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)
-    trj_num = len(od_pair_process.get_trj_num_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)['trips'])
+    trj_num = len(od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips'])
     print(trj_num)
     return json.dumps({'trj_num': trj_num})
 
 
+@app.route('/getTrjTotalNumByDay', methods=['get'])
+def get_total_trj_num_by_day():
+    month = request.args.get('month', 5, type=int)
+    start_day, end_day = request.args.get('startDay', 1, type=int), request.args.get('endDay', 31, type=int)
+    print(start_day, end_day)
+    nums = []
+    for d in range(start_day, end_day + 1):
+        num = len(od_pair_process.get_trj_num_filter_by_day(month, d, d))
+        nums.append(num)
+    days = [d for d in range(start_day, end_day + 1)]
+    nums_dict = dict(zip(days, nums))
+    res = {month: nums_dict}
+    return json.dumps(res)
+
+
+@app.route('/getTrjTotalNumByMonth', methods=['get'])
+def get_total_trj_num_by_Month():
+    month = request.args.get('month', 5, type=int)
+    data_path = "/tmp/" + str(month).zfill(2) + "trj_num_by_month.txt"
+    if not os.path.exists(data_path):
+        with open(data_path, "w") as f:
+            res = []
+            for d in range(31):
+                num = len(od_pair_process.get_trj_num_filter_by_day(month, d + 1, d + 1))
+                res.append(num)
+            for r in res:
+                f.write(str(r))
+                f.write(' ')
+    else:
+        res = []
+        with open(data_path, 'r') as f:
+            line = f.readline()
+            line = list(line.strip().split(' '))
+            for i in line:
+                res.append(int(i))
+    return json.dumps(res)
+
 @app.route('/getTrjNumByHour', methods=['get'])
 def get_trj_num_by_hour():
-    date = request.args.get('date', type=int)
-    print("输入参数为%d日" % date)
-    res = od_pair_process.trj_num_by_hour(date)
-    return json.dumps({'nums': res})
+    month = request.args.get('month', 5, type=int)
+    start_day, end_day = request.args.get('startDay', 1, type=int), request.args.get('endDay', 31, type=int)
+    print(start_day, end_day)
+    res = od_pair_process.trj_num_by_hour(month, start_day, end_day)
+    return json.dumps({month: {'nums': res}})
 
 
 @app.route('/getTrjNumByOd', methods=['get'])
 def get_trj_num_by_od():
+    month = request.args.get('month', 5, type=int)
     date, num = request.args.get('date', type=int), request.args.get('num', type=int)
     src_id_list, tgt_id_list = request.args.getlist('src_id_list'), request.args.getlist('tgt_id_list')
-    total_od_points = get_od_points_filter_by_day_and_hour(date - num, date, 0, 24)
+    total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, date - num, date, 0, 24)['od_points']
     res = []
     for d in range(date - num, date + 1):
         num = []
@@ -122,7 +162,7 @@ def get_trj_num_by_od():
                     src = total_od_points[src_id]
                     tgt = total_od_points[tgt_id]
                     if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] == d and tgt[5] == d and h * 24 <= \
-                            src[2] <= (h + 1) * 24 and h * 24 <= tgt[2] <= (h + 1) * 24:
+                            src[2] <= (h + 1) * 24:
                         count = count + 1
             num.append(count)
         res.append(num)
@@ -131,19 +171,23 @@ def get_trj_num_by_od():
 
 @app.route('/calSpeed', methods=['get'])
 def calSpeed():
+    month = request.args.get('month', 5, type=int)
     start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
                                                request.args.get('endDay', type=int), \
                                                request.args.get('startHour', 0, type=int), \
                                                request.args.get('endHour', 24, type=int)
     trj_id = request.args.get('trjId', 0, type=int)
     print(start_day, end_day, start_hour, end_hour, trj_id)
-    total_trips = od_pair_process.get_trj_num_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)['trips']
+    total_trips = od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips']
     trips = total_trips[trj_id]
     mean_speed = calTwoPointSpeed(trips[2], trips[len(trips) - 1])
     max_speed = -1
     min_speed = 999999
+    speeds = []
+    trips_len = len(trips) - 2
     for i in range(3, len(trips)):
         tmp_speed = calTwoPointSpeed(trips[i - 1], trips[i])
+        speeds.append(judgeSpeedLevel(tmp_speed))
         min_speed = min(min_speed, tmp_speed)
         max_speed = max(max_speed, tmp_speed)
 
@@ -160,7 +204,9 @@ def calSpeed():
             'maxSpeed': max_speed,
             'maxSpeedLevel': max_speed_level,
             'minSpeed': min_speed,
-            'minSpeedLevel': min_speed_level
+            'minSpeedLevel': min_speed_level,
+            'speeds': speeds,
+            'trips_len': trips_len
         }
     )
 
