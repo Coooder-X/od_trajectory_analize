@@ -86,7 +86,7 @@ export default defineComponent({
     const dateScope: Ref<[number, number]> = ref([] as any);
     const timeScope: Ref<[number, number]> = ref([] as any);
 
-    store.dispatch('getAllODPoints');
+    store.dispatch('getAllODPoints', {params: {startDay: 1, endDay: 2}});
 
     const changeDataSet = () => {
       //  后面加上逻辑：修改数据集后，才显示 gis 轨迹点
@@ -107,7 +107,8 @@ export default defineComponent({
       timeScope.value[0] = event[0];
       timeScope.value[1] = event[1];
       store.commit('setTimeScope', timeScope.value);
-      store.dispatch('getODPointsFilterByHour', {params: {startHour: timeScope.value[0], endHour: timeScope.value[1]}});
+      // store.dispatch('getODPointsFilterByHour', {params: {startHour: timeScope.value[0], endHour: timeScope.value[1]}});
+      getODDataAction();
     }
 
     const onDateSelect = (event: [number, number]) => {
@@ -115,11 +116,22 @@ export default defineComponent({
       dateScope.value[0] = event[0];
       dateScope.value[1] = event[1];
       store.commit('setDateScope', dateScope.value);
-      // store.dispatch('getODPointsFilterByHour', {params: {startHour: timeScope.value[0], endHour: timeScope.value[1]}});
+      getODDataAction();
     }
 
     const onChangeTimeScope = debounce(onTimeSelect, 700);
     const onChangeDateScope = debounce(onDateSelect, 700);
+
+    const getODDataAction = () => {
+      store.dispatch('getODPointsFilterByDayAndHour', {
+        params: {
+          startDay: dateScope.value[0] + 1,
+          endDay: dateScope.value[1] + 1,
+          startHour: timeScope.value[0],
+          endHour: timeScope.value[1],
+        }
+      });
+    }
 
     return {
       dataset,

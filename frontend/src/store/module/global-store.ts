@@ -116,11 +116,17 @@ const globalModule = {
     },
   },
   actions: {
-    getAllODPoints(context: ActionContext<{}, {}>) {
+    getAllODPoints(context: ActionContext<{}, {}>, params: any) {
       context.commit('setPointsExist', false);
-      axios.get('/api/getTotalODPoints').then((res) => {
-        console.log('getAllODPoints', res, res.status === 200);
-        context.commit('setAllODPoints', res.data);
+      // axios.get('/api/getTotalODPoints').then((res) => {
+      //   console.log('getAllODPoints', res, res.status === 200);
+      //   context.commit('setAllODPoints', res.data);
+      //   context.commit('setPointsExist', res.status === 200);
+      // })
+      axios.get('/api/getODPointsFilterByDayAndHour', params).then((res) => {
+        //  设置 od 点的坐标数组和 index 序号数组
+        context.commit('setAllODPoints', res.data['od_points']);
+        context.commit('setODIndexList', res.data['index_lst']);
         context.commit('setPointsExist', res.status === 200);
       })
     },
@@ -131,6 +137,13 @@ const globalModule = {
         context.commit('setPartODPoints', res.data['part_od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
         context.commit('setPointsExist', res.status === 200);
+      })
+    },
+    getODPointsFilterByDayAndHour(context: ActionContext<{}, {}>, params: any) {
+      axios.get('/api/getODPointsFilterByDayAndHour', params).then((res) => {
+        //  设置 od 点的坐标数组和 index 序号数组
+        context.commit('setPartODPoints', res.data['od_points']);
+        context.commit('setODIndexList', res.data['index_lst']);
       })
     },
     getClusteringResult(context: ActionContext<{}, {}>, params: any) {
