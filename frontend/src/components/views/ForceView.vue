@@ -30,7 +30,6 @@ import { getHullPaths, updateGroups } from "@/hooks/polygonHullHooks";
 import PolarHeatMap from "../PolarHeatMap.vue";
 import PoiPanel from "../PoiPanel.vue";
 import { MapMode } from "@/map-interface";
-import { colorTable } from "@/color-pool";
 import { calLenColor, calNodeColor } from "@/utils";
 
 const StrokeWidth = 3;
@@ -74,6 +73,7 @@ export default defineComponent({
     const map = computed(() => getters.map);
     const communityGroup = computed(() => getters.communityGroup);
     const withSpaceDist = computed(() => getters.withSpaceDist);  //  线图是否考虑空间距离
+    const colorTable = computed(() => getters.colorTable);
 
     watch([withSpaceDist, forceTreeLinks, forceTreeNodes], () => {
       if(forceTreeNodes && forceTreeLinks) {
@@ -313,7 +313,7 @@ export default defineComponent({
           const { source } = d;
           const { name } = source;
           const cid = parseInt(name.split('_')[1]);
-          return colorTable[cid];
+          return colorTable.value[cid];
         })
 
       //绘制边
@@ -336,7 +336,7 @@ export default defineComponent({
           const { source } = d;
           const { name } = source;
           const cid = parseInt(name.split('_')[1]);
-          return colorTable[cid];
+          return colorTable.value[cid];
         })
         .style('display', function(d: any) {  //  fake 边不显示，不触发事件
           if (d.isFake)

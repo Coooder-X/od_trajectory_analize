@@ -2,7 +2,6 @@ import { computed, ComputedRef, onMounted, Ref, ref, watch } from 'vue';
 import { MapMode } from '@/map-interface';
 import * as d3 from 'd3';
 import { useStore } from 'vuex';
-import { colorTable } from '@/color-pool';
 
 export function useBrush({
   clusterLayerSvg, project, unproject
@@ -16,6 +15,7 @@ export function useBrush({
   const pointClusterMap = computed(() => getters.pointClusterMap);
   const clusterPointMap = computed(() => getters.clusterPointMap);
   const odIndexList = computed(() => getters.odIndexList);
+  const colorTable = computed(() => getters.colorTable);
   const x0 = ref(0);
   const y0 = ref(0);
   const x1 = ref(0);
@@ -130,7 +130,7 @@ export function useBrush({
         d3.select(this).style("fill", function(point: number[]) {
           const index = odIndexList.value[i];
           if(pointClusterMap.value.has(index))
-            return colorTable[pointClusterMap.value.get(index)];
+            return colorTable.value[pointClusterMap.value.get(index)];
           return "lightblue";
         });
       } else {

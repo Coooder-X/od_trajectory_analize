@@ -22,6 +22,7 @@ const initState: GlobalState = {
   cidCenterMap: new Map(),
   communityGroup: new Map(),
   withSpaceDist: false,
+  colorTable: [],
 }
 
 const globalModule = {
@@ -114,6 +115,9 @@ const globalModule = {
     setWithSpaceDist(state: GlobalState, payload: Boolean) {
       state.withSpaceDist = payload;
     },
+    setColorTable(state: GlobalState, payload: string[]) {
+      state.colorTable = payload;
+    }
   },
   actions: {
     getAllODPoints(context: ActionContext<{}, {}>, params: any) {
@@ -248,6 +252,9 @@ const globalModule = {
     },
     withSpaceDist: (state: GlobalState) => {
       return state.withSpaceDist;
+    },
+    colorTable: (state: GlobalState) => {
+      return state.colorTable;
     },
   },
   modules: {},

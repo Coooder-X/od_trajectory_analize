@@ -13,7 +13,7 @@ import mapboxgl from 'mapbox-gl';
 import { Map, PointLike } from 'mapbox-gl/index'
 import { MapMode } from '@/map-interface'
 import * as d3 from 'd3';
-import {colorTable} from '@/color-pool'
+import {colorPool} from '@/color-pool'
 import { useBrush, debounce, useDrawODPath } from "@/hooks/gisLayerHooks";
 
 export default defineComponent({
@@ -29,6 +29,7 @@ export default defineComponent({
     const clusterLayerSvg: Ref<any | null> = ref(null);
     const store = useStore();
     const { getters } = store;
+    let colorTable = colorPool;
 
     let partOdPoints: ComputedRef<number[][]> = computed(() => getters.partOdPoints);
     let pointClusterMap = computed(() => getters.pointClusterMap);
@@ -100,6 +101,10 @@ export default defineComponent({
       if(!clusterLayerSvg.value) {
         initLayer();
       }
+      while (partOdPoints.value.length > colorTable.length) {
+        colorTable.push(...colorPool);
+      }
+      store.commit('setColorTable', colorTable);
       paintLayer(clusterLayerSvg.value, partOdPoints.value);
     });
 
