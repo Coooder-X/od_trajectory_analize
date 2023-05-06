@@ -105,7 +105,7 @@ def get_odpair_space_similarity(cid_lst: list, cid_center_coord_dict, force_node
     for i in range(len(force_nodes)):
         od_pair1 = force_nodes[i]['name']
         coord_pair1 = pair_name_coord_map[od_pair1]
-        for j in range(i+1, len(force_nodes)):
+        for j in range(i + 1, len(force_nodes)):
             od_pair2 = force_nodes[j]['name']
             coord_pair2 = pair_name_coord_map[od_pair2]
             dist = spatial_dist(coord_pair1, coord_pair2) / 100
@@ -117,15 +117,29 @@ def get_odpair_space_similarity(cid_lst: list, cid_center_coord_dict, force_node
     return edge_name_dist_map
 
 
-def get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour=0, end_hour=24):
-    od_points = np.asarray(get_total_od_points_by_day(start_day, end_day))
-    (part_od_coord_points, index_lst) = od_points_filter_by_hour(od_points, start_hour, end_hour)  # 过滤出所有在该时间段的 od 点
-    return {'od_points': part_od_coord_points.tolist(), 'index_lst': index_lst[0].tolist()}
+# def get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour=0, end_hour=24):
+#     od_points = np.asarray(get_total_od_points_by_day(month, start_day, end_day))
+#     (part_od_coord_points, index_lst) = od_points_filter_by_hour(od_points, start_hour, end_hour)  # 过滤出所有在该时间段的 od 点
+#     return {'od_points': part_od_coord_points.tolist(), 'index_lst': index_lst[0].tolist()}
 
-def get_trj_num_filter_by_day_and_hour(start_day, end_day, start_hour=0, end_hour=24):
-    trips = get_trj_num_filter_by_day(start_day, end_day)
+def get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour=0, end_hour=24):
+    od_points = get_total_od_points_by_day(month, start_day, end_day)
+    res = []
+    index_list = []
+    for i in range(0, len(od_points), 2):
+        if start_hour * 3600 <= od_points[i][2] <= end_hour * 3600 and start_hour * 3600 <= od_points[i + 1][2] <= end_hour * 3600:
+            res.append(od_points[i])
+            res.append(od_points[i + 1])
+            index_list.append(i)
+            index_list.append(i + 1)
+    return {'od_points': res, 'index_lst': index_list}
+
+
+def get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour=0, end_hour=24):
+    trips = get_trj_num_filter_by_day(month, start_day, end_day)
     part_od_coord_trips, index_list = trips_filter_by_hour(trips, start_hour, end_hour)
     return {'trips': part_od_coord_trips, 'index_lst': index_list}
+
 
 def trips_filter_by_hour(trips, start_hour, end_hour):
     print(len(trips))
@@ -137,12 +151,14 @@ def trips_filter_by_hour(trips, start_hour, end_hour):
             res.append(trips[i])
     return res, index_list
 
-def get_trj_num_filter_by_day(start_day, end_day, start_hour=0, end_hour=24):
+
+def get_trj_num_filter_by_day(month, start_day, end_day):
     res = []
     start_time = datetime.now()
     for i in range(start_day, end_day + 1):
-        data_target_path = "/tmp/" + "202005" + str(i).zfill(2) + "_trj.pkl"
-        data_source_path = "/home/linzhengxuan/project/5月/05月" + str(i).zfill(2) + "日/202005" + str(i).zfill(
+        data_target_path = "/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + "_trj.pkl"
+        data_source_path = "/home/linzhengxuan/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
+            2) + "日/2020" + str(month).zfill(2) + str(i).zfill(
             2) + "_hz.h5"
         if not os.path.exists(data_target_path):
             filter_step = 1
@@ -155,6 +171,7 @@ def get_trj_num_filter_by_day(start_day, end_day, start_hour=0, end_hour=24):
             res.append(od)
     return res
 
+
 def get_trips_and_save_as_pkl_file(data_source_path, data_target_path, filter_step, day):
     trips = get_total_trips(data_source_path, filter_step, day)
     start_time = datetime.now()
@@ -162,6 +179,7 @@ def get_trips_and_save_as_pkl_file(data_source_path, data_target_path, filter_st
         picklestring = pickle.dumps(trips)
         f.write(picklestring)
     print('写入文件结束，用时: ', (datetime.now() - start_time))
+
 
 def get_total_trips(data_source_path, filter_step, day, use_cell=False):
     res = []
@@ -173,12 +191,14 @@ def get_total_trips(data_source_path, filter_step, day, use_cell=False):
         res.append(tmp)
     return res
 
-def get_total_od_points_by_day(start_day, end_day):
+
+def get_total_od_points_by_day(month, start_day, end_day):
     res = []
-    start_time = datetime.now()
     for i in range(start_day, end_day + 1):
-        data_target_path = "/tmp/" + "202005" + str(i).zfill(2) + ".pkl"
-        data_source_path = "/home/linzhengxuan/project/5月/05月" + str(i).zfill(2) + "日/202005" + str(i).zfill(
+        start_time = datetime.now()
+        data_target_path = "/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + ".pkl"
+        data_source_path = "/home/linzhengxuan/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
+            2) + "日/2020" + str(month).zfill(2) + str(i).zfill(
             2) + "_hz.h5"
         if not os.path.exists(data_target_path):
             filter_step = 1
@@ -206,7 +226,7 @@ def get_endpoints(data_source_path, filter_step, day, use_cell=False):
     trips, lines = get_trips_and_lines(data_source_path, filter_step, use_cell)
     for index, trip in enumerate(trips):
         points.append(np.append(trip[0], [index, 0, day]))
-        points.append(np.append(trip[-1],  [index, 1, day]))
+        points.append(np.append(trip[-1], [index, 1, day]))
     return points
 
 
@@ -250,11 +270,39 @@ def get_trips_and_lines(data_source_path, filter_step, use_cell=False):
 
         return trips, lines
 
-def trj_num_by_hour(date):
-    res = []
-    for i in range(24):
-        res.append(len(get_trj_num_filter_by_day_and_hour(date, date, i, i + 1)['trips']))
-    return res
+
+def trj_num_by_hour(month, start_day, end_day):
+    data_path = "/tmp/" + str(month).zfill(2) + "trj_num_by_hour.txt"
+    if not os.path.exists(data_path):
+        with open(data_path, "w") as f:
+            res = []
+            for i in range(31):
+                count = [0 for x in range(24)]
+                trips = get_trj_num_filter_by_day(month, i + 1, i + 1)
+                for trip in trips:
+                    count[int(trip[2][2] / 3600)] += 1
+                res.append(count)
+            for r in res:
+                for l in r:
+                    f.write(str(l))
+                    f.write(' ')
+                f.write('\n')
+    else:
+        res = []
+        with open(data_path, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                line = list(line.strip().split(' '))
+                s = []
+                for i in line:
+                    s.append(int(i))
+                res.append(s)
+    ret = [0] * 24
+    for i in range(start_day - 1, end_day):
+        for j in range(24):
+            ret[j] += res[i][j]
+    return ret
+
 
 if __name__ == '__main__':
     # print('开始读取OD点')
