@@ -144,8 +144,6 @@ export function useBrush({
   function endBrush() {
     //  确定选区停止拖拽后，未选中的 OD 点，不展示，防止画面太乱干扰分析
     noSelectedSvgs.value.forEach((item: any, i: number) => {
-      if (i % 1000 === 1)
-        console.log('item', item)
       item
         .style('fill', 'transparent')
         .attr('stroke', 'transparent')

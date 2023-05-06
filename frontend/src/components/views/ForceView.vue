@@ -121,11 +121,12 @@ export default defineComponent({
           const cid: number = parseInt(name.split('_')[1]);
           return cid === transCid;
         }).attr('stroke-width', strokeWidth)
-        // d3.selectAll('#force-links').filter((d: any) => {
-        //   const { source: {name} } = d;
-        //   const cid: number = parseInt(name.split('_')[1]);
-        //   return cid !== transCid;
-        // }).style('display', isOver? 'none' : '');
+        d3.selectAll('#force-links').filter((d: any) => {
+          const { source: {name} } = d;
+          const cid: number = parseInt(name.split('_')[1]);
+          return cid !== transCid;
+        })
+        .attr('opacity', isOver? 0.1 : 1);
 
         //  hover 一个 link 时，所有代表着相同簇的边所关联到的点（OD对）都在地图视图展示
         const cidPairs: [number, number][] = [];
