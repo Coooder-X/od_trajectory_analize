@@ -186,10 +186,15 @@ def calTwoPointSpeed(p0, p1):
 def get_cluster_result():
     k, theta = int(request.args['k']), int(request.args['theta'])
     print(f'k={k}, theta:{theta}')
+    start_day, end_day = int(request.args['startDay']), int(request.args['endDay'])
     start_hour, end_hour = int(request.args['startHour']), int(request.args['endHour'])
 
     start_time = datetime.now()
-    od_points = np.asarray(od_pair_process.get_total_od_points())    # get_total_od_points
+    # od_points = np.asarray(od_pair_process.get_total_od_points())    # get_total_od_points
+    res = od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day)
+    od_points = np.array(res['od_points'])
+    cache.set('total_od_points', od_points)
+
     total_od_coord_points = od_points[:, 0:2]  # 并去掉时间戳留下经纬度坐标
     print('读取OD点结束，用时: ', (datetime.now() - start_time))
     print('pos nums', len(od_points), '\n开始聚类')
@@ -197,9 +202,10 @@ def get_cluster_result():
     point_cluster_dict, cluster_point_dict = delaunay_clustering(k=k, theta=theta, od_points=total_od_coord_points)
     print('结束聚类，用时: ', (datetime.now() - start_time))
 
-    res = od_pair_process.get_od_points_filter_by_hour(start_hour, end_hour)
+    # res = od_pair_process.get_od_points_filter_by_hour(start_hour, end_hour)
+    res = od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)
     index_lst = res['index_lst']
-    part_od_points = res['part_od_points']
+    part_od_points = res['od_points']
     new_point_cluster_dict, new_cluster_point_dict = cluster_filter_by_hour(index_lst, point_cluster_dict)
     print('过滤后的点数：', len(index_lst))
     print('过滤后的的簇数：', len(new_cluster_point_dict.keys()))
@@ -302,7 +308,8 @@ def get_line_graph():
         tmp[int(key)] = cluster_point_dict[key]
     cluster_point_dict = tmp
 
-    cid_center_coord_dict = get_cluster_center_coord(cluster_point_dict, selected_cluster_ids)
+    total_od_points = cache.get('total_od_points')
+    cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
     cache.set('cid_center_coord_dict', cid_center_coord_dict)
 
     #  计算 OD 对之间的距离 ==================================
