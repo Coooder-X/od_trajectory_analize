@@ -118,7 +118,7 @@ def get_trj_num_by_hour():
     return json.dumps({month: {'nums': res}})
 
 
-@app.route('/getTrjNumByOd', methods=['get'])
+@app.route('/getTrjNumByOd', methods=['get', 'post'])
 def get_trj_num_by_od():
     month = request.args.get('month', 5, type=int)
     date, num = request.args.get('date', type=int), request.args.get('num', type=int)
@@ -131,8 +131,8 @@ def get_trj_num_by_od():
             count = 0
             for src_id in src_id_list:
                 for tgt_id in tgt_id_list:
-                    src = total_od_points[src_id]
-                    tgt = total_od_points[tgt_id]
+                    src = total_od_points[int(src_id)]
+                    tgt = total_od_points[int(tgt_id)]
                     if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] == d and tgt[5] == d and h * 24 <= \
                             src[2] <= (h + 1) * 24:
                         count = count + 1
