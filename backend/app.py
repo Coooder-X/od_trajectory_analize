@@ -230,6 +230,7 @@ def calTwoPointSpeed(p0, p1):
 
 @app.route('/getClusteringResult', methods=['get', 'post'])
 def get_cluster_result():
+    month = int(request.args['month'])
     k, theta = int(request.args['k']), int(request.args['theta'])
     print(f'k={k}, theta:{theta}')
     start_day, end_day = int(request.args['startDay']), int(request.args['endDay'])
@@ -237,7 +238,7 @@ def get_cluster_result():
 
     start_time = datetime.now()
     # od_points = np.asarray(od_pair_process.get_total_od_points())    # get_total_od_points
-    res = od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day)
+    res = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day)
     od_points = np.array(res['od_points'])
     cache.set('total_od_points', od_points)
 
@@ -249,7 +250,7 @@ def get_cluster_result():
     print('结束聚类，用时: ', (datetime.now() - start_time))
 
     # res = od_pair_process.get_od_points_filter_by_hour(start_hour, end_hour)
-    res = od_pair_process.get_od_points_filter_by_day_and_hour(start_day, end_day, start_hour, end_hour)
+    res = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
     index_lst = res['index_lst']
     part_od_points = res['od_points']
     new_point_cluster_dict, new_cluster_point_dict = cluster_filter_by_hour(index_lst, point_cluster_dict)
