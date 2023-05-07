@@ -12,7 +12,7 @@
       v-if="headMapVisible"
       :svg="forceNodeSvg">
     </polar-heat-map>
-    <poi-panel v-if="poiPanelVisible" style="z-index: 5000;"></poi-panel>
+    <poi-panel v-if="poiPanelData.poiPanelVisible" :coords="poiPanelData.coords" style="z-index: 5000;"></poi-panel>
   </div>
 </template>
 
@@ -22,6 +22,7 @@ import { defineComponent, computed, onMounted, watch, ComputedRef, nextTick } fr
 import { Ref, ref } from "vue";
 import { useStore } from "vuex";
 import * as d3 from "d3";
+import { PointLike } from 'mapbox-gl/index'
 import ViewHeader from "../ViewHeader.vue";
 import { ForceLink, ForceNode } from "@/global-interface";
 import { useGetCircleByCluster } from "@/hooks/gisLayerHooks";
@@ -29,7 +30,6 @@ import { getHullPaths, updateGroups } from "@/hooks/polygonHullHooks";
 import PolarHeatMap from "../PolarHeatMap.vue";
 import PoiPanel from "../PoiPanel.vue";
 import { MapMode } from "@/map-interface";
-import { colorTable } from "@/color-pool";
 import { calLenColor, calNodeColor } from "@/utils";
 
 const StrokeWidth = 3;
@@ -60,15 +60,20 @@ export default defineComponent({
     const odPoints = computed(() => getters.odPoints);
     const cidCenterMap = computed(() => getters.cidCenterMap);
     const clusterPointMap = computed(() => getters.clusterPointMap);
+    const partClusterPointMap = computed(() => getters.partClusterPointMap);
     const { getCircleByClusterId } = useGetCircleByCluster();
     const svgCircles: Ref<any> = ref(null);
     const clusterLayerSvg = computed(() => getters.clusterLayerSvg);
     const headMapVisible: Ref<Boolean> = ref(false);
-    const poiPanelVisible: Ref<Boolean> = ref(false);
+    const poiPanelData: Ref<any> = ref({
+      poiPanelVisible: false,
+      coords: [] as [number, number][]
+    });
     const forceNodeSvg: Ref<any | null> = ref(null);
     const map = computed(() => getters.map);
     const communityGroup = computed(() => getters.communityGroup);
     const withSpaceDist = computed(() => getters.withSpaceDist);  //  线图是否考虑空间距离
+    const colorTable = computed(() => getters.colorTable);
 
     watch([withSpaceDist, forceTreeLinks, forceTreeNodes], () => {
       if(forceTreeNodes && forceTreeLinks) {
@@ -116,6 +121,12 @@ export default defineComponent({
           const cid: number = parseInt(name.split('_')[1]);
           return cid === transCid;
         }).attr('stroke-width', strokeWidth)
+        d3.selectAll('#force-links').filter((d: any) => {
+          const { source: {name} } = d;
+          const cid: number = parseInt(name.split('_')[1]);
+          return cid !== transCid;
+        })
+        .attr('opacity', isOver? 0.1 : 1);
 
         //  hover 一个 link 时，所有代表着相同簇的边所关联到的点（OD对）都在地图视图展示
         const cidPairs: [number, number][] = [];
@@ -176,7 +187,7 @@ export default defineComponent({
         } else {
           odCircles.attr('r', 4);
           forceNodeSvg.value = null;
-          poiPanelVisible.value = false;
+          poiPanelData.value.poiPanelVisible = false;
         }
         if (isOpen && headMapVisible.value) {
           headMapVisible.value = false;
@@ -302,7 +313,7 @@ export default defineComponent({
           const { source } = d;
           const { name } = source;
           const cid = parseInt(name.split('_')[1]);
-          return colorTable[cid];
+          return colorTable.value[cid];
         })
 
       //绘制边
@@ -325,7 +336,7 @@ export default defineComponent({
           const { source } = d;
           const { name } = source;
           const cid = parseInt(name.split('_')[1]);
-          return colorTable[cid];
+          return colorTable.value[cid];
         })
         .style('display', function(d: any) {  //  fake 边不显示，不触发事件
           if (d.isFake)
@@ -338,11 +349,18 @@ export default defineComponent({
         .on('mouseout', onMouseOverLink('out'))
         .on('click', function(_: MouseEvent, d: any) {
           _.stopPropagation();  //  防止 click 后又同时出发 forceSvg 的点击空白处 click
-          poiPanelVisible.value = true;
+          const { source } = d;
+          const cid = Number(source.name.split('_')[1]);
+          const pidList = partClusterPointMap.value.get(cid);
+          const coords = pidList.map((pid: number) => [odPoints.value[pid][0], odPoints.value[pid][1]]);
+          poiPanelData.value.coords = coords;
+          poiPanelData.value.poiPanelVisible = true;
         })
         .attr("fill", "none");
 
       const gs = groupSvg.value
+        .append('g')
+        .attr('id', 'force-nodes')
         .selectAll(".circleText")
         .data(nodes)
         .enter()
@@ -444,7 +462,7 @@ export default defineComponent({
     return {
       forceNodeSvg,
       headMapVisible,
-      poiPanelVisible,
+      poiPanelData,
       withSpaceDist,
       changeWithSpaceDist,
     };

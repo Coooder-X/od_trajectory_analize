@@ -1,5 +1,6 @@
 export interface GlobalState {
   pointsExist: Boolean,
+  month: number,
   timeScope: [number, number],
   dateScope: [number, number],
   odPoints: Array<number[]>,
@@ -7,6 +8,7 @@ export interface GlobalState {
   odIndexList: number[],
   pointClusterMap: Map<number, number>,
   clusterPointMap: Map<number, number[]>,
+  partClusterPointMap: Map<number, number[]>,
   inAdjTable: Map<number, number[]>,  //  存储 <D点簇id，[O点簇id]>
   outAdjTable: Map<number, number[]>,  //  存储 <O点簇id，[D点簇id]> (全量)
   filteredOutAdjTable: Map<number, number[]>, //  筛选过
@@ -17,6 +19,7 @@ export interface GlobalState {
   cidCenterMap: Map<number, [number, number]>,  // <簇id, [lon, lat]>，簇中心点坐标
   communityGroup: Map<number, string[]>,  //  社区发现的距离结果，元素是力导向图节点名称的数组，元素如 '12_34'
   withSpaceDist: Boolean,
+  colorTable: string[],
 }
 
 export type ForceLink = Array<{source: number, target: number, isFake?: boolean, singleFake?: boolean, value: number}>;

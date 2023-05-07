@@ -51,7 +51,7 @@ function polygonGenerator(communityGroup: Map<number, string[]>, groupId: number
 
 export function getHullPaths(communityGroup: Map<number, string[]>, svgGroup: any) {
   const groupIds = [...communityGroup.keys()];
-  const colors = ["#6b486b", "#a05d56", "blue", "green", "red", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]
+  const colors = ["#6b486b", "green", "blue", "#a05d56", "red", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]
 
   const paths = svgGroup
     .append('g')

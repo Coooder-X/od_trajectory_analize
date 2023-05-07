@@ -4,6 +4,7 @@ import { ActionContext } from 'vuex';
 
 const initState: GlobalState = {
   pointsExist: false,
+  month: 5,
   dateScope: [0, 1],
   timeScope: [8, 10],
   odPoints: [], //  当天的全量 OD 点数据。//在后端中，目前全量数据是从一天的 od 点中取一部分点
@@ -11,6 +12,7 @@ const initState: GlobalState = {
   odIndexList: [],
   pointClusterMap: new Map(),
   clusterPointMap: new Map(),
+  partClusterPointMap: new Map(),
   inAdjTable: new Map(),
   outAdjTable: new Map(),
   filteredOutAdjTable: new Map(), //  刷选过滤后的 出边邻接表
@@ -21,6 +23,7 @@ const initState: GlobalState = {
   cidCenterMap: new Map(),
   communityGroup: new Map(),
   withSpaceDist: false,
+  colorTable: [],
 }
 
 const globalModule = {
@@ -36,8 +39,11 @@ const globalModule = {
       state.dateScope = payload;
     },
     setAllODPoints(state: GlobalState, payload: Array<[]>) {
+      // sessionStorage.setItem('odPoints', JSON.stringify(
+      //   payload
+      // ));
       state.odPoints = payload;
-      console.log('set points', state.odPoints)
+      // console.log('set points', state.odPoints)
     },
     setPartODPoints(state: GlobalState, payload: Array<number[]>) {
       state.partOdPoints = payload;
@@ -58,6 +64,12 @@ const globalModule = {
       Object.keys(payload).forEach((key: string) => {
         let k = parseInt(key)
         state.clusterPointMap.set(k, payload[k]);
+      })
+    },
+    setPartClusterPointMap(state: GlobalState, payload: {[key: number]: number[]}) {
+      Object.keys(payload).forEach((key: string) => {
+        let k = parseInt(key)
+        state.partClusterPointMap.set(k, payload[k]);
       })
     },
     setInAdjTable(state: GlobalState, payload: {[key: string]: number[]}) {
@@ -107,13 +119,25 @@ const globalModule = {
     setWithSpaceDist(state: GlobalState, payload: Boolean) {
       state.withSpaceDist = payload;
     },
+    setColorTable(state: GlobalState, payload: string[]) {
+      state.colorTable = payload;
+    },
+    setMonth(state: GlobalState, payload: number) {
+      state.month = payload;
+    },
   },
   actions: {
-    getAllODPoints(context: ActionContext<{}, {}>) {
+    getAllODPoints(context: ActionContext<{}, {}>, params: any) {
       context.commit('setPointsExist', false);
-      axios.get('/api/getTotalODPoints').then((res) => {
-        console.log('getAllODPoints', res, res.status === 200);
-        context.commit('setAllODPoints', res.data);
+      // axios.get('/api/getTotalODPoints').then((res) => {
+      //   console.log('getAllODPoints', res, res.status === 200);
+      //   context.commit('setAllODPoints', res.data);
+      //   context.commit('setPointsExist', res.status === 200);
+      // })
+      axios.get('/api/getODPointsFilterByDayAndHour', params).then((res) => {
+        //  设置 od 点的坐标数组和 index 序号数组
+        context.commit('setAllODPoints', res.data['5']['od_points']);
+        context.commit('setODIndexList', res.data['5']['index_lst']);
         context.commit('setPointsExist', res.status === 200);
       })
     },
@@ -126,12 +150,20 @@ const globalModule = {
         context.commit('setPointsExist', res.status === 200);
       })
     },
+    getODPointsFilterByDayAndHour(context: ActionContext<{}, {}>, params: any) {
+      axios.get('/api/getODPointsFilterByDayAndHour', params).then((res) => {
+        //  设置 od 点的坐标数组和 index 序号数组
+        context.commit('setPartODPoints', res.data['5']['od_points']);
+        context.commit('setODIndexList', res.data['5']['index_lst']);
+      })
+    },
     getClusteringResult(context: ActionContext<{}, {}>, params: any) {
       axios.get('/api/getClusteringResult', params).then((res) => {
         console.log('getClusteringResult', res, res.status === 200);
         //  设置 od 点的坐标数组和 index 序号数组
         context.commit('setPointClusterMap', res.data['point_cluster_dict']);
         context.commit('setClusterPointMap', res.data['cluster_point_dict']);
+        context.commit('setPartClusterPointMap', res.data['part_cluster_point_dict']);
         context.commit('setPartODPoints', res.data['part_od_points']);
         context.commit('setODIndexList', res.data['index_lst']);
         // context.commit('setForceTreeLinks', res.data['json_adj_table']);
@@ -192,6 +224,9 @@ const globalModule = {
     clusterPointMap: (state: GlobalState) => {
       return state.clusterPointMap;
     },
+    partClusterPointMap: (state: GlobalState) => {
+      return state.partClusterPointMap;
+    },
     odIndexList: (state: GlobalState) => {
       return state.odIndexList;
     },
@@ -224,6 +259,12 @@ const globalModule = {
     },
     withSpaceDist: (state: GlobalState) => {
       return state.withSpaceDist;
+    },
+    colorTable: (state: GlobalState) => {
+      return state.colorTable;
+    },
+    month: (state: GlobalState) => {
+      return state.month;
     },
   },
   modules: {},

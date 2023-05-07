@@ -1,4 +1,5 @@
 import json
+import pickle
 from datetime import datetime
 
 import numpy as np
@@ -9,6 +10,7 @@ import _thread
 import utils
 import os
 
+from poi_process.new_read_poi import get_poi_type_filter_by_radius, config_dict, getPOI_Coor, buildKDTree, meters2lonlat_list, lonlat2meters_poi
 from data_process.od_pair_process import get_odpair_space_similarity
 from graph_cluster_test.sa_cluster import update_graph_with_attr, get_cluster
 from data_process.OD_area_graph import build_od_graph, get_line_graph_by_selected_cluster, get_cluster_center_coord, \
@@ -30,6 +32,32 @@ cache = Cache(app)
 
 @app.route('/')
 def hello_world():  # put application's code here
+    start_time = datetime.now()
+    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+        obj = pickle.loads(f.read())
+        total_poi_coor = obj['total_poi_coor']
+        file_id_poi_id_dict = obj['file_id_poi_id_dict']
+        poi_id_file_id_dict = obj['poi_id_file_id_dict']
+        kdtree = obj['kdtree']
+        cache.set('file_id_poi_id_dict', file_id_poi_id_dict)
+        cache.set('poi_id_file_id_dict', poi_id_file_id_dict)
+        cache.set('total_poi_coor', total_poi_coor)
+        cache.set('kdtree', kdtree)
+        print('total_poi_coor', kdtree)
+        print('读取POI文件结束，用时: ', (datetime.now() - start_time))
+    # start_time = datetime.now()
+    # total_poi_coor, file_id_poi_id_dict, poi_id_file_id_dict = getPOI_Coor(config_dict['poi_dir'])
+    # total_poi_coor = lonlat2meters_poi(total_poi_coor)
+    # kdtree = buildKDTree(total_poi_coor)
+    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
+    #     picklestring = pickle.dumps({
+    #         'total_poi_coor': total_poi_coor,
+    #         'file_id_poi_id_dict': file_id_poi_id_dict,
+    #         'poi_id_file_id_dict': poi_id_file_id_dict,
+    #         'kdtree': kdtree,
+    #     })
+    #     f.write(picklestring)
+    # print('写入文件结束，用时: ', (datetime.now() - start_time))
     return 'Hello World!'
 
 
@@ -118,23 +146,29 @@ def get_trj_num_by_hour():
     return json.dumps({month: {'nums': res}})
 
 
-@app.route('/getTrjNumByOd', methods=['get', 'post'])
+@app.route('/getTrjNumByOd', methods=['post'])
 def get_trj_num_by_od():
-    month = request.args.get('month', 5, type=int)
-    date, num = request.args.get('date', type=int), request.args.get('num', type=int)
-    src_id_list, tgt_id_list = request.args.getlist('src_id_list'), request.args.getlist('tgt_id_list')
-    total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, date - num, date, 0, 24)['od_points']
+    data = request.get_json(silent=True)
+    month = data['month']
+    start_day, end_day, num = int(data['startDay']), int(data['endDay']), int(data['num'])
+    start_day = start_day if start_day - num <= 0 else start_day - num
+    src_id_list, tgt_id_list = data['src_id_list'], data['tgt_id_list']
+    total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
     res = []
-    for d in range(date - num, date + 1):
+    for d in range(start_day, end_day):
         num = []
         for h in range(24):
             count = 0
             for src_id in src_id_list:
                 for tgt_id in tgt_id_list:
-                    src = total_od_points[int(src_id)]
-                    tgt = total_od_points[int(tgt_id)]
-                    if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] == d and tgt[5] == d and h * 24 <= \
-                            src[2] <= (h + 1) * 24:
+                    src = total_od_points[src_id]
+                    tgt = total_od_points[tgt_id]
+                    # if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3]:
+                    #     print('same', d, h)
+                    #     print(src)
+                    #     print(tgt)
+                    if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] + 1 == d and tgt[5] + 1 == d and h * 3600 <= \
+                            src[2] <= (h + 1) * 3600:
                         count = count + 1
             num.append(count)
         res.append(num)
@@ -202,12 +236,18 @@ def calTwoPointSpeed(p0, p1):
 
 @app.route('/getClusteringResult', methods=['get', 'post'])
 def get_cluster_result():
+    month = int(request.args['month'])
     k, theta = int(request.args['k']), int(request.args['theta'])
     print(f'k={k}, theta:{theta}')
+    start_day, end_day = int(request.args['startDay']), int(request.args['endDay'])
     start_hour, end_hour = int(request.args['startHour']), int(request.args['endHour'])
 
     start_time = datetime.now()
-    od_points = np.asarray(od_pair_process.get_total_od_points())    # get_total_od_points
+    # od_points = np.asarray(od_pair_process.get_total_od_points())    # get_total_od_points
+    res = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day)
+    od_points = np.array(res['od_points'])
+    cache.set('total_od_points', od_points)
+
     total_od_coord_points = od_points[:, 0:2]  # 并去掉时间戳留下经纬度坐标
     print('读取OD点结束，用时: ', (datetime.now() - start_time))
     print('pos nums', len(od_points), '\n开始聚类')
@@ -215,24 +255,30 @@ def get_cluster_result():
     point_cluster_dict, cluster_point_dict = delaunay_clustering(k=k, theta=theta, od_points=total_od_coord_points)
     print('结束聚类，用时: ', (datetime.now() - start_time))
 
-    res = od_pair_process.get_od_points_filter_by_hour(start_hour, end_hour)
+    # res = od_pair_process.get_od_points_filter_by_hour(start_hour, end_hour)
+    res = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
     index_lst = res['index_lst']
-    part_od_points = res['part_od_points']
+    part_od_points = res['od_points']
     new_point_cluster_dict, new_cluster_point_dict = cluster_filter_by_hour(index_lst, point_cluster_dict)
     print('过滤后的点数：', len(index_lst))
     print('过滤后的的簇数：', len(new_cluster_point_dict.keys()))
     out_adj_table, in_adj_table = build_od_graph(new_point_cluster_dict, od_points, index_lst)
     print(out_adj_table)
     # draw_DT_clusters(new_cluster_point_dict, total_od_coord_points, k, theta, start_hour, end_hour, set(index_lst))
+
+    total_cluster_point_dict = {}
+    for key in cluster_point_dict:
+        total_cluster_point_dict[key] = list(cluster_point_dict[key])
     return json.dumps({
-        'index_lst': index_lst,
-        'point_cluster_dict': point_cluster_dict,
-        'cluster_point_dict': new_cluster_point_dict,
-        'part_od_points': part_od_points,
+        'index_lst': index_lst,  # 当前小时时间段内的部分 OD 点索引
+        'point_cluster_dict': point_cluster_dict,  # 全量的
+        'cluster_point_dict': total_cluster_point_dict,  # 全量的
+        'part_cluster_point_dict': new_cluster_point_dict,  # 当前小时内部分的映射关系，保证每个簇内的点都在当前小时段内
+        'part_od_points': part_od_points,  # 当前小时段内部分的 OD 点
         # 'json_adj_table': json_adj_table,
         # 'json_nodes': json_nodes,
-        'out_adj_table': out_adj_table,
-        'in_adj_table': in_adj_table,
+        'out_adj_table': out_adj_table,  # 当前小时段内过滤处的出边邻接表
+        'in_adj_table': in_adj_table,  # 当前小时段内过滤处的入边邻接表
     })
 
 
@@ -315,7 +361,8 @@ def get_line_graph():
         tmp[int(key)] = cluster_point_dict[key]
     cluster_point_dict = tmp
 
-    cid_center_coord_dict = get_cluster_center_coord(cluster_point_dict, selected_cluster_ids)
+    total_od_points = cache.get('total_od_points')
+    cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
     cache.set('cid_center_coord_dict', cid_center_coord_dict)
 
     #  计算 OD 对之间的距离 ==================================
@@ -349,6 +396,19 @@ def get_line_graph():
         'filtered_adj_dict': filtered_adj_dict,
         'cid_center_coord_dict': cid_center_coord_dict,
         'community_group': cluster_point_dict,
+    })
+
+
+@app.route('/getPoiInfoByPoint', methods=['post'])
+def get_poi_info_by_point():
+    data = request.get_json(silent=True)
+    point_in_cluster, radius = data['point_in_cluster'], int(data['radius'])
+
+    poi_id_file_id_dict = cache.get('poi_id_file_id_dict')
+    kdtree = cache.get('kdtree')
+    poi_type_dict = get_poi_type_filter_by_radius(point_in_cluster, poi_id_file_id_dict, config_dict, kdtree, radius)
+    return json.dumps({
+        'poi_type_dict': poi_type_dict,
     })
 
 

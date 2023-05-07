@@ -21,7 +21,8 @@ export default defineComponent({
     dataRange: {
       type: Number,
       required: true,
-    }
+    },
+    data: Array,
   },
   emits: ['change'],
   setup(props, { emit }) {
@@ -30,15 +31,14 @@ export default defineComponent({
     let chartDom: HTMLElement;
     let timeSelector: any; 
     let option: EChartsOption;
-    let data: Ref<any> = ref([]);
+    let localData: Ref<any> = ref([]);
     const domRef: Ref<any> = ref(null);
 
     let times: number[] = [];
-    data.value = [];
+    localData.value = [];
 
     for (let i = dataRange === 31? 1:0; i <= (dataRange === 31? 31:23); i++) {
       times.push(i);
-      data.value.push(Math.random());
     }
 
     onMounted(() => {
@@ -58,7 +58,7 @@ export default defineComponent({
     });
 
     const setChartOption = () => {
-      const { disabled, defaultMin, defaultMax, min, max } = props;
+      const { disabled, defaultMin, defaultMax, min, max, data } = props;
       option = {
         xAxis: {
           type: "category",
@@ -88,7 +88,7 @@ export default defineComponent({
         series: [
           {
             type: "line",
-            data: data.value,
+            data: data || [] as any,
           },
         ],
       };
