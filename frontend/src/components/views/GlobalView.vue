@@ -94,6 +94,7 @@ export default defineComponent({
     const timeScope: Ref<[number, number]> = ref([] as any);
     const hourTrjNums: Ref<number[]> = ref([]);
     const dayTrjNums: Ref<number[]> = ref([]);
+    let firstIn: Boolean = true;
 
     store.dispatch('getAllODPoints', {params: {startDay: 1, endDay: 2}});
 
@@ -128,7 +129,11 @@ export default defineComponent({
       dateScope.value[0] = event[0];
       dateScope.value[1] = event[1];
       store.commit('setDateScope', dateScope.value);
-      getODDataAction();
+      if (firstIn) {
+        firstIn = false;
+      } else {
+        getODDataAction();
+      }
       getTrjNumByDay();
     }
 
