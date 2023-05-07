@@ -4,6 +4,7 @@ import { ActionContext } from 'vuex';
 
 const initState: GlobalState = {
   pointsExist: false,
+  month: 5,
   dateScope: [0, 1],
   timeScope: [8, 10],
   odPoints: [], //  当天的全量 OD 点数据。//在后端中，目前全量数据是从一天的 od 点中取一部分点
@@ -38,8 +39,11 @@ const globalModule = {
       state.dateScope = payload;
     },
     setAllODPoints(state: GlobalState, payload: Array<[]>) {
+      // sessionStorage.setItem('odPoints', JSON.stringify(
+      //   payload
+      // ));
       state.odPoints = payload;
-      console.log('set points', state.odPoints)
+      // console.log('set points', state.odPoints)
     },
     setPartODPoints(state: GlobalState, payload: Array<number[]>) {
       state.partOdPoints = payload;
@@ -117,7 +121,10 @@ const globalModule = {
     },
     setColorTable(state: GlobalState, payload: string[]) {
       state.colorTable = payload;
-    }
+    },
+    setMonth(state: GlobalState, payload: number) {
+      state.month = payload;
+    },
   },
   actions: {
     getAllODPoints(context: ActionContext<{}, {}>, params: any) {
@@ -129,8 +136,8 @@ const globalModule = {
       // })
       axios.get('/api/getODPointsFilterByDayAndHour', params).then((res) => {
         //  设置 od 点的坐标数组和 index 序号数组
-        context.commit('setAllODPoints', res.data['od_points']);
-        context.commit('setODIndexList', res.data['index_lst']);
+        context.commit('setAllODPoints', res.data['5']['od_points']);
+        context.commit('setODIndexList', res.data['5']['index_lst']);
         context.commit('setPointsExist', res.status === 200);
       })
     },
@@ -146,8 +153,8 @@ const globalModule = {
     getODPointsFilterByDayAndHour(context: ActionContext<{}, {}>, params: any) {
       axios.get('/api/getODPointsFilterByDayAndHour', params).then((res) => {
         //  设置 od 点的坐标数组和 index 序号数组
-        context.commit('setPartODPoints', res.data['od_points']);
-        context.commit('setODIndexList', res.data['index_lst']);
+        context.commit('setPartODPoints', res.data['5']['od_points']);
+        context.commit('setODIndexList', res.data['5']['index_lst']);
       })
     },
     getClusteringResult(context: ActionContext<{}, {}>, params: any) {
@@ -255,6 +262,9 @@ const globalModule = {
     },
     colorTable: (state: GlobalState) => {
       return state.colorTable;
+    },
+    month: (state: GlobalState) => {
+      return state.month;
     },
   },
   modules: {},

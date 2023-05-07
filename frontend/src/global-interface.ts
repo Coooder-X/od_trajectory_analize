@@ -1,5 +1,6 @@
 export interface GlobalState {
   pointsExist: Boolean,
+  month: number,
   timeScope: [number, number],
   dateScope: [number, number],
   odPoints: Array<number[]>,

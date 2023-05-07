@@ -12,7 +12,11 @@
         >
           <el-option
             label="2020年5月份杭州轨迹数据集"
-            value="2020年5月份杭州轨迹数据集"
+            :value="5"
+          />
+          <el-option
+            label="2020年3月份杭州轨迹数据集"
+            :value="3"
           />
         </el-select>
         <el-table
@@ -42,6 +46,7 @@
             :min="dateSelection[0]"
             :max="dateSelection.at(-1)"
             :dataRange="31"
+            :data="dayTrjNums"
             @change="onChangeDateScope"></time-selector>
           <div style="margin-bottom: 5px;">
             <b v-if="tableData.length">{{ `当前时间范围: ${timeScope[0]}时-${timeScope[1]}时` }}</b>
@@ -52,6 +57,7 @@
               :defaultMax="timeScope[1]"
               :min="timeSelection[0]"
               :max="timeSelection.at(-1)"
+              :data="hourTrjNums"
               :dataRange="24"
               @change="onChangeTimeScope"></time-selector>
           </div>
@@ -64,6 +70,7 @@
 <script lang="ts">
 /* eslint-disable */
 import { debounce } from "@/hooks/gisLayerHooks";
+import axios from "axios";
 import { defineComponent, computed, onMounted } from "vue";
 import { Ref, ref } from "vue";
 import { useStore } from "vuex";
@@ -79,19 +86,22 @@ export default defineComponent({
   props: {},
   setup() {
     const store = useStore();
-    const dataset: Ref<String | null> = ref("");
+    const dataset: Ref<number | null> = ref(null);
     let tableData: Ref<{ name: string }[]> = ref([]);
     const dateSelection: Ref<number[]> = ref([]);
     const timeSelection: Ref<number[]> = ref([]);
     const dateScope: Ref<[number, number]> = ref([] as any);
     const timeScope: Ref<[number, number]> = ref([] as any);
+    const hourTrjNums: Ref<number[]> = ref([]);
+    const dayTrjNums: Ref<number[]> = ref([]);
 
     store.dispatch('getAllODPoints', {params: {startDay: 1, endDay: 2}});
 
     const changeDataSet = () => {
+      store.commit('setMonth', dataset.value);
       //  后面加上逻辑：修改数据集后，才显示 gis 轨迹点
       tableData.value = new Array(20).fill(0).map((_, index) => {
-        return { name: `2020年5月${index + 1}日杭州市出租车GPS轨迹点数据.h5` };
+        return { name: `2020年${dataset.value}月${index + 1}日杭州市出租车GPS轨迹点数据.h5` };
       });
       dateSelection.value = new Array(20).fill(0).map((_, index) => index);
       timeSelection.value = new Array(24).fill(0).map((_, index) => index + 1);
@@ -100,6 +110,8 @@ export default defineComponent({
       //  初始化时间后，第一次取数据初始化 gis 视图
       onTimeSelect(timeScope.value);
       onDateSelect(dateScope.value);
+      getTrjNumByDay();
+      getTrjNumByMonth();
     };
 
     const onTimeSelect = (event: [number, number]) => {
@@ -117,6 +129,7 @@ export default defineComponent({
       dateScope.value[1] = event[1];
       store.commit('setDateScope', dateScope.value);
       getODDataAction();
+      getTrjNumByDay();
     }
 
     const onChangeTimeScope = debounce(onTimeSelect, 700);
@@ -133,6 +146,30 @@ export default defineComponent({
       });
     }
 
+    const getTrjNumByDay = () => {
+      axios.get('/api/getTrjNumByHour', {
+        params: {
+          month: dataset.value,
+          startDay: dateScope.value[0] + 1,
+          endDay: dateScope.value[1] + 1,
+        }
+      }).then((res: any) => {
+        console.log('trj num day', res.data[dataset.value!]['nums'])
+        hourTrjNums.value = res.data[dataset.value!]['nums'];
+      });
+    }
+
+    const getTrjNumByMonth = () => {
+      axios.get('/api/getTrjTotalNumByMonth', {
+        params: {
+          month: dataset.value,
+        }
+      }).then((res: any) => {
+        console.log('trj num month', res.data)
+        dayTrjNums.value = res.data;
+      });
+    }
+
     return {
       dataset,
       tableData,
@@ -140,6 +177,8 @@ export default defineComponent({
       timeScope,
       dateSelection,
       timeSelection,
+      hourTrjNums,
+      dayTrjNums,
       onChangeTimeScope,
       onChangeDateScope,
       changeDataSet,

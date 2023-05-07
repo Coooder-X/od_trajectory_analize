@@ -101,7 +101,7 @@ export default defineComponent({
       if(!clusterLayerSvg.value) {
         initLayer();
       }
-      while (partOdPoints.value.length > colorTable.length) {
+      while (colorTable && partOdPoints.value.length > colorTable.length) {
         colorTable.push(...colorPool);
       }
       store.commit('setColorTable', colorTable);

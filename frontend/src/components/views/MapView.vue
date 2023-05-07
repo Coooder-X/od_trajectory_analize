@@ -105,6 +105,7 @@ export default defineComponent({
     const clusteringConfigVisible: Ref<boolean> = ref(false);
     const k: Ref<number> = ref(25);
     const theta: Ref<number> = ref(50);
+    const month = computed(() => getters.month);
 
     onMounted(() => {
       store.dispatch('helloWorld');
@@ -124,7 +125,17 @@ export default defineComponent({
       const [startHour, endHour] = getters.timeScope;
       const [startDay, endDay] = getters.dateScope;
       clusteringConfigVisible.value = !clusteringConfigVisible.value
-      store.dispatch('getClusteringResult', {params: {k: k.value, theta: theta.value, startDay: startDay + 1, endDay: endDay + 1, startHour, endHour}});
+      store.dispatch("getClusteringResult", {
+        params: {
+          k: k.value,
+          theta: theta.value,
+          month,
+          startDay: startDay + 1,
+          endDay: endDay + 1,
+          startHour,
+          endHour,
+        },
+      });
       modifyMode(MapMode.CLUSTERED);
     }
 
