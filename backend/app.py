@@ -146,14 +146,16 @@ def get_trj_num_by_hour():
     return json.dumps({month: {'nums': res}})
 
 
-@app.route('/getTrjNumByOd', methods=['get'])
+@app.route('/getTrjNumByOd', methods=['post'])
 def get_trj_num_by_od():
-    month = request.args.get('month', 5, type=int)
-    date, num = request.args.get('date', type=int), request.args.get('num', type=int)
-    src_id_list, tgt_id_list = request.args.getlist('src_id_list'), request.args.getlist('tgt_id_list')
-    total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, date - num, date, 0, 24)['od_points']
+    data = request.get_json(silent=True)
+    month = data['month']
+    start_day, end_day, num = int(data['startDay']), int(data['endDay']), int(data['num'])
+    start_day = start_day if start_day - num <= 0 else start_day - num
+    src_id_list, tgt_id_list = data['src_id_list'], data['tgt_id_list']
+    total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
     res = []
-    for d in range(date - num, date + 1):
+    for d in range(start_day, end_day):
         num = []
         for h in range(24):
             count = 0
@@ -161,8 +163,12 @@ def get_trj_num_by_od():
                 for tgt_id in tgt_id_list:
                     src = total_od_points[src_id]
                     tgt = total_od_points[tgt_id]
-                    if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] == d and tgt[5] == d and h * 24 <= \
-                            src[2] <= (h + 1) * 24:
+                    # if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3]:
+                    #     print('same', d, h)
+                    #     print(src)
+                    #     print(tgt)
+                    if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] + 1 == d and tgt[5] + 1 == d and h * 3600 <= \
+                            src[2] <= (h + 1) * 3600:
                         count = count + 1
             num.append(count)
         res.append(num)
@@ -264,15 +270,15 @@ def get_cluster_result():
     for key in cluster_point_dict:
         total_cluster_point_dict[key] = list(cluster_point_dict[key])
     return json.dumps({
-        'index_lst': index_lst,
-        'point_cluster_dict': point_cluster_dict,
-        'cluster_point_dict': total_cluster_point_dict,
-        'part_cluster_point_dict': new_cluster_point_dict,
-        'part_od_points': part_od_points,
+        'index_lst': index_lst,  # 当前小时时间段内的部分 OD 点索引
+        'point_cluster_dict': point_cluster_dict,  # 全量的
+        'cluster_point_dict': total_cluster_point_dict,  # 全量的
+        'part_cluster_point_dict': new_cluster_point_dict,  # 当前小时内部分的映射关系，保证每个簇内的点都在当前小时段内
+        'part_od_points': part_od_points,  # 当前小时段内部分的 OD 点
         # 'json_adj_table': json_adj_table,
         # 'json_nodes': json_nodes,
-        'out_adj_table': out_adj_table,
-        'in_adj_table': in_adj_table,
+        'out_adj_table': out_adj_table,  # 当前小时段内过滤处的出边邻接表
+        'in_adj_table': in_adj_table,  # 当前小时段内过滤处的入边邻接表
     })
 
 

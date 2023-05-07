@@ -213,7 +213,7 @@ def get_total_od_points_by_day(month, start_day, end_day):
 
 
 def get_odpoints_and_save_as_pkl_file(data_source_path, data_target_path, filter_step, day, use_cell=False):
-    od_points = get_endpoints(data_source_path, filter_step, use_cell)
+    od_points = get_endpoints(data_source_path, filter_step, day, use_cell)
     start_time = datetime.now()
     with open(data_target_path, 'wb') as f:
         picklestring = pickle.dumps(od_points)
