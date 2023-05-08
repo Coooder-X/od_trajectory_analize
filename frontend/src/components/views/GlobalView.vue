@@ -101,8 +101,10 @@ export default defineComponent({
     const hourTrjNums: Ref<number[]> = ref([]);
     const dayTrjNums: Ref<number[]> = ref([]);
     let firstIn: Boolean = true;
+    const {getters} = store;
+    const month = computed(() => getters.month);
 
-    store.dispatch('getAllODPoints', {params: {startDay: 1, endDay: 2}});
+    store.dispatch('getAllODPoints', {params: {month: month.value, startDay: 1, endDay: 2}});
 
     const changeDataSet = () => {
       store.commit('setMonth', dataset.value);
@@ -149,6 +151,7 @@ export default defineComponent({
     const getODDataAction = () => {
       store.dispatch('getODPointsFilterByDayAndHour', {
         params: {
+          month: month.value,
           startDay: dateScope.value[0] + 1,
           endDay: dateScope.value[1] + 1,
           startHour: timeScope.value[0],
