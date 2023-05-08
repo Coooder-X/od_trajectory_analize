@@ -148,7 +148,7 @@ def get_cluster(G, k=5):
 def update_graph_with_attr(G):
     print(G)
     for i, node in enumerate(G.nodes()):
-        G.nodes[node]['value'] = i
+        G.nodes[node]['value'] = i % 3
     # print('看看有没有value', G.nodes.data())
     return G
 
