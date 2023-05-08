@@ -129,7 +129,7 @@ export default defineComponent({
         params: {
           k: k.value,
           theta: theta.value,
-          month,
+          month: month.value,
           startDay: startDay + 1,
           endDay: endDay + 1,
           startHour,
