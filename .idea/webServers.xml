@@ -3,7 +3,7 @@
   <component name="WebServers">
     <option name="servers">
       <webServer id="e9333d37-df66-4691-b864-b6bee80c04db" name="root@10.11.32.211">
-        <fileTransfer rootFolder="/home/linzhengxuan/project/od_trajectory_analize" accessType="SFTP" host="10.11.32.211" port="1022" sshConfigId="0e89cdf3-5585-4b33-b29d-4d6aa7cf7662" sshConfig="root@10.11.32.211:1022 password">
+        <fileTransfer rootFolder="/root" accessType="SFTP" host="10.11.32.211" port="1022" sshConfigId="0e89cdf3-5585-4b33-b29d-4d6aa7cf7662" sshConfig="root@10.11.32.211:1022 password">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>
