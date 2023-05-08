@@ -39,6 +39,9 @@ export default defineComponent({
     let odIndexList = computed(() => getters.odIndexList);
     const mapMode = computed(() => getters.mapMode);
     const withSpaceDist = computed(() => getters.withSpaceDist);
+    const month = computed(() => getters.month);
+    const dateScope = computed(() => getters.dateScope);
+    const timeScope = computed(() => getters.timeScope);
 
     const project = (d: [number, number]) => {
       return props.map.project(new mapboxgl.LngLat(d[0], d[1]));
@@ -78,6 +81,11 @@ export default defineComponent({
           clusterPointObj[key] = value;
         });
         store.dispatch('getLineGraph', {
+          month: month.value,
+          startDay: dateScope.value[0] + 1,
+          endDay: dateScope.value[1] + 1,
+          startHour: timeScope.value[0],
+          endHour: timeScope.value[0],
           selectedClusterIdxsInBrush: selectedClusterIdxsInBrush.value,
           selectedClusterIdxs: selectedClusterIdxs.value,
           outAdjTable: adjTable,
