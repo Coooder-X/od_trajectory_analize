@@ -11,7 +11,7 @@ import utils
 import os
 
 from poi_process.new_read_poi import get_poi_type_filter_by_radius, config_dict, getPOI_Coor, buildKDTree, meters2lonlat_list, lonlat2meters_poi
-from data_process.od_pair_process import get_odpair_space_similarity
+from data_process.od_pair_process import get_odpair_space_similarity, get_trj_ids_by_force_node, get_trips_by_ids
 from graph_cluster_test.sa_cluster import update_graph_with_attr, get_cluster
 from data_process.OD_area_graph import build_od_graph, get_line_graph_by_selected_cluster, get_cluster_center_coord, \
     fuse_fake_edge_into_linegraph  #, aggregate_single_points
@@ -181,6 +181,29 @@ def get_trj_num_by_od():
     return res
 
 
+@app.route('/getTripsById', methods=['post'])
+def get_trips_by_id():
+    data = request.get_json(silent=True)
+    month = int(data['month'])
+    start_day, end_day, start_hour, end_hour = [int(data['startDay']),
+                                               int(data['endDay']),
+                                               int(data['startHour']),
+                                               int(data['endHour'])]
+    trj_ids = data['trjIdList']
+    print(start_day, end_day, start_hour, end_hour, trj_ids)
+    total_trips = od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips']
+
+    tid_trip_dict = {}
+    for tid in trj_ids:
+        tid_trip_dict[tid] = total_trips[tid][3:]
+
+    return json.dumps(
+        {
+            'tid_trip_dict': tid_trip_dict,
+        }
+    )
+
+
 @app.route('/calSpeed', methods=['get'])
 def calSpeed():
     month = request.args.get('month', 5, type=int)
@@ -347,6 +370,11 @@ def get_cluster_center_coords():
 def get_line_graph():
     data = request.get_json(silent=True)
     # print(data)
+    month = int(data['month'])
+    start_day, end_day, start_hour, end_hour = [int(data['startDay']),
+                                                int(data['endDay']),
+                                                int(data['startHour']),
+                                                int(data['endHour'])]
     selected_cluster_ids_in_brush = data['selectedClusterIdxsInBrush']
     selected_cluster_ids = data['selectedClusterIdxs']
     out_adj_table = data['outAdjTable']
@@ -369,6 +397,7 @@ def get_line_graph():
     cluster_point_dict = tmp
 
     total_od_points = cache.get('total_od_points')
+    # total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
     cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
     cache.set('cid_center_coord_dict', cid_center_coord_dict)
 
@@ -385,6 +414,11 @@ def get_line_graph():
     # if not with_space_dist:
     #     force_edges = aggregate_single_points(force_nodes, force_edges, filtered_adj_dict)
     #     print('单独点聚合后-边数', len(force_edges))
+
+    #+++++++++++++++ 轨迹获取和特征 ++++++++++++++
+    trj_idxs = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
+    tid_trip_dict = get_trips_by_ids(trj_idxs, month, start_day, end_day)
+    # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
 
     # ============== 社区发现代码 ===============
     # 为 line graph 添加属性，目前属性是随意值 TODO：属性改成轨迹特征聚类后的簇id，聚合成的一个整数　value
@@ -403,6 +437,7 @@ def get_line_graph():
         'filtered_adj_dict': filtered_adj_dict,
         'cid_center_coord_dict': cid_center_coord_dict,
         'community_group': cluster_point_dict,
+        'tid_trip_dict': tid_trip_dict,
     })
 
 
