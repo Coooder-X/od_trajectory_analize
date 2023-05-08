@@ -324,13 +324,14 @@ def get_cluster_center_coords():
     data = request.get_json(silent=True)
     cluster_point_dict = data['cluster_point_dict']
     selected_cluster_idxs = data['selected_cluster_idxs']
+    total_od_points = cache.get('total_od_points')
 
     tmp = {}
     for key in cluster_point_dict:
         tmp[int(key)] = cluster_point_dict[key]
     cluster_point_dict = tmp
 
-    cid_center_coord_dict = get_cluster_center_coord(cluster_point_dict, selected_cluster_idxs)
+    cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_idxs)
     return json.dumps({
         'cid_center_coord_dict': cid_center_coord_dict
     })

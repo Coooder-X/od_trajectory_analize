@@ -9,7 +9,9 @@
       </div>
     </div>
     <polar-heat-map
-      v-if="headMapVisible"
+      v-if="heatMapData.heatMapVisible"
+      :srcCid="heatMapData.srcCid"
+      :tgtCid="heatMapData.tgtCid"
       :svg="forceNodeSvg">
     </polar-heat-map>
     <poi-panel v-if="poiPanelData.poiPanelVisible" :coords="poiPanelData.coords" style="z-index: 5000;"></poi-panel>
@@ -64,7 +66,11 @@ export default defineComponent({
     const { getCircleByClusterId } = useGetCircleByCluster();
     const svgCircles: Ref<any> = ref(null);
     const clusterLayerSvg = computed(() => getters.clusterLayerSvg);
-    const headMapVisible: Ref<Boolean> = ref(false);
+    const heatMapData: Ref<any> = ref({
+      heatMapVisible: false,
+      srcCid: null,
+      tgtCid: null,
+    });
     const poiPanelData: Ref<any> = ref({
       poiPanelVisible: false,
       coords: [] as [number, number][]
@@ -170,7 +176,7 @@ export default defineComponent({
       return function(_: MouseEvent, d: any) {
         _.stopPropagation();
         const self = d3.select(this);
-        const odCircles = clusterLayerSvg.value.selectAll("circle")
+        const odCircles = clusterLayerSvg.value.selectAll("circle");
         if (isOpen) {
           //  处理地图点的高亮
           const {name} = d;
@@ -183,16 +189,18 @@ export default defineComponent({
           //  处理极坐标热力图的显示
           // const regex = /translate\((\d+\.\d+),(\d+\.\d+)\)/;
           // const [__, x, y] = d3.select(self.node().parentNode).attr('transform').match(regex);
+          heatMapData.value.srcCid = sourceCid;
+          heatMapData.value.tgtCid = targetCid;
           forceNodeSvg.value = d3.select(self.node().parentNode);
         } else {
           odCircles.attr('r', 4);
           forceNodeSvg.value = null;
           poiPanelData.value.poiPanelVisible = false;
         }
-        if (isOpen && headMapVisible.value) {
-          headMapVisible.value = false;
+        if (isOpen && heatMapData.value.heatMapVisible) {
+          heatMapData.value.heatMapVisible = false;
         }
-        headMapVisible.value = isOpen;
+        heatMapData.value.heatMapVisible = isOpen;
       }
     }
 
@@ -237,7 +245,7 @@ export default defineComponent({
     };
 
     const drawGraph = (edges: any, nodes: any) => {
-      const nodeColorMap = calNodeColor(nodes, clusterPointMap.value, odPoints.value);
+      const nodeColorMap = calNodeColor(nodes, partClusterPointMap.value, odPoints.value);
       nodes = calLenColor(nodes, cidCenterMap.value, map.value);
       if (!withSpaceDist.value)
         edges = edges.filter((edge: any) => !edge.isFake);
@@ -461,7 +469,7 @@ export default defineComponent({
 
     return {
       forceNodeSvg,
-      headMapVisible,
+      heatMapData,
       poiPanelData,
       withSpaceDist,
       changeWithSpaceDist,

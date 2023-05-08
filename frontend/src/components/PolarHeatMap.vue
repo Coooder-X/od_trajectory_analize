@@ -5,6 +5,8 @@
 <script lang="ts">
 import { computed, defineComponent, onBeforeMount, onMounted, watch, Ref, ref, onBeforeUnmount } from "vue";
 import * as d3 from "d3";
+import { useStore } from "vuex";
+import axios from "axios";
 
 export default defineComponent({
   name: "PolarHeatMap",
@@ -14,10 +16,49 @@ export default defineComponent({
       type: Object,
       required: true,
     },
+    srcCid: Number,
+    tgtCid: Number,
   },
   emits: ["closeMenu"],
   setup(props, contex) {
     const heatMapGroup: Ref<any> = ref(null);
+    const data: Ref<any[]> = ref([]);
+    const store = useStore();
+    const { getters } = store;
+    const clusterPointMap = computed(() => getters.clusterPointMap);
+    const month = computed(() => getters.month);
+    const dateScope = computed(() => getters.dateScope);
+    const numOfDay = 3;
+
+    watch(props, () => {
+      const {srcCid, tgtCid} = props;
+      const srcPoints = clusterPointMap.value.get(srcCid);
+      const tgtPoints = clusterPointMap.value.get(tgtCid);
+      axios({
+        method: 'post',
+        url: '/api/getTrjNumByOd',
+        data: {
+          month: month.value,
+          startDay: dateScope.value[0] + 1,
+          endDay: dateScope.value[1] + 1,
+          num: numOfDay,
+          src_id_list: srcPoints,
+          tgt_id_list: tgtPoints,
+        },
+      }).then((res: any) => {
+        console.log('res', res.data);
+        const tmp = res.data;
+        while(tmp.length < numOfDay) {
+          tmp.unshift(new Array(24).fill(0));
+        }
+        for (let day = 0; day < numOfDay; ++day) {
+          for (let hour = 0; hour < 24; ++hour) {
+            data.value.push({ a: hour, r: day, v: tmp[day][hour]});
+          }
+        }
+        redraw(data.value);
+      })
+    }, {deep: true, immediate: true});
 
     // 定义颜色比例尺
     const color = d3.scaleSequential(d3.interpolateHcl("white", "red")) // 修改插值函数
@@ -61,16 +102,16 @@ export default defineComponent({
       console.log("mounted", heatMapGroup.value);
 
       // 准备一些随机数据，每个元素包含一个角度、一个半径和一个值
-      const data = [];
+      const localData = [];
       for (let i = 0; i < 24; i++) {
         for (let j = 0; j < 3; j++) {
-          data.push({ a: i, r: j, v: Math.random() });
+          localData.push({ a: i, r: j, v: 0 });
         }
       }
 
       // 为每个数据元素添加一个路径元素，并设置其属性
       heatMapGroup.value.selectAll("path")
-        .data(data)
+        .data(localData)
         .enter()
         .append("path")
         .attr("d", arc) // 使用弧形生成器绘制路径
@@ -164,6 +205,33 @@ export default defineComponent({
           return d;
         }); // 设置文本内容为数据值
     });
+
+    const redraw = (data: any) => {
+      // 选择所有的路径元素，并绑定新的数据
+      const paths = heatMapGroup.value.selectAll("path")
+        .data(data);
+
+      // 对于新加入的数据，添加新的路径元素，并设置属性
+      paths
+        .enter()
+        .append("path")
+        .attr("d", arc) // 使用弧形生成器绘制路径
+        .attr("fill", function (d: any) {
+          return color(d.v);
+        }) // 使用颜色比例尺设置填充颜色
+        .attr('opacity', 0.7)
+        .attr("stroke", "white"); // 设置描边颜色为白色
+
+      // 对于已经存在的数据，更新路径元素的属性
+      paths
+        .attr("d", arc)
+        .attr("fill", function (d: any) {
+          return color(d.v);
+        });
+
+      // 对于退出的数据，移除多余的路径元素
+      paths.exit().remove();
+    }
 
     onBeforeUnmount(() => {
       //  销毁组件时删除这个图表的svg
