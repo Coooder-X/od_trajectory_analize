@@ -13,7 +13,7 @@ export function useBrush({
   const { inAdjTable, outAdjTable } = getters;
   const mapMode = getters.mapMode;
   const pointClusterMap = computed(() => getters.pointClusterMap);
-  const clusterPointMap = computed(() => getters.clusterPointMap);
+  const partClusterPointMap = computed(() => getters.partClusterPointMap);
   const odIndexList = computed(() => getters.odIndexList);
   const colorTable = computed(() => getters.colorTable);
   const x0 = ref(0);
@@ -117,7 +117,7 @@ export function useBrush({
     selectedClusterIdxs.value = [...selectedClusterIdxSet]
     //  根据已选的所有 簇id，得到已选的所有 od 点 id
     for(const cid of selectedClusterIdxSet) {
-      const pInCluster = clusterPointMap.value.get(cid);
+      const pInCluster = partClusterPointMap.value.get(cid);  //  只考虑小时段内的数据，因此用 part
         for(const pid of pInCluster) {
           selectedODSet.add(pid);
         }

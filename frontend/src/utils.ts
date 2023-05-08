@@ -34,7 +34,7 @@ export function calLenColor(forceNodes: ForceNode, cidCenterMap: Map<number, [nu
 }
 
 //  返回取色map，通过力导向节点的 name 获取对应颜色。颜色代表OD对内轨迹数，即OD对的热度。渐变为 蓝-白-红，从低到高。
-export function calNodeColor(forceNodes: ForceNode, partClusterPointMap: Map<number, number[]>, odPoints: Array<number[]>) {
+export function calNodeColor(forceNodes: ForceNode, partClusterPointMap: Map<number, number[]>, clusterPointMap: Map<number, number[]>, odPoints: Array<number[]>, startDay: number, endDay: number) {
   console.log('total len', odPoints.length)
   let min_num = 9999999, max_num = -1;
   const nodeNumMap: Map<string, number> = new Map();
@@ -43,19 +43,21 @@ export function calNodeColor(forceNodes: ForceNode, partClusterPointMap: Map<num
     //  计算这对 OD 对之间，当前小时段内的轨迹的数量。因此使用 partClusterPointMap
     const {name} = node;
     const [srcCid, tgtCid] = name.split('_').map(Number);
-    const [srcCluster, tgtCluster] = [partClusterPointMap.get(srcCid)!, partClusterPointMap.get(tgtCid)!];
+    const [srcCluster, tgtCluster] = [partClusterPointMap.get(srcCid)!, clusterPointMap.get(tgtCid)!];
     let cnt = 0;
     // console.log(srcCluster.length, tgtCluster.length)
-    for (const srcP of srcCluster) {
-      const oP = odPoints[srcP];
-      for (const tgtP of tgtCluster) {
-        const dP = odPoints[tgtP];
-        if (oP[3] === dP[3] && oP[4] === 0 && dP[4] === 1) {  //  这两个 OD 点轨迹 ID 相同，属于同一条轨迹。符合方向，则计数
-          cnt++;
-          break;
+    // for (let i = startDay; i < endDay; ++i) {
+      for (const srcP of srcCluster) {
+        const oP = odPoints[srcP];
+        for (const tgtP of tgtCluster) {
+          const dP = odPoints[tgtP];
+          if (oP[3] === dP[3] && oP[4] === 0 && dP[4] === 1 && oP[5] === dP[5]) {  //  这两个 OD 点轨迹 ID 相同，属于同一条轨迹。符合方向，日期相等，则计数
+            cnt++;
+            break;
+          }
         }
       }
-    }
+    // }
     min_num = Math.min(min_num, cnt);
     max_num = Math.max(max_num, cnt);
     nodeNumMap.set(name, cnt);

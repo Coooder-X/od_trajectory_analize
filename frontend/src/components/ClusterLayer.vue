@@ -34,6 +34,7 @@ export default defineComponent({
     let partOdPoints: ComputedRef<number[][]> = computed(() => getters.partOdPoints);
     let pointClusterMap = computed(() => getters.pointClusterMap);
     let clusterPointMap = computed(() => getters.clusterPointMap);
+    let partClusterPointMap = computed(() => getters.partClusterPointMap);
     let cidCenterMap = computed(() => getters.cidCenterMap);
     let odIndexList = computed(() => getters.odIndexList);
     const mapMode = computed(() => getters.mapMode);
@@ -72,7 +73,8 @@ export default defineComponent({
         });
         //  获取每个簇中心的坐标
         const clusterPointObj: {[key: number]: number[]} = {}
-        clusterPointMap.value.forEach(function(value: number[], key: number) {
+        //  获取 linegraph 时，只考虑当前小时段内的数据，因此用 part
+        partClusterPointMap.value.forEach(function(value: number[], key: number) {
           clusterPointObj[key] = value;
         });
         store.dispatch('getLineGraph', {

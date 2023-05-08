@@ -151,25 +151,31 @@ def get_trj_num_by_od():
     data = request.get_json(silent=True)
     month = data['month']
     start_day, end_day, num = int(data['startDay']), int(data['endDay']), int(data['num'])
-    start_day = start_day if start_day - num <= 0 else start_day - num
+    start_day = start_day if start_day - num <= 0 else end_day - num + 1
     src_id_list, tgt_id_list = data['src_id_list'], data['tgt_id_list']
     total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
     res = []
+    print('start_day, end_day', start_day, end_day + 1)
     for d in range(start_day, end_day):
         num = []
         for h in range(24):
             count = 0
             for src_id in src_id_list:
                 for tgt_id in tgt_id_list:
+                    # if src_id + 1 == tgt_id:
+                    #     count += 1
                     src = total_od_points[src_id]
                     tgt = total_od_points[tgt_id]
-                    # if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3]:
-                    #     print('same', d, h)
-                    #     print(src)
-                    #     print(tgt)
-                    if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] + 1 == d and tgt[5] + 1 == d and h * 3600 <= \
+                    if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3]:
+                        print('same', d, src[5], h)
+                        print(src)
+                        print(tgt)
+                    if src[4] == 0 and tgt[4] == 1 and src[3] == tgt[3] and src[5] == d and tgt[5] == d and h * 3600 <= \
                             src[2] <= (h + 1) * 3600:
                         count = count + 1
+                        # print('same', d, src[5], h)
+                        # print(src)
+                        # print(tgt)
             num.append(count)
         res.append(num)
     return res
