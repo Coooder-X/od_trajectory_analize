@@ -15,8 +15,8 @@
             :value="5"
           />
           <el-option
-            label="2020年3月份杭州轨迹数据集"
-            :value="3"
+            label="2020年1月份杭州轨迹数据集"
+            :value="1"
           />
         </el-select>
         <el-table
@@ -36,7 +36,7 @@
       <div class="info-comp">
         <div class="selec-box">
           <div style="margin-bottom: 5px;">
-            <b v-if="tableData.length">{{ `当前日期范围: 5月${dateScope[0]+1}日-5月${dateScope[1]+1}日` }}</b>
+            <b v-if="tableData.length">{{ `当前日期范围: ${dataset}月${dateScope[0]+1}日-${dataset}月${dateScope[1]+1}日` }}</b>
             <b v-else>选择日期范围:</b>
           </div>
           <time-selector
@@ -61,6 +61,12 @@
               :dataRange="24"
               @change="onChangeTimeScope"></time-selector>
           </div>
+        </div>
+        <div class="data-info">
+          <b>全局信息：</b> <br>
+          <b>{{ `${dateScope[0]+1}日-${dateScope[1]+1}日轨迹总数：` }}</b> <span></span>
+          <b></b> <span></span>
+          <b></b> <span></span>
         </div>
       </div>
     </div>
@@ -253,5 +259,16 @@ export default defineComponent({
 .selec-box {
   margin: 10px 20px;
   width: 290px;
+}
+
+.data-info {
+  margin: 5px;
+  margin-left: -5px;
+  margin-top: 7px;
+  margin-right: 7px;
+  border: 2px #bdc0c5 solid;
+  border-radius: 5px;
+  width: 100%;
+  height: 90%;
 }
 </style>
