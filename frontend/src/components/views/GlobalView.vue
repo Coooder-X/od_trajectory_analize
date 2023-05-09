@@ -117,8 +117,8 @@ export default defineComponent({
       dateScope.value = [dateSelection.value[0], dateSelection.value[1]];
       timeScope.value = [timeSelection.value[7], timeSelection.value[9]];
       //  初始化时间后，第一次取数据初始化 gis 视图
-      onTimeSelect(timeScope.value);
       onDateSelect(dateScope.value);
+      onTimeSelect(timeScope.value);
       getTrjNumByDay();
       getTrjNumByMonth();
     };
@@ -143,6 +143,8 @@ export default defineComponent({
         getODDataAction();
       }
       getTrjNumByDay();
+      //  切日期，也要重新拉一遍当天全量OD数据
+      store.dispatch('getAllODPoints', {params: {month: month.value, startDay: dateScope.value[0] + 1, endDay: dateScope.value[1] + 1}});
     }
 
     const onChangeTimeScope = debounce(onTimeSelect, 700);

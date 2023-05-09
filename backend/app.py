@@ -274,6 +274,7 @@ def get_cluster_result():
     start_time = datetime.now()
     # od_points = np.asarray(od_pair_process.get_total_od_points())    # get_total_od_points
     res = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day)
+    print(f'start {start_day} end {end_day}')
     od_points = np.array(res['od_points'])
     cache.set('total_od_points', od_points)
 
@@ -292,7 +293,7 @@ def get_cluster_result():
     print('过滤后的点数：', len(index_lst))
     print('过滤后的的簇数：', len(new_cluster_point_dict.keys()))
     out_adj_table, in_adj_table = build_od_graph(new_point_cluster_dict, od_points, index_lst)
-    print(out_adj_table)
+    # print(out_adj_table)
     # draw_DT_clusters(new_cluster_point_dict, total_od_coord_points, k, theta, start_hour, end_hour, set(index_lst))
 
     total_cluster_point_dict = {}

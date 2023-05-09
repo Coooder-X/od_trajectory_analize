@@ -127,11 +127,12 @@ def get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour=0
     res = []
     index_list = []
     for i in range(0, len(od_points), 2):
-        if start_hour * 3600 <= od_points[i][2] <= end_hour * 3600 and start_hour * 3600 <= od_points[i + 1][2] <= end_hour * 3600:
+        if start_hour * 3600 <= od_points[i][2] <= end_hour * 3600:  # and start_hour * 3600 <= od_points[i + 1][2] <= end_hour * 3600: todo: 这样部分跨时间的OD对会被拆分，有的地方可能会取到
             res.append(od_points[i])
             res.append(od_points[i + 1])
             index_list.append(i)
             index_list.append(i + 1)
+    print(f'{start_day}-{end_day} {start_hour}-{end_hour} OD点总数：', len(od_points))
     return {'od_points': res, 'index_lst': index_list}
 
 
