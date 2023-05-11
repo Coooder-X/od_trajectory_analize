@@ -10,6 +10,8 @@ import _thread
 import utils
 import os
 
+from model.t2vec import args
+from t2vec_graph import get_feature_and_trips
 from poi_process.new_read_poi import get_poi_type_filter_by_radius, config_dict, getPOI_Coor, buildKDTree, meters2lonlat_list, lonlat2meters_poi
 from data_process.od_pair_process import get_odpair_space_similarity, get_trj_ids_by_force_node, get_trips_by_ids
 from graph_cluster_test.sa_cluster import update_graph_with_attr, get_cluster
@@ -397,8 +399,8 @@ def get_line_graph():
         tmp[int(key)] = cluster_point_dict[key]
     cluster_point_dict = tmp
 
-    total_od_points = cache.get('total_od_points')
-    # total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
+    # total_od_points = cache.get('total_od_points')
+    total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
     cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
     cache.set('cid_center_coord_dict', cid_center_coord_dict)
 
@@ -419,6 +421,8 @@ def get_line_graph():
     #+++++++++++++++ 轨迹获取和特征 ++++++++++++++
     trj_idxs = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
     tid_trip_dict = get_trips_by_ids(trj_idxs, month, start_day, end_day)
+    gps_trips = list(tid_trip_dict.values())
+    feature, cell_trips = get_feature_and_trips(args, gps_trips)
     # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
 
     # ============== 社区发现代码 ===============
@@ -426,6 +430,7 @@ def get_line_graph():
     lg = update_graph_with_attr(lg)
     # 对线图进行图聚类，得到社区发现
     point_cluster_dict, cluster_point_dict = get_cluster(lg, 8)
+    print('社区发现结果：')
     print('point_cluster_dict', point_cluster_dict)
     print('cluster_point_dict', cluster_point_dict)
     #  将带属性的线图 networkx 对象存在全局缓存中
@@ -438,7 +443,7 @@ def get_line_graph():
         'filtered_adj_dict': filtered_adj_dict,
         'cid_center_coord_dict': cid_center_coord_dict,
         'community_group': cluster_point_dict,
-        'tid_trip_dict': tid_trip_dict,
+        # 'tid_trip_dict': tid_trip_dict,
     })
 
 
