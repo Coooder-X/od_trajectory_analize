@@ -104,7 +104,7 @@ export default defineComponent({
     const clusterLayerShow = computed(() => store.state.layers.clusterLayerShow);
     const clusteringConfigVisible: Ref<boolean> = ref(false);
     const k: Ref<number> = ref(25);
-    const theta: Ref<number> = ref(50);
+    const theta: Ref<number> = ref(70);
     const month = computed(() => getters.month);
 
     onMounted(() => {

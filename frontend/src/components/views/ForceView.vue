@@ -380,9 +380,9 @@ export default defineComponent({
           const cirY = d.y;
           return "translate(" + cirX + "," + cirY + ")";
         })
-        // .call(
-        //   d3.drag().on("start", started).on("drag", dragged).on("end", ended)
-        // );
+        .call(
+          d3.drag().on("start", started).on("drag", dragged).on("end", ended)
+        );
 
       //绘制节点,TODO: 颜色改为数据获取
       svgCircles.value = gs.append("circle")
