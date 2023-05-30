@@ -1,6 +1,6 @@
 <template>
   <div class="map-view">
-    <view-header viewId="B" title="地图视图"></view-header>
+    <view-header viewId="B" title="GIS视图"></view-header>
     <div class="map-view-content">
       <div class="side-bar">
         <div class="side-bar-button" @click="toggleClusterLayer($event)">
@@ -40,7 +40,7 @@
             <img src="@/assets/框选.svg" alt="" />
           </el-tooltip>
         </div>
-        <div class="side-bar-button">
+        <!-- <div class="side-bar-button">
           <el-tooltip
             content="点选"
             placement="right">
@@ -59,7 +59,7 @@
             placement="right">
             <img src="@/assets/路径分析.svg" alt="" />
           </el-tooltip>
-        </div>
+        </div> -->
         <div class="side-bar-button">
           <el-tooltip
             content="过滤"
@@ -104,7 +104,7 @@ export default defineComponent({
     const clusterLayerShow = computed(() => store.state.layers.clusterLayerShow);
     const clusteringConfigVisible: Ref<boolean> = ref(false);
     const k: Ref<number> = ref(25);
-    const theta: Ref<number> = ref(50);
+    const theta: Ref<number> = ref(70);
     const month = computed(() => getters.month);
 
     onMounted(() => {

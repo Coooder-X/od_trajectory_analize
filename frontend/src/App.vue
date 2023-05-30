@@ -1,5 +1,5 @@
 <template>
-  <RootContainer/>
+  <RootContainer style="margin-top: 30px;"/>
 </template>
 
 <script lang="ts">

@@ -1,6 +1,6 @@
 <template>
   <div class="global-view">
-    <view-header viewId="A" title="地图视图"></view-header>
+    <view-header viewId="A" title="数据视图"></view-header>
     <div class="global-view-content">
       <div class="file-comp">
         <b>数据集:</b>
@@ -63,10 +63,13 @@
           </div>
         </div>
         <div class="data-info">
-          <b>全局信息：</b> <br>
-          <b>{{ `${dateScope[0]+1}日-${dateScope[1]+1}日轨迹总数：` }}</b> <span></span>
-          <b></b> <span></span>
-          <b></b> <span></span>
+          <div v-if="tableData.length">
+            <b>全局信息：</b> <br>
+            <div style="margin-top: 15px;"><b>{{ `${dateScope[0]+1}日-${dateScope[1]+1}日轨迹总数：${odPoints.length/2}` }}</b> <br></div>
+            <b></b>
+            <div style="margin-top: 15px;"><b>{{ `${timeScope[0]}时-${timeScope[1]}时轨迹总数：${partOdPoints.length/2}` }}</b> </div>
+            <b></b> <span></span>
+          </div>
         </div>
       </div>
     </div>
@@ -102,6 +105,8 @@ export default defineComponent({
     const dayTrjNums: Ref<number[]> = ref([]);
     let firstIn: Boolean = true;
     const {getters} = store;
+    const odPoints = computed(() => getters.odPoints);
+    const partOdPoints = computed(() => getters.partOdPoints);
     const month = computed(() => getters.month);
 
     store.dispatch('getAllODPoints', {params: {month: month.value, startDay: 1, endDay: 2}});
@@ -195,6 +200,8 @@ export default defineComponent({
       timeSelection,
       hourTrjNums,
       dayTrjNums,
+      odPoints,
+      partOdPoints,
       onChangeTimeScope,
       onChangeDateScope,
       changeDataSet,
@@ -267,6 +274,8 @@ export default defineComponent({
 }
 
 .data-info {
+  box-sizing: border-box;
+  padding: 10px;
   margin: 5px;
   margin-left: -5px;
   margin-top: 7px;

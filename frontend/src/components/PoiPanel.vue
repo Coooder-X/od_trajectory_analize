@@ -1,8 +1,8 @@
 <template>
   <div class="poi-panel">
     <div id="bar-chart" class="bar-chart"></div>
-    <div class="dick-chart"></div>
-    <div></div>
+    <!-- <div class="dick-chart"></div>
+    <div></div> -->
   </div>
 </template>
 
@@ -121,7 +121,8 @@ export default defineComponent({
 <style scoped>
 .poi-panel {
   width: 450px;
-  height: 300px;
+  /* height: 300px; */
+  height: 180px;
   position: absolute;
   right: 10px;
   bottom: 10px;
