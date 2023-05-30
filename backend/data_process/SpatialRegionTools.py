@@ -366,7 +366,7 @@ def cell2coordandtime(region, cell):
     else:
         zoffset = cell // (len(region.hulls))
         spatio_id = cell % (len(region.hulls))
-        (lat, lon) = region.centers[spatio_id]
+        (lat, lon) = region.centers[int(spatio_id)]
         x, y = lonlat2meters(lon, lat)
         # 归一化
         y = (y - region.miny) / (region.maxy - region.miny)

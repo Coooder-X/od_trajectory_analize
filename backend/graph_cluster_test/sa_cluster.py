@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+from sklearn.preprocessing import LabelEncoder
 
 
 def get_cluster(G, k=5):
@@ -8,18 +9,26 @@ def get_cluster(G, k=5):
     :param k: k-means 的簇数
     :return cluster_point_dict: map<graph_cluster_id, ['12_34', '34_56']>，值是数值，其中的元素是线图节点的名称
     """
-    # adj matrix: links
+    # adj matrix: links 邻接矩阵
     links = np.asarray(nx.to_numpy_matrix(G, dtype=np.float64))
     # attr 'value' of each id
     attributes = np.fromiter(nx.get_node_attributes(G, 'value').values(), dtype=int)
+    # attributes = np.array(list(nx.get_node_attributes(G, 'value').values()))
+    # attributes 中的值要求是从 0 开始的连续整数，而传进的 label 不符合要求，通过 LabelEncoder 的 fit_transform 实现映射
+    print('值映射到从 0 开始的连续整数前', attributes)
+    le = LabelEncoder()
+    attributes = le.fit_transform(attributes)
+    print('值映射到从 0 开始的连续整数后', attributes)
     attributes = attributes.reshape(attributes.shape[0], 1)
 
     # transition_probability_matrix and weights
-    n = links.shape[0]
-    attrs = int(attributes.shape[1])
-    w = np.ones(attrs + 1, dtype=float)
+    n = links.shape[0]  # n 个节点，todo：跟 G.nodes() 长度比较一下【确实是节点数】
+    attrs = int(attributes.shape[1]) # 应该为 1【对，是每个节点内属性值的个数】
+    w = np.ones(attrs + 1, dtype=float)  # 存储每个子属性的权重，todo：了解为什么要+1，是不是有另外存储什么信息
 
     # calculating the number of diff types of sub attr in a particular attribute
+    # no_of_attr_individual 数组存储每个子属性中不同值的数量，而
+    # no_of_attr_cumulative 数组存储每个子属性中不同值的累积数量
     no_of_attr_individual = np.zeros(attrs, dtype=float)
     no_of_attr_cumulative = np.zeros(attrs, dtype=float)
     for i in range(attrs):
@@ -31,8 +40,8 @@ def get_cluster(G, k=5):
 
     transition_pm = np.zeros((n + int(no_of_attr_cumulative[attrs - 1]), n + int(no_of_attr_cumulative[attrs - 1])),
                              dtype=float)
-    c = 0.2
-    l = 2
+    c = 0.5
+    l = 5
 
     def caltransition(w):
         # trasition matrix Pa
@@ -135,6 +144,8 @@ def get_cluster(G, k=5):
         node_list = list(G.nodes())
         for node_id in node_idxs_in_cluster:
             node = node_list[node_id]
+            if G.degree(node) == 0:
+                continue
             node_name = G.nodes[node]['name'].split('-')
             node_name = f'{node_name[0]}_{node_name[1]}'
             cluster_point_dict[i].append(node_name)
@@ -145,10 +156,15 @@ def get_cluster(G, k=5):
     return point_cluster_dict, cluster_point_dict
 
 
-def update_graph_with_attr(G):
+def update_graph_with_attr(G, node_label_dict):
     print(G)
     for i, node in enumerate(G.nodes()):
-        G.nodes[node]['value'] = i % 3
+        # print(f'{node[0]}_{node[1]}')
+        if node_label_dict is None:
+            label = i
+        else:
+            label = node_label_dict[f'{node[0]}_{node[1]}']
+        G.nodes[node]['value'] = label
     # print('看看有没有value', G.nodes.data())
     return G
 

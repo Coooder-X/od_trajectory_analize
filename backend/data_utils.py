@@ -396,17 +396,17 @@ class MyDataOrderScaner():
         num_line = 0
         for s in self.cell_trips:
             # 对一条轨迹按点拆分成序列
-            # s = [x for x in s]
+            s = [int(x) for x in s]
             self.srcdata.append(np.array(s, dtype=np.int32))
             num_line += 1
             if max_num_line > 0 and num_line >= max_num_line:
                 break
         self.size = len(self.srcdata)
-        self.shuffle = np.random.permutation(np.arange(self.size))
-        self.shuffle_invp = np.random.permutation(np.arange(self.size))
-        for idx, to in enumerate(self.shuffle):
-            self.shuffle_invp[to] = idx
-        self.srcdata = np.array(self.srcdata)[self.shuffle]
+        # self.shuffle = np.random.permutation(np.arange(self.size))
+        # self.shuffle_invp = np.random.permutation(np.arange(self.size))
+        # for idx, to in enumerate(self.shuffle):
+        #     self.shuffle_invp[to] = idx
+        # self.srcdata = np.array(self.srcdata)[self.shuffle]
         self.start = 0
 
     def getbatch_scaner(self, need_neghbor=False):
@@ -423,13 +423,13 @@ class MyDataOrderScaner():
             return None, None, None, None
         # 每次获取batch个数据
         src = self.srcdata[self.start:self.start + self.batch]
-        if need_neghbor:
-            index = self.data_neighbors_before_shuffle[self.shuffle[self.start:self.start + self.batch]]
-            index.astype('int64')
-            neighbor = self.srcdata[self.shuffle_invp[index]]
-            neighbor = neighbor.reshape(neighbor.shape[0] * neighbor.shape[1], -1).squeeze()
-            self.start += self.batch
-            return pad_arrays_keep_invp(src, []), pad_arrays_keep_invp(neighbor, [])
+        # if need_neghbor:
+        #     index = self.data_neighbors_before_shuffle[self.shuffle[self.start:self.start + self.batch]]
+        #     index.astype('int64')
+        #     neighbor = self.srcdata[self.shuffle_invp[index]]
+        #     neighbor = neighbor.reshape(neighbor.shape[0] * neighbor.shape[1], -1).squeeze()
+        #     self.start += self.batch
+        #     return pad_arrays_keep_invp(src, []), pad_arrays_keep_invp(neighbor, [])
         ## update `start` for next batch
         self.start += self.batch
 

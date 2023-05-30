@@ -307,6 +307,7 @@ def trj_num_by_hour(month, start_day, end_day):
 
 def get_trj_ids_by_force_node(force_nodes, part_cluster_point_dict, total_od_points):
     trj_ids = []
+    node_names = []
     for node in force_nodes:
         src_cid, tgt_cid = list(map(int, node['name'].split('_')))
         src_points, tgt_points = part_cluster_point_dict[src_cid], part_cluster_point_dict[tgt_cid]
@@ -316,17 +317,21 @@ def get_trj_ids_by_force_node(force_nodes, part_cluster_point_dict, total_od_poi
                 d = total_od_points[tgt_pid]
                 if o[5] == d[5] and o[3] == d[3] and o[4] == d[4] - 1:
                     trj_ids.append(int(d[3]))
-    return trj_ids
+                    node_names.append(node['name'])
+                    break   # 粗略的初版实现：只在一个OD对中取一条轨迹。后续改成，一个OD对中多条轨迹都加入，然后特征取平均
+    return trj_ids, node_names
 
 
 def get_trips_by_ids(trj_ids, month, start_day, end_day):
     total_trips = get_trj_num_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['trips']
     # print('total_trips', total_trips[0])
-    tid_trip_dict = {}
+    # tid_trip_dict = {}
+    gps_trips = []
     for tid in trj_ids:
-        tid_trip_dict[tid] = total_trips[tid][2:]
+        gps_trips.append(total_trips[tid][2:])
+        # tid_trip_dict[tid] = total_trips[tid][2:]
 
-    return tid_trip_dict
+    return gps_trips  # tid_trip_dict
 
 
 if __name__ == '__main__':

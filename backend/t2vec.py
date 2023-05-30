@@ -72,7 +72,7 @@ parser.add_argument("-print_freq", type=int, default=40,
 parser.add_argument("-save_freq", type=int, default=40,
     help="Save frequency")
 
-parser.add_argument("-cuda", type=bool, default=True,
+parser.add_argument("-cuda", type=bool, default=True, #
     help="True if we use GPU to train the model")
 
 parser.add_argument("-criterion_name", default="KLDIV",
@@ -151,7 +151,7 @@ for dirpath,dirnames,filenames in os.walk(args.data):
         if (file_type == "h5"):
             args.knearestvocabs = os.path.join(dirpath, file)  # 文件全名
             break
-args.expId = 1
+args.expId = 4
 s = str.split(args.checkpoint, '.')
 args.checkpoint = s[0] + '_' + str(args.expId) + "." + s[1]
 s = str.split(args.best_model, '.')
@@ -167,14 +167,14 @@ args.device = args.devices[(args.expId - 1) % 8]
 # args.device = 0
 
 args.save = True
-args.mode = 5
-args.criterion_name = 'NLL'  #"KLDIV_cluster"
-args.vocab_size = 8032
-args.clusterNum = 80
-args.hasLabel = True
+args.mode = 9
+args.criterion_name = 'KLDIV'  #"KLDIV_cluster"
+args.vocab_size = 247415#17430#44
+args.clusterNum = 110#16#80
+args.hasLabel = False
 args.embedding_size = 512 # 嵌入层输出 128
 args.hidden_size = 256 # featur维度 64.
-args.batch = 128 # 32可
+args.batch = 16#128 # 32可
 args.t2vec_batch = 128 # 32
 args.save_freq = 40
 args.dropout = 0.1 # 0.3

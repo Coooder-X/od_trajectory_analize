@@ -149,7 +149,8 @@ class Encoder(nn.Module):
         # 嵌入层，转成256维的向量
         # batch个轨迹，对轨迹上的点都映射为256维的向量
         embed = self.embedding(input) #传入batch个句子，每个句子共50个单词，如（50，128）。embed(50,batch,256)每个单词用256向量表示
-        lengths = lengths.data.view(-1).tolist()
+        lengths = lengths.data.view(-1)
+        lengths = lengths.tolist()
         if lengths is not None:
             # todo：了解方法：压紧数据，处理经过填充(padded)
             embed = pack_padded_sequence(embed, lengths)

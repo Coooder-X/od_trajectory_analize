@@ -10,8 +10,9 @@ import _thread
 import utils
 import os
 
-from model.t2vec import args
-from t2vec_graph import get_feature_and_trips
+# from model.t2vec import args
+from t2vec import args
+from t2vec_graph import get_feature_and_trips, run_model2, get_cluster_by_trj_feature
 from poi_process.new_read_poi import get_poi_type_filter_by_radius, config_dict, getPOI_Coor, buildKDTree, meters2lonlat_list, lonlat2meters_poi
 from data_process.od_pair_process import get_odpair_space_similarity, get_trj_ids_by_force_node, get_trips_by_ids
 from graph_cluster_test.sa_cluster import update_graph_with_attr, get_cluster
@@ -419,17 +420,28 @@ def get_line_graph():
     #     print('单独点聚合后-边数', len(force_edges))
 
     #+++++++++++++++ 轨迹获取和特征 ++++++++++++++
-    trj_idxs = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
-    tid_trip_dict = get_trips_by_ids(trj_idxs, month, start_day, end_day)
-    gps_trips = list(tid_trip_dict.values())
-    feature, cell_trips = get_feature_and_trips(args, gps_trips)
+    # node_label_dict = None
+    trj_idxs, node_names = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
+    print('按轨迹顺序排列的节点名的映射', node_names)
+    # tid_trip_dict = get_trips_by_ids(trj_idxs, month, start_day, end_day)
+    gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
+    # gps_trips = list(tid_trip_dict.values())
+    feature = run_model2(args, gps_trips)
+    labels = get_cluster_by_trj_feature(args, feature)
+    print('labels', labels)
+    print('labels 数量', len(labels))
+    print('labels 全部类别数量', len(list(set(labels))))
+    print('labels 全部标签类别', list(set(labels)))
+    node_label_dict = {}
+    for i in range(len(labels)):
+        node_label_dict[node_names[i]] = labels[i]
     # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
 
     # ============== 社区发现代码 ===============
     # 为 line graph 添加属性，目前属性是随意值 TODO：属性改成轨迹特征聚类后的簇id，聚合成的一个整数　value
-    lg = update_graph_with_attr(lg)
+    lg = update_graph_with_attr(lg, node_label_dict)
     # 对线图进行图聚类，得到社区发现
-    point_cluster_dict, cluster_point_dict = get_cluster(lg, 8)
+    point_cluster_dict, cluster_point_dict = get_cluster(lg, 7)
     print('社区发现结果：')
     print('point_cluster_dict', point_cluster_dict)
     print('cluster_point_dict', cluster_point_dict)
