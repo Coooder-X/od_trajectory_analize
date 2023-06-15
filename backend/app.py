@@ -1,5 +1,6 @@
 import json
 import pickle
+import random
 from datetime import datetime
 
 import numpy as np
@@ -20,6 +21,9 @@ from data_process.OD_area_graph import build_od_graph, get_line_graph_by_selecte
     fuse_fake_edge_into_linegraph  #, aggregate_single_points
 from data_process import od_pair_process
 from data_process.DT_graph_clustering import delaunay_clustering, cluster_filter_by_hour, draw_DT_clusters
+import os.path
+import scipy.io as sio
+import scipy.sparse as sp
 
 app = Flask(__name__)
 CORS(app, resources=r'/*')
@@ -469,6 +473,52 @@ def get_poi_info_by_point():
     poi_type_dict = get_poi_type_filter_by_radius(point_in_cluster, poi_id_file_id_dict, config_dict, kdtree, radius)
     return json.dumps({
         'poi_type_dict': poi_type_dict,
+    })
+
+
+@app.route('/getGccDataVis', methods=['get'])
+def get_gcc_data_vis():
+    dataset = ['cora', 'citeseer', 'pubmed', 'wiki']
+    data = sio.loadmat(os.path.join('/home/linzhengxuan/project/od_trajectory_analize/backend/datasetVis/', f'{dataset[2]}.mat'))
+    print(data.keys())
+    adj = data['W']
+    adj = adj.astype(float)
+    if not sp.issparse(adj):
+        adj = sp.csc_matrix(adj)
+
+    force_nodes = []
+    force_edges = []
+    st = set()
+    row, col = adj.nonzero()
+    id_lst = []
+    for i in range(len(row)):
+        if random.random() < 0.05:
+            id_lst.append(i)
+            force_edges.append({'source': int(row[i]), 'target': int(col[i])})
+            st.add(int(row[i]))
+            st.add(int(col[i]))
+    for i in range(len(row)):
+        if i in st:
+            force_nodes.append({'name': i})
+
+    print(f'node num: {len(force_nodes)}', f'edge num: {len(force_edges)}')
+
+    G = []
+    if os.path.exists('/home/linzhengxuan/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl'):
+        print('exists trained G')
+        with open("/home/linzhengxuan/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl", 'rb') as f:
+            obj = pickle.loads(f.read())
+            G = obj['G']
+            G = G.numpy().tolist()
+
+    # force_nodes = [{'name': 'A'}, {'name': 'B'}, {'name': 'C'}]
+    # force_edges = [{'source': 'A', 'target': 'C'}, {'source': 'A', 'target': 'B'}]
+
+    return json.dumps({
+        'force_nodes': force_nodes,
+        'force_edges': force_edges,
+        'id_lst': id_lst,
+        'G': G,
     })
 
 
