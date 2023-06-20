@@ -108,10 +108,10 @@ export function useBrush({
     
     selectedClusterIdxs.value.forEach((clusterIdx: number) => {
       //  根据【框框内的所有簇 id】，得到框框外与其有邻接关系的簇 id
-      // const relatedClusterIds = new Set([...(inAdjTable.get(clusterIdx) || []), ...(outAdjTable.get(clusterIdx) || [])]);
-      // for(const relaCid of relatedClusterIds) {
-      //   selectedClusterIdxSet.add(relaCid)
-      // }
+      const relatedClusterIds = new Set([...(inAdjTable.get(clusterIdx) || []), ...(outAdjTable.get(clusterIdx) || [])]);
+      for(const relaCid of relatedClusterIds) {
+        selectedClusterIdxSet.add(relaCid)
+      }
     });
     //  更新 已选的所有 簇id 数组
     selectedClusterIdxs.value = [...selectedClusterIdxSet]

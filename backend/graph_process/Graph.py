@@ -1,5 +1,6 @@
-import networkx as nx  #导入networkx包
+import networkx as nx  # 导入networkx包
 import matplotlib.pyplot as plt
+import numpy as np
 
 from graph_process.Point import Point
 
@@ -125,6 +126,49 @@ class Graph:
         plt.xticks([])
         plt.yticks([])
         plt.show()
+
+
+def get_degree_by_node_name(G, name):
+    """
+    根据节点名称，查找 G 中该节点的度数。
+    传入的 name 的形式是 {}_{}，而 G 中节点名称形式是 {}-{}，需要转换
+    """
+    src, tgt = name.split('_')
+    for node in G.nodes:
+        name1 = f'{src}-{tgt}'
+        name2 = f'{tgt}-{src}'
+        if G.nodes[node]['name'] == name1 or G.nodes[node]['name'] == name2:
+            return G.degree(node)
+    print('没找到节点')
+    return 0
+
+def get_adj_matrix(G):
+    """
+    得到的邻接矩阵的节点顺序，就是 G.nodes() 中节点的顺序，因此可以和下方 get_feature_list() 函数得到的 features 数组顺序对应
+    """
+    # mat = nx.adjacency_matrix(self.G)
+    # A = np.array(nx.adjacency_matrix(G).todense())
+    # print(mat)
+    adj_mat = nx.to_scipy_sparse_array(G, format='csc')
+    return adj_mat
+
+
+def get_feature_list(G, node_feature_dict):
+    """
+    根据字典的键，即节点名称，整理出 G.nodes() 顺序的 节点特征数组
+    字典的键 的形式是 {}_{}，而 G 中节点名称形式是 {}-{}，需要转换
+    """
+    features = []
+    for node in G.nodes:
+        name = G.nodes[node]['name']
+        src, tgt = name.split('-')
+        name = f'{src}_{tgt}'
+        if name not in node_feature_dict:
+            name = f'{tgt}_{src}'
+        feat = np.array(node_feature_dict[name])
+        features.append(feat)
+    features = np.array(features)
+    return features
 
 
 def main():

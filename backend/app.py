@@ -11,6 +11,8 @@ import _thread
 import utils
 import os
 
+from graph_process.Graph import get_adj_matrix, get_feature_list, get_degree_by_node_name
+from gcc.graph_convolutional_clustering.gcc.run import run, draw_cluster_in_trj_view
 # from model.t2vec import args
 from t2vec import args
 from t2vec_graph import get_feature_and_trips, run_model2, get_cluster_by_trj_feature
@@ -18,7 +20,7 @@ from poi_process.new_read_poi import get_poi_type_filter_by_radius, config_dict,
 from data_process.od_pair_process import get_odpair_space_similarity, get_trj_ids_by_force_node, get_trips_by_ids
 from graph_cluster_test.sa_cluster import update_graph_with_attr, get_cluster
 from data_process.OD_area_graph import build_od_graph, get_line_graph_by_selected_cluster, get_cluster_center_coord, \
-    fuse_fake_edge_into_linegraph  #, aggregate_single_points
+    fuse_fake_edge_into_linegraph  # , aggregate_single_points
 from data_process import od_pair_process
 from data_process.DT_graph_clustering import delaunay_clustering, cluster_filter_by_hour, draw_DT_clusters
 import os.path
@@ -27,7 +29,6 @@ import scipy.sparse as sp
 
 app = Flask(__name__)
 CORS(app, resources=r'/*')
-
 
 #  python -m flask run
 
@@ -144,6 +145,7 @@ def get_total_trj_num_by_Month():
                 res.append(int(i))
     return json.dumps(res)
 
+
 @app.route('/getTrjNumByHour', methods=['get'])
 def get_trj_num_by_hour():
     month = request.args.get('month', 5, type=int)
@@ -193,9 +195,9 @@ def get_trips_by_id():
     data = request.get_json(silent=True)
     month = int(data['month'])
     start_day, end_day, start_hour, end_hour = [int(data['startDay']),
-                                               int(data['endDay']),
-                                               int(data['startHour']),
-                                               int(data['endHour'])]
+                                                int(data['endDay']),
+                                                int(data['startHour']),
+                                                int(data['endHour'])]
     trj_ids = data['trjIdList']
     print(start_day, end_day, start_hour, end_hour, trj_ids)
     total_trips = od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips']
@@ -269,6 +271,7 @@ def calTwoPointSpeed(p0, p1):
     xd, yd = utils.lonlat2meters(p1[0], p1[1])
     time = p1[2] - p0[2]
     return utils.cal_meter_dist((xo, yo), (xd, yd)) * 3.6 / time
+
 
 @app.route('/getClusteringResult', methods=['get', 'post'])
 def get_cluster_result():
@@ -423,9 +426,20 @@ def get_line_graph():
     #     force_edges = aggregate_single_points(force_nodes, force_edges, filtered_adj_dict)
     #     print('单独点聚合后-边数', len(force_edges))
 
-    #+++++++++++++++ 轨迹获取和特征 ++++++++++++++
+    # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
     # node_label_dict = None
     trj_idxs, node_names = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
+    # ----------- 简单聚合，每个OD对取一个轨迹的特征---------
+    tmp_trj_idx = []
+    tmp_node_names = []
+    name_set = {}
+    for i in range(len(node_names)):
+        if node_names[i] not in name_set:
+            tmp_trj_idx.append(trj_idxs[i])
+            tmp_node_names.append(node_names[i])
+            name_set[node_names[i]] = 1
+    # -------------------------------------------------
+    trj_idxs, node_names = tmp_trj_idx, tmp_node_names
     print('按轨迹顺序排列的节点名的映射', node_names)
     # tid_trip_dict = get_trips_by_ids(trj_idxs, month, start_day, end_day)
     gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
@@ -437,20 +451,47 @@ def get_line_graph():
     print('labels 全部类别数量', len(list(set(labels))))
     print('labels 全部标签类别', list(set(labels)))
     node_label_dict = {}
+    node_feature_dict = {}
     for i in range(len(labels)):
         node_label_dict[node_names[i]] = labels[i]
+    # 节点名称（${cid1}_${cid2}）和对应OD对特征的映射关系
+    for i in range(len(feature)):
+        node_feature_dict[node_names[i]] = feature[i]
+    print(f'轨迹id数{len(trj_idxs)}  轨迹数： {len(gps_trips)}  特征数: {len(feature)}  字典大小：{len(node_feature_dict.keys())} {len(node_names)}')
     # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
 
-    # ============== 社区发现代码 ===============
-    # 为 line graph 添加属性，目前属性是随意值 TODO：属性改成轨迹特征聚类后的簇id，聚合成的一个整数　value
-    lg = update_graph_with_attr(lg, node_label_dict)
-    # 对线图进行图聚类，得到社区发现
-    point_cluster_dict, cluster_point_dict = get_cluster(lg, 7)
-    print('社区发现结果：')
-    print('point_cluster_dict', point_cluster_dict)
-    print('cluster_point_dict', cluster_point_dict)
-    #  将带属性的线图 networkx 对象存在全局缓存中
-    cache.set('line_graph', lg, timeout=0)
+    # ============== GCC 社区发现代码 ===============
+    adj_mat = get_adj_matrix(lg)  # 根据线图得到 csc稀疏矩阵类型的邻接矩阵
+    features = get_feature_list(lg, node_feature_dict)  # 根据线图节点顺序，整理一个节点向量数组
+    print(f'线图节点个数：{len(lg.nodes())}, 向量个数：{len(features)}')
+    print('向量长度', len(features[0]))
+    trj_labels = run(adj_mat, features)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
+    trj_labels = trj_labels.numpy().tolist()
+    print(list(trj_labels))
+    cluster_point_dict = {}
+    for i in range(len(trj_labels)):
+        label = trj_labels[i]
+        if label not in cluster_point_dict:
+            cluster_point_dict[label] = []
+        # 在线图中度为 0 的散点，视为噪声，从社区中排除
+        if get_degree_by_node_name(lg, node_names[i]) > 0:
+            cluster_point_dict[label].append(node_names[i])
+    print('实际社区个数: ', len(cluster_point_dict.keys()))
+
+    draw_cluster_in_trj_view(trj_labels, gps_trips)
+
+    # ============== GCC 社区发现代码 ===============
+
+    # ============== SA-Cluster 社区发现代码 ===============
+    # # 为 line graph 添加属性，目前属性是随意值 TODO：属性改成轨迹特征聚类后的簇id，聚合成的一个整数　value
+    # lg = update_graph_with_attr(lg, node_label_dict)
+    # # 对线图进行图聚类，得到社区发现
+    # point_cluster_dict, cluster_point_dict = get_cluster(lg, 7)
+    # print('社区发现结果：')
+    # print('point_cluster_dict', point_cluster_dict)
+    # print('cluster_point_dict', cluster_point_dict)
+    # #  将带属性的线图 networkx 对象存在全局缓存中
+    # cache.set('line_graph', lg, timeout=0)
     # ============== 社区发现代码 ===============
 
     return json.dumps({

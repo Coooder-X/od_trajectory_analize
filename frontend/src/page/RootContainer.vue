@@ -3,7 +3,7 @@
     <div class="main">
       <global-view class="global-view"></global-view>
       <map-view class="map-view"></map-view>
-      <force-view4vis></force-view4vis>
+      <force-view></force-view>
       <trajectory-view></trajectory-view>
       <feature-view></feature-view>
       <result-view></result-view>
@@ -15,8 +15,8 @@
 import { defineComponent } from 'vue';
 import MapView from '@/components/views/MapView.vue';
 import GlobalView from '@/components/views/GlobalView.vue'
-// import ForceView from '@/components/views/ForceView.vue';
-import ForceView4vis from '@/components/views/ForceView4vis.vue';
+import ForceView from '@/components/views/ForceView.vue';
+// import ForceView4vis from '@/components/views/ForceView4vis.vue';
 import TrajectoryView from '@/components/views/TrajectoryView.vue';
 import FeatureView from '@/components/views/FeatureView.vue';
 import ResultView from '@/components/views/ResultView.vue';
@@ -26,8 +26,8 @@ export default defineComponent({
   components: {
     MapView,
     GlobalView,
-    // ForceView,
-    ForceView4vis,
+    ForceView,
+    // ForceView4vis,
     TrajectoryView,
     FeatureView,
     ResultView,
