@@ -247,8 +247,8 @@ export default defineComponent({
 
     const drawGraph = (edges: any, nodes: any) => {
       const [startDay, endDay] = [dateScope.value[0]+1, dateScope.value[1]+1];
-      const nodeColorMap = calNodeColor(nodes, partClusterPointMap.value, clusterPointMap.value, odPoints.value, startDay, endDay);
-      nodes = calLenColor(nodes, cidCenterMap.value, map.value);
+      // const nodeColorMap = calNodeColor(nodes, partClusterPointMap.value, clusterPointMap.value, odPoints.value, startDay, endDay);
+      // nodes = calLenColor(nodes, cidCenterMap.value, map.value);
       if (!withSpaceDist.value)
         edges = edges.filter((edge: any) => !edge.isFake);
       // else
@@ -391,7 +391,7 @@ export default defineComponent({
         })
         .attr("fill", function (d: any, i: number) {
           // return colorScale(i);
-          return nodeColorMap.get(d.name);
+          // return nodeColorMap.get(d.name);
         })
         .attr("stroke-width", 0.8)
         .attr('stroke', 'black')

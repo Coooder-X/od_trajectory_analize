@@ -145,7 +145,7 @@ const color = ['red', 'green', 'blue']
         //  获取凸包，社区检测的结果
         let paths: any = null;
         if (communityGroup.value) {
-          paths = getHullPaths(communityGroup.value, groupSvg.value);
+          // paths = getHullPaths(communityGroup.value, groupSvg.value);
         }
   
         //绘制边
@@ -217,7 +217,7 @@ const color = ['red', 'green', 'blue']
             });
   
           // 绘制凸包，距离结果
-          updateGroups(communityGroup.value, paths, svgCircles.value);
+          // updateGroups(communityGroup.value, paths, svgCircles.value);
   
           gs.attr("transform", function (d: any) {
             return "translate(" + d.x + "," + d.y + ")";

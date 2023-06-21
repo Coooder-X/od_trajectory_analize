@@ -67,10 +67,20 @@ export function getHullPaths(communityGroup: Map<number, string[]>, svgGroup: an
     .attr("stroke", (d: any) => {
       return colors[d];
     })
+    .attr('stroke-width', 2)
+    .attr ('pointer-events', 'visibleStroke')
+    .on('mouseover', function() {
+      d3.select(this).attr("stroke-width", 3)
+        .style('cursor', 'pointer');
+    })
+    .on('mouseout', function() {
+      d3.select(this).attr("stroke-width", 2)
+        .style('cursor', 'default');
+    })
+    .attr("opacity", 1)
     .attr("fill", (d: any) => {
       return colors[d];
-    })
-    .attr("opacity", 1);
+    });
 
   return paths;
 }

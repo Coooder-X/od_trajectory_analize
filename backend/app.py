@@ -11,7 +11,7 @@ import _thread
 import utils
 import os
 
-from graph_process.Graph import get_adj_matrix, get_feature_list, get_degree_by_node_name
+from graph_process.Graph import get_adj_matrix, get_feature_list, get_degree_by_node_name, get_dag_from_community
 from gcc.graph_convolutional_clustering.gcc.run import run, draw_cluster_in_trj_view
 # from model.t2vec import args
 from t2vec import args
@@ -477,6 +477,7 @@ def get_line_graph():
         if get_degree_by_node_name(lg, node_names[i]) > 0:
             cluster_point_dict[label].append(node_names[i])
     print('实际社区个数: ', len(cluster_point_dict.keys()))
+    dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
 
     draw_cluster_in_trj_view(trj_labels, gps_trips)
 
@@ -495,8 +496,8 @@ def get_line_graph():
     # ============== 社区发现代码 ===============
 
     return json.dumps({
-        'force_nodes': force_nodes,
-        'force_edges': force_edges,
+        'force_nodes': dag_force_nodes,
+        'force_edges': dag_force_edges,
         'filtered_adj_dict': filtered_adj_dict,
         'cid_center_coord_dict': cid_center_coord_dict,
         'community_group': cluster_point_dict,

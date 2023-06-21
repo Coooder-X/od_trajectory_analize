@@ -171,6 +171,32 @@ def get_feature_list(G, node_feature_dict):
     return features
 
 
+def get_dag_from_community(cluster_point_dict: dict, lg_force_edge: list):
+    # 逻辑有误！！！
+    dag_force_node = []
+    dag_force_edge = []
+    dag_node_names = list(cluster_point_dict.keys())
+    edge_set = set([edge['name'] for edge in lg_force_edge])
+    print('edge_set', edge_set)
+
+    for cid in dag_node_names:
+        dag_force_node.append({'name': f'{cid}'})
+    for i in range(len(dag_node_names)):
+        cid1 = dag_node_names[i]
+        for j in range(i+1, len(dag_node_names)):
+            cid2 = dag_node_names[j]
+            edge_name1 = f'{cid1}_{cid2}'
+            edge_name2 = f'{cid2}_{cid1}'
+            if edge_name1 in edge_set:
+                dag_force_edge.append({'source': cid1, 'target': cid2})
+            if edge_name2 in edge_set:
+                dag_force_edge.append({'source': cid2, 'target': cid1})
+
+    print('dag_force_edge', dag_force_edge)
+    print('dag_force_node', dag_force_node)
+    return dag_force_node, dag_force_edge
+
+
 def main():
     lst = [Point('1', 1, 1, {}), Point('2', 2, 2, {}), Point('3', 3, 3, {}),
            Point('4', 4, 4, {}), Point('5', 5, 5, {})]
