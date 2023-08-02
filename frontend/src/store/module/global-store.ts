@@ -1,5 +1,6 @@
 import { ForceLink, ForceNode, GlobalState } from '@/global-interface';
 import axios from 'axios';
+import { number } from 'echarts';
 import { ActionContext } from 'vuex';
 
 const initState: GlobalState = {
@@ -18,6 +19,12 @@ const initState: GlobalState = {
   filteredOutAdjTable: new Map(), //  刷选过滤后的 出边邻接表
   forceTreeLinks: [],
   forceTreeNodes: [],
+  tsneResult: [],
+  featureLabels: [],
+  relatedNodeNames: [],
+  trjIdxs: [],
+  trjDetails: [],
+  trjSpeed: [],
   selectedODIdxs: [],
   selectedClusterIdxs: [],
   cidCenterMap: new Map(),
@@ -115,6 +122,7 @@ const globalModule = {
           state.communityGroup.set(k, payload[k]);
         }
       });
+      console.log('setCommunityGroup', state.communityGroup)
     },
     setWithSpaceDist(state: GlobalState, payload: Boolean) {
       state.withSpaceDist = payload;
@@ -124,6 +132,25 @@ const globalModule = {
     },
     setMonth(state: GlobalState, payload: number) {
       state.month = payload;
+    },
+    setTsneResult(state: GlobalState, payload: Array<[number, number]>) {
+      state.tsneResult = payload;
+    },
+    setFeatureLabels(state: GlobalState, payload: Array<number>) {
+      state.featureLabels = payload;
+    },
+    setRelatedNodeNames(state: GlobalState, payload: Array<string>) {
+      state.relatedNodeNames = payload;
+    },
+    setTrjDetails(state: GlobalState, payload: Array<any>) {
+      state.trjDetails = payload;
+    },
+    setTrjSpeed(state: GlobalState, payload: Array<any>) {
+      state.trjSpeed = payload;
+      console.log('store', state.trjSpeed)
+    },
+    setTrjIdxs(state: GlobalState, payload: Array<number>) {
+      state.trjIdxs = payload;
     },
   },
   actions: {
@@ -188,8 +215,18 @@ const globalModule = {
         context.commit('setFilteredOutAdjTable', res.data['filtered_adj_dict']);
         context.commit('setCidCenterMap', res.data['cid_center_coord_dict']);
         context.commit('setCommunityGroup', res.data['community_group']);
+        context.commit('setTsneResult', res.data['tsne_points']);
+        context.commit('setFeatureLabels', res.data['trj_labels']);
+        context.commit('setRelatedNodeNames', res.data['related_node_names']);
+        context.commit('setTrjIdxs', res.data['tmp_trj_idxs']);
       });
     },
+    getTrjDetailByNodeName(context: ActionContext<{}, {}>, params: any) {
+      axios.post('/api/getTrjDetail', params).then((res) => {
+        context.commit('setTrjDetails', res.data['trj_detail']);
+        context.commit('setTrjSpeed', res.data['trj_speed']);
+      });
+    }
     // getCidCenterMap(context: ActionContext<{}, {}>, params: any) {
     //   console.log('getCidCenterMap')
     //   axios({
@@ -269,6 +306,24 @@ const globalModule = {
     },
     month: (state: GlobalState) => {
       return state.month;
+    },
+    tsneResult: (state: GlobalState) => {
+      return state.tsneResult;
+    },
+    featureLabels: (state: GlobalState) => {
+      return state.featureLabels;
+    },
+    relatedNodeNames: (state: GlobalState) => {
+      return state.relatedNodeNames;
+    },
+    trjDetails: (state: GlobalState) => {
+      return state.trjDetails;
+    },
+    trjSpeed: (state: GlobalState) => {
+      return state.trjSpeed;
+    },
+    trjIdxs: (state: GlobalState) => {
+      return state.trjIdxs;
     },
   },
   modules: {},

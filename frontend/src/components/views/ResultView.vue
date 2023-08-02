@@ -33,9 +33,9 @@ export default defineComponent({
 <style scoped>
 .result-view {
   position: relative;
-  width: 400px;
+  width: 200px;
   height: 380px;
-  left: calc(710px + 450px);
+  left: calc(710px + 650px);
   top: calc(-200px - 500px - 10px - 380px - 380px);
   background-color: white;
 }

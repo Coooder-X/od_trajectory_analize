@@ -13,6 +13,7 @@
     "core-js": "^3.8.3",
     "d3": "^7.8.2",
     "echarts": "^5.4.2",
+    "echarts-stat": "^1.2.0",
     "element-plus": "^2.2.32",
     "mapbox-gl": "^2.13.0",
     "vue": "^3.2.13",

@@ -9,3 +9,5 @@ declare module '*.vue' {
 declare module 'mapbox-gl'
 declare module 'd3'
 declare module '@/types/vuex'
+// declare module 'echarts-stat'
+declare module 'd3-scale-chromatic'

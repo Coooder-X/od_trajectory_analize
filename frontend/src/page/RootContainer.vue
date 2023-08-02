@@ -6,7 +6,7 @@
       <force-view></force-view>
       <trajectory-view></trajectory-view>
       <feature-view></feature-view>
-      <result-view></result-view>
+      <!-- <result-view></result-view> -->
     </div>
   </div>
 </template>
@@ -46,6 +46,7 @@ export default defineComponent({
   position: absolute;
   height: 900px;
   width: 1850px;
+  top: 0px;
 }
 
 .global-view {

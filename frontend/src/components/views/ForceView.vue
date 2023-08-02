@@ -81,6 +81,7 @@ export default defineComponent({
     const withSpaceDist = computed(() => getters.withSpaceDist);  //  线图是否考虑空间距离
     const colorTable = computed(() => getters.colorTable);
     const dateScope = computed(() => getters.dateScope);
+    const month = computed(() => getters.month);
 
     watch([withSpaceDist, forceTreeLinks, forceTreeNodes], () => {
       if(forceTreeNodes && forceTreeLinks) {
@@ -193,10 +194,30 @@ export default defineComponent({
           heatMapData.value.srcCid = sourceCid;
           heatMapData.value.tgtCid = targetCid;
           forceNodeSvg.value = d3.select(self.node().parentNode);
+          //  调接口，展示轨迹详情视图
+          const [startHour, endHour] = getters.timeScope;
+          const [startDay, endDay] = [dateScope.value[0]+1, dateScope.value[1]+1];
+          const clusterPointObj: {[key: number]: number[]} = {}
+          //  获取 linegraph 时，只考虑当前小时段内的数据，因此用 part
+          partClusterPointMap.value.forEach(function(value: number[], key: number) {
+            clusterPointObj[key] = value;
+          });
+          store.dispatch('getTrjDetailByNodeName', {
+            'nodeName': name,
+            'month': month.value,
+            'startDay': startDay,
+            'endDay': endDay,
+            'startHour': startHour,
+            'endHour': endHour,
+            'cluster_point_dict': clusterPointObj,
+            'force_nodes': forceTreeNodes.value,
+          });
         } else {
           odCircles.attr('r', 4);
           forceNodeSvg.value = null;
           poiPanelData.value.poiPanelVisible = false;
+          //  关闭轨迹详情视图
+
         }
         if (isOpen && heatMapData.value.heatMapVisible) {
           heatMapData.value.heatMapVisible = false;
@@ -247,8 +268,8 @@ export default defineComponent({
 
     const drawGraph = (edges: any, nodes: any) => {
       const [startDay, endDay] = [dateScope.value[0]+1, dateScope.value[1]+1];
-      // const nodeColorMap = calNodeColor(nodes, partClusterPointMap.value, clusterPointMap.value, odPoints.value, startDay, endDay);
-      // nodes = calLenColor(nodes, cidCenterMap.value, map.value);
+      const nodeColorMap = calNodeColor(nodes, partClusterPointMap.value, clusterPointMap.value, odPoints.value, startDay, endDay);
+      nodes = calLenColor(nodes, cidCenterMap.value, map.value);
       if (!withSpaceDist.value)
         edges = edges.filter((edge: any) => !edge.isFake);
       // else
@@ -391,7 +412,7 @@ export default defineComponent({
         })
         .attr("fill", function (d: any, i: number) {
           // return colorScale(i);
-          // return nodeColorMap.get(d.name);
+          return nodeColorMap.get(d.name);
         })
         .attr("stroke-width", 0.8)
         .attr('stroke', 'black')
