@@ -7,6 +7,7 @@ import numpy as np
 from flask import Flask, request
 from flask_caching import Cache
 from flask_cors import CORS
+# from flask_script import Manager
 import _thread
 import utils
 import os
@@ -16,8 +17,10 @@ from gcc.graph_convolutional_clustering.gcc.run import run, draw_cluster_in_trj_
 # from model.t2vec import args
 from t2vec import args
 from t2vec_graph import get_feature_and_trips, run_model2, get_cluster_by_trj_feature
-from poi_process.new_read_poi import get_poi_type_filter_by_radius, config_dict, getPOI_Coor, buildKDTree, meters2lonlat_list, lonlat2meters_poi
-from data_process.od_pair_process import get_odpair_space_similarity, get_trj_ids_by_force_node, get_trips_by_ids
+from poi_process.new_read_poi import get_poi_type_filter_by_radius, config_dict, getPOI_Coor, buildKDTree, \
+    meters2lonlat_list, lonlat2meters_poi, get_poi_info_lst_by_points
+from data_process.od_pair_process import get_odpair_space_similarity, get_trj_ids_by_force_node, get_trips_by_ids, \
+    get_trip_detail_by_id
 from graph_cluster_test.sa_cluster import update_graph_with_attr, get_cluster
 from data_process.OD_area_graph import build_od_graph, get_line_graph_by_selected_cluster, get_cluster_center_coord, \
     fuse_fake_edge_into_linegraph  # , aggregate_single_points
@@ -28,6 +31,7 @@ import scipy.io as sio
 import scipy.sparse as sp
 
 app = Flask(__name__)
+# manager = Manager(app)
 CORS(app, resources=r'/*')
 
 #  python -m flask run
@@ -39,20 +43,21 @@ cache = Cache(app)
 
 
 @app.route('/')
+@cache.cached(timeout=0)
 def hello_world():  # put application's code here
-    start_time = datetime.now()
-    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
-        obj = pickle.loads(f.read())
-        total_poi_coor = obj['total_poi_coor']
-        file_id_poi_id_dict = obj['file_id_poi_id_dict']
-        poi_id_file_id_dict = obj['poi_id_file_id_dict']
-        kdtree = obj['kdtree']
-        cache.set('file_id_poi_id_dict', file_id_poi_id_dict)
-        cache.set('poi_id_file_id_dict', poi_id_file_id_dict)
-        cache.set('total_poi_coor', total_poi_coor)
-        cache.set('kdtree', kdtree)
-        print('total_poi_coor', kdtree)
-        print('读取POI文件结束，用时: ', (datetime.now() - start_time))
+    # start_time = datetime.now()
+    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    #     obj = pickle.loads(f.read())
+    #     total_poi_coor = obj['total_poi_coor']
+    #     file_id_poi_id_dict = obj['file_id_poi_id_dict']
+    #     poi_id_file_id_dict = obj['poi_id_file_id_dict']
+    #     kdtree = obj['kdtree']
+    #     cache.set('file_id_poi_id_dict', file_id_poi_id_dict)
+    #     cache.set('poi_id_file_id_dict', poi_id_file_id_dict)
+    #     cache.set('total_poi_coor', total_poi_coor)
+    #     cache.set('kdtree', kdtree)
+    #     print('total_poi_coor', kdtree)
+    #     print('读取POI文件结束，用时: ', (datetime.now() - start_time))
     # start_time = datetime.now()
     # total_poi_coor, file_id_poi_id_dict, poi_id_file_id_dict = getPOI_Coor(config_dict['poi_dir'])
     # total_poi_coor = lonlat2meters_poi(total_poi_coor)
@@ -274,6 +279,7 @@ def calTwoPointSpeed(p0, p1):
 
 
 @app.route('/getClusteringResult', methods=['get', 'post'])
+@cache.cached(timeout=0)
 def get_cluster_result():
     month = int(request.args['month'])
     k, theta = int(request.args['k']), int(request.args['theta'])
@@ -359,6 +365,7 @@ def get_cluster_result():
 #     })
 
 @app.route('/getClusterCenter', methods=['post'])
+@cache.cached(timeout=0)
 def get_cluster_center_coords():
     print('获取簇中心坐标：get_cluster_center_coords')
     data = request.get_json(silent=True)
@@ -374,6 +381,80 @@ def get_cluster_center_coords():
     cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_idxs)
     return json.dumps({
         'cid_center_coord_dict': cid_center_coord_dict
+    })
+
+
+@app.route('/getTrjDetail', methods=['post'])
+def get_trj_detail():
+    data = request.get_json(silent=True)
+    # print(data)
+    node_name = str(data['nodeName'])
+    month = int(data['month'])
+    start_day, end_day, start_hour, end_hour = [int(data['startDay']),
+                                                int(data['endDay']),
+                                                int(data['startHour']),
+                                                int(data['endHour'])]
+    cluster_point_dict = data['cluster_point_dict']
+    force_nodes = data['force_nodes']
+    tmp = {}
+    for key in cluster_point_dict:
+        tmp[int(key)] = cluster_point_dict[key]
+    cluster_point_dict = tmp
+    total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
+    trj_idxs, node_names = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
+
+    # ------------考虑一个 OD 对包含多个轨迹的情况，记录 nodeName 到 轨迹 ids 的映射-------------------
+    node_name2trj_id = {}
+    for i in range(len(trj_idxs)):
+        if node_names[i] not in node_name2trj_id:
+            node_name2trj_id[node_names[i]] = [trj_idxs[i]]
+        else:
+            node_name2trj_id[node_names[i]].append(trj_idxs[i])
+    # -------------------------------------- -------------------------------------------------
+    for key in node_name2trj_id.keys():
+        print(key, node_name2trj_id[key])
+
+    trj_ids = node_name2trj_id[node_name]
+    ids, trips = get_trip_detail_by_id(trj_ids, month, start_day, end_day, start_hour, end_hour)
+    od_gps_lst = []
+    for trip in trips:
+        od_gps_lst.append(trip[2])
+        od_gps_lst.append(trip[-1])
+    poi_id_file_id_dict = cache.get('poi_id_file_id_dict')
+    kdtree = cache.get('kdtree')
+    print('kdtree', kdtree)
+    poi_info_lst = get_poi_info_lst_by_points(od_gps_lst, poi_id_file_id_dict, config_dict, kdtree, 300)
+    print('poi_info_lst', poi_info_lst)
+    print('trip num', len(trips))
+
+    trj_detail = []
+    trj_speed = []
+    for i in range(len(trips)):
+        # trj_detail.append([None for j in range(6)])
+        one_trj_detail = {}
+        one_trj_speed = []
+        one_trj_detail['TrjId'] = trips[i][0][0]
+        one_trj_detail['startPoint'] = f'{poi_info_lst[i*2]}'  # start point
+        one_trj_detail['endPoint'] = f'{poi_info_lst[i*2+1]}'  # end point
+        one_trj_detail['startTime'] = utils.timestamp_2time_format(trips[i][2][2])  # start time
+        one_trj_detail['endTime'] = utils.timestamp_2time_format(trips[i][-1][2])  # end time
+        mean_speed = 0
+        for j in range(2, len(trips[i]) - 1):
+            # 求平均速度，轨迹一共 (len(trips[i]) - 2 - 1) 段，-2 是减去 trjId 和 day，后面才是轨迹点，然后-1是段数
+            speed = calTwoPointSpeed(trips[i][j], trips[i][j + 1])
+            mean_speed += speed / (len(trips[i]) - 2 - 1)
+            one_trj_speed.append(judgeSpeedLevel(speed))
+        one_trj_detail['avgSpeed'] = f'{round(mean_speed, 2)} km/h'
+        trj_detail.append(one_trj_detail)
+        # trj_speed[one_trj_detail['TrjId']] = one_trj_speed
+        trj_speed.append({
+            'TrjId': one_trj_detail['TrjId'],
+            'speedList':  one_trj_speed,
+        })
+
+    return json.dumps({
+        'trj_detail': trj_detail,
+        'trj_speed': trj_speed,
     })
 
 
@@ -445,24 +526,30 @@ def get_line_graph():
     gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
     # gps_trips = list(tid_trip_dict.values())
     feature = run_model2(args, gps_trips)
-    labels = get_cluster_by_trj_feature(args, feature)
-    print('labels', labels)
-    print('labels 数量', len(labels))
-    print('labels 全部类别数量', len(list(set(labels))))
-    print('labels 全部标签类别', list(set(labels)))
+    # labels = get_cluster_by_trj_feature(args, feature)
+    # print('labels', labels)
+    # print('labels 数量', len(labels))
+    # print('labels 全部类别数量', len(list(set(labels))))
+    # print('labels 全部标签类别', list(set(labels)))
     node_label_dict = {}
     node_feature_dict = {}
-    for i in range(len(labels)):
-        node_label_dict[node_names[i]] = labels[i]
+    trjid_feature_dict = {}
+    # for i in range(len(labels)):
+    #     node_label_dict[node_names[i]] = labels[i]
     # 节点名称（${cid1}_${cid2}）和对应OD对特征的映射关系
     for i in range(len(feature)):
         node_feature_dict[node_names[i]] = feature[i]
+        trjid_feature_dict[node_names[i]] = trj_idxs[i]
     print(f'轨迹id数{len(trj_idxs)}  轨迹数： {len(gps_trips)}  特征数: {len(feature)}  字典大小：{len(node_feature_dict.keys())} {len(node_names)}')
     # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
 
     # ============== GCC 社区发现代码 ===============
     adj_mat = get_adj_matrix(lg)  # 根据线图得到 csc稀疏矩阵类型的邻接矩阵
-    features = get_feature_list(lg, node_feature_dict)  # 根据线图节点顺序，整理一个节点向量数组
+    features, related_node_names = get_feature_list(lg, node_feature_dict)  # 根据线图节点顺序，整理一个节点向量数组，以及对应顺序的node name
+    tmp_trj_idxs = []
+    #  得到features对应顺序的 trjIds
+    for node_name in related_node_names:
+        tmp_trj_idxs.append(trjid_feature_dict[node_name])
     print(f'线图节点个数：{len(lg.nodes())}, 向量个数：{len(features)}')
     print('向量长度', len(features[0]))
     trj_labels = run(adj_mat, features)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
@@ -479,7 +566,9 @@ def get_line_graph():
     print('实际社区个数: ', len(cluster_point_dict.keys()))
     dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
 
-    draw_cluster_in_trj_view(trj_labels, gps_trips)
+    # draw_cluster_in_trj_view(trj_labels, gps_trips)
+    tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
+    print('tsne_points', tsne_points)
 
     # ============== GCC 社区发现代码 ===============
 
@@ -496,16 +585,21 @@ def get_line_graph():
     # ============== 社区发现代码 ===============
 
     return json.dumps({
-        'force_nodes': dag_force_nodes,
-        'force_edges': dag_force_edges,
+        'force_nodes': force_nodes,
+        'force_edges': force_edges,
         'filtered_adj_dict': filtered_adj_dict,
         'cid_center_coord_dict': cid_center_coord_dict,
         'community_group': cluster_point_dict,
+        'tsne_points': tsne_points,
+        'trj_labels': trj_labels,  # 每个节点（OD对）的社区label，与 tsne_points 顺序对应
+        'related_node_names': related_node_names,
+        'tmp_trj_idxs': tmp_trj_idxs,  # 与 tsne_points 顺序对应
         # 'tid_trip_dict': tid_trip_dict,
     })
 
 
 @app.route('/getPoiInfoByPoint', methods=['post'])
+@cache.cached(timeout=0)
 def get_poi_info_by_point():
     data = request.get_json(silent=True)
     point_in_cluster, radius = data['point_in_cluster'], int(data['radius'])
@@ -564,5 +658,43 @@ def get_gcc_data_vis():
     })
 
 
+@app.before_first_request
+def runserver():
+    print('-----------====================================================')
+    start_time = datetime.now()
+    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+        obj = pickle.loads(f.read())
+        total_poi_coor = obj['total_poi_coor']
+        file_id_poi_id_dict = obj['file_id_poi_id_dict']
+        poi_id_file_id_dict = obj['poi_id_file_id_dict']
+        kdtree = obj['kdtree']
+        print('kdtree', kdtree)
+        cache.set('file_id_poi_id_dict', file_id_poi_id_dict)
+        cache.set('poi_id_file_id_dict', poi_id_file_id_dict)
+        cache.set('total_poi_coor', total_poi_coor)
+        cache.set('kdtree', kdtree)
+        print('total_poi_coor', kdtree)
+        print('读取POI文件结束，用时: ', (datetime.now() - start_time))
+#     # do something before running the server
+#     _thread.start_new_thread(app.run(port=5050, host='0.0.0.0'))
+
+
 if __name__ == '__main__':
-    _thread.start_new_thread(app.run(host='0.0.0.0'))
+    # runserver()
+    _thread.start_new_thread(app.run(port=5050, host='0.0.0.0'))
+    # start_time = datetime.now()
+    # print('-----------====================================================')
+    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    #     obj = pickle.loads(f.read())
+    #     total_poi_coor = obj['total_poi_coor']
+    #     file_id_poi_id_dict = obj['file_id_poi_id_dict']
+    #     poi_id_file_id_dict = obj['poi_id_file_id_dict']
+    #     kdtree = obj['kdtree']
+    #     print('kdtree', kdtree)
+    #     cache.set('file_id_poi_id_dict', file_id_poi_id_dict)
+    #     cache.set('poi_id_file_id_dict', poi_id_file_id_dict)
+    #     cache.set('total_poi_coor', total_poi_coor)
+    #     cache.set('kdtree', kdtree)
+    #     print('total_poi_coor', kdtree)
+    #     print('读取POI文件结束，用时: ', (datetime.now() - start_time))
+

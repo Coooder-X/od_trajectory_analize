@@ -58,6 +58,7 @@ def draw_cluster_in_trj_view(trj_labels, gps_trips):
     ax.set_xlabel('lon')  # 画出坐标轴
     ax.set_ylabel('lat')
     plt.show()
+    plt.close()
 
 
 def run(adj, features):

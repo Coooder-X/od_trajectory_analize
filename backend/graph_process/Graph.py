@@ -159,6 +159,7 @@ def get_feature_list(G, node_feature_dict):
     字典的键 的形式是 {}_{}，而 G 中节点名称形式是 {}-{}，需要转换
     """
     features = []
+    node_names = []
     for node in G.nodes:
         name = G.nodes[node]['name']
         src, tgt = name.split('-')
@@ -167,8 +168,9 @@ def get_feature_list(G, node_feature_dict):
             name = f'{tgt}_{src}'
         feat = np.array(node_feature_dict[name])
         features.append(feat)
+        node_names.append(name)
     features = np.array(features)
-    return features
+    return features, node_names
 
 
 def get_dag_from_community(cluster_point_dict: dict, lg_force_edge: list):

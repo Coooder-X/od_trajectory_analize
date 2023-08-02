@@ -334,6 +334,17 @@ def get_trips_by_ids(trj_ids, month, start_day, end_day):
     return gps_trips  # tid_trip_dict
 
 
+def get_trip_detail_by_id(trj_ids, month, start_day, end_day, start_hour, end_hour):
+    total_trips = get_trj_num_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['trips']
+    trips = []
+    ids = []
+    for id in trj_ids:
+        # if start_hour * 3600 < total_trips[id][2][2] < end_hour * 3600:
+        ids.append(id)
+        trips.append(total_trips[id])
+    return ids, trips
+
+
 if __name__ == '__main__':
     # print('开始读取OD点')
     # start_time = datetime.now()

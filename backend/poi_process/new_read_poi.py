@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from scipy import spatial
 
 from utils import lonlat2meters, meters2lonlat
-
+from collections import Counter
 # from utils import lonlat2meters, meters2lonlat
 
 
@@ -114,6 +114,44 @@ def get_poi_type_filter_by_radius(point_in_cluster, poi_id_file_id_dict, config_
     #             x, y = meters2lonlat(poi_coor[id][0], poi_coor[id][1])
     #             coor_filtered.append([x, y])
     # return coor_filtered
+
+
+def get_poi_info_lst_by_points(od_gps_lst, poi_id_file_id_dict, config_dict, kdtree, radius):
+    """
+    传入 OD 点坐标，得到每个 OD 点附近的 POI 信息，取最多的 3 个 POI 类别返回
+    :od_gps_lst OD 点经纬度坐标数组
+    将 poi 根据一个 OD 点以及半径进行过滤
+    输入的 kdtree 和 poi_coor 中的 poi 坐标单位是米
+    :return poi_info_lst: 形如 list<[['餐饮', 23], ['生活', 21], ...]> 的统计每个类别 POI 数量
+    """
+    points = []
+    for point in od_gps_lst:
+        x, y = lonlat2meters(point[0], point[1])
+        points.append([x, y])
+    id_list = kdtree.query_ball_point(points, radius)
+
+    poi_info_lst = []
+    for item in id_list:
+        poi_type_dict = {}
+
+        for poi_id in item:
+            # id_set.add(poi_id)
+            file_type = config_dict['poi_file_name_lst'][poi_id_file_id_dict[poi_id]].split('.')[0]
+            file_type = str(file_type)
+            if file_type not in poi_type_dict:
+                poi_type_dict[file_type] = 0
+            poi_type_dict[file_type] += 1
+
+        top_k = 3
+        # 创建一个 Counter 对象
+        counter = Counter(poi_type_dict)
+        # 获取最常见的 3 个 POI 类别
+        most_common_poi = counter.most_common(top_k)
+        most_common_poi = [list(item)[0] for item in most_common_poi]
+        most_common_poi_str = f"{','.join(most_common_poi)}"
+        poi_info_lst.append(most_common_poi_str)
+
+    return poi_info_lst
 
 
 def lonlat2meters_poi(poi_coor):

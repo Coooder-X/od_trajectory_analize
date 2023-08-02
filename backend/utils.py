@@ -1,6 +1,7 @@
 import random, math
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 from data_process.SpatialRegionTools import inregionT, inregionS
 
@@ -151,6 +152,38 @@ class UnionFindSet(object):
             b_set_size = self.size_dict[b_head]
             self.father_dict[b_head] = a_head
             self.size_dict[a_head] = a_set_size + b_set_size
+
+
+def timestamp_2time_format(timestamp):
+    hour = int(timestamp // 3600)
+    timestamp %= 3600
+    min = int(timestamp // 60)
+    second = int(timestamp % 60)
+    return f'{str(hour).zfill(2)}:{str(min).zfill(2)}:{str(second).zfill(2)}'
+
+
+def DoTSNE(features, n_components, cluster_point_dict):
+    '''
+    TSNE降维
+    :param data:
+    :param n_components:
+    :return:
+    '''
+    from sklearn.manifold import TSNE
+    # n_components 嵌入空间的维度
+    nums = len(features)
+    features_embedded = TSNE(n_components=n_components, init='random', perplexity=10 if nums < 50 else nums / 7).fit_transform(features)
+
+    points_2d = []
+    # plt.figure(dpi=400)
+    for point in features_embedded:
+        points_2d.append([float(point[0]), float(point[1])])
+        plt.scatter(point[0], point[1], s=1, alpha=1, color='black')
+    # plt.show()
+    # plt.close()
+
+    return points_2d
+
 
 if __name__ == '__main__':
     a = [1,2,3,4,5]
