@@ -41,12 +41,11 @@ line_graph = None
 app.config["CACHE_TYPE"] = "simple"
 cache = Cache(app)
 
-
 @app.route('/')
 @cache.cached(timeout=0)
 def hello_world():  # put application's code here
     # start_time = datetime.now()
-    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
     #     obj = pickle.loads(f.read())
     #     total_poi_coor = obj['total_poi_coor']
     #     file_id_poi_id_dict = obj['file_id_poi_id_dict']
@@ -62,7 +61,7 @@ def hello_world():  # put application's code here
     # total_poi_coor, file_id_poi_id_dict, poi_id_file_id_dict = getPOI_Coor(config_dict['poi_dir'])
     # total_poi_coor = lonlat2meters_poi(total_poi_coor)
     # kdtree = buildKDTree(total_poi_coor)
-    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
+    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
     #     picklestring = pickle.dumps({
     #         'total_poi_coor': total_poi_coor,
     #         'file_id_poi_id_dict': file_id_poi_id_dict,
@@ -131,7 +130,7 @@ def get_total_trj_num_by_day():
 @app.route('/getTrjTotalNumByMonth', methods=['get'])
 def get_total_trj_num_by_Month():
     month = request.args.get('month', 5, type=int)
-    data_path = "/tmp/" + str(month).zfill(2) + "trj_num_by_month.txt"
+    data_path = "/home/zhengxuan.lin/project/tmp/" + str(month).zfill(2) + "trj_num_by_month.txt"
     if not os.path.exists(data_path):
         with open(data_path, "w") as f:
             res = []
@@ -564,7 +563,7 @@ def get_line_graph():
         if get_degree_by_node_name(lg, node_names[i]) > 0:
             cluster_point_dict[label].append(node_names[i])
     print('实际社区个数: ', len(cluster_point_dict.keys()))
-    dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
+    # dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
 
     # draw_cluster_in_trj_view(trj_labels, gps_trips)
     tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
@@ -615,7 +614,7 @@ def get_poi_info_by_point():
 @app.route('/getGccDataVis', methods=['get'])
 def get_gcc_data_vis():
     dataset = ['cora', 'citeseer', 'pubmed', 'wiki']
-    data = sio.loadmat(os.path.join('/home/linzhengxuan/project/od_trajectory_analize/backend/datasetVis/', f'{dataset[2]}.mat'))
+    data = sio.loadmat(os.path.join('/home/zhengxuan.lin/project/od_trajectory_analize/backend/datasetVis/', f'{dataset[2]}.mat'))
     print(data.keys())
     adj = data['W']
     adj = adj.astype(float)
@@ -640,9 +639,9 @@ def get_gcc_data_vis():
     print(f'node num: {len(force_nodes)}', f'edge num: {len(force_edges)}')
 
     G = []
-    if os.path.exists('/home/linzhengxuan/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl'):
+    if os.path.exists('/home/zhengxuan.lin/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl'):
         print('exists trained G')
-        with open("/home/linzhengxuan/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl", 'rb') as f:
+        with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl", 'rb') as f:
             obj = pickle.loads(f.read())
             G = obj['G']
             G = G.numpy().tolist()
@@ -662,7 +661,7 @@ def get_gcc_data_vis():
 def runserver():
     print('-----------====================================================')
     start_time = datetime.now()
-    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         total_poi_coor = obj['total_poi_coor']
         file_id_poi_id_dict = obj['file_id_poi_id_dict']
@@ -681,10 +680,12 @@ def runserver():
 
 if __name__ == '__main__':
     # runserver()
-    _thread.start_new_thread(app.run(port=5050, host='0.0.0.0'))
+    print('========>', os.getcwd())
+    #==_asdfas2
+    _thread.start_new_thread(app.run(port=5000, host='0.0.0.0'))
     # start_time = datetime.now()
     # print('-----------====================================================')
-    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
     #     obj = pickle.loads(f.read())
     #     total_poi_coor = obj['total_poi_coor']
     #     file_id_poi_id_dict = obj['file_id_poi_id_dict']

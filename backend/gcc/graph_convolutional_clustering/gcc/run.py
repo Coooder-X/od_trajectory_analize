@@ -26,7 +26,7 @@ flags.DEFINE_integer('runs', 80, 'Number of runs per power.')
 flags.DEFINE_integer('n_clusters', 0, 'Number of clusters (0 for ground truth).')
 flags.DEFINE_integer('max_iter', 30, 'Number of iterations of the algorithm.')
 flags.DEFINE_float('tol', 10e-7, 'Tolerance threshold of convergence.')
-data_path = '/home/linzhengxuan/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data'
+data_path = '/home/zhengxuan.lin/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data'
 
 
 def draw_cluster_in_trj_view(trj_labels, gps_trips):

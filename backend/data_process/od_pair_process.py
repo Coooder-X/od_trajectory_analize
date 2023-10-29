@@ -24,8 +24,8 @@ def get_data():
 def get_hour_od_points():
     start_time = datetime.now()
     #  D:/研究生/chinavis2023/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl
-    # /home/linzhengxuan/project/od_trajectory_analize/backend/data/
-    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
+    # /home/zhengxuan.lin/project/od_trajectory_analize/backend/data/
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
         od_points = pickle.loads(file.read())
     print('读取文件结束，用时: ', (datetime.now() - start_time))
     # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556
@@ -42,7 +42,7 @@ def get_hour_od_points():
 
 def get_total_od_points():
     start_time = datetime.now()
-    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
         od_points = pickle.loads(file.read())
     print('读取文件结束，用时: ', (datetime.now() - start_time))
     # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556
@@ -157,8 +157,8 @@ def get_trj_num_filter_by_day(month, start_day, end_day):
     res = []
     start_time = datetime.now()
     for i in range(start_day, end_day + 1):
-        data_target_path = "/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + "_trj.pkl"
-        data_source_path = "/home/linzhengxuan/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
+        data_target_path = "/home/zhengxuan.lin/project/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + "_trj.pkl"
+        data_source_path = "/home/zhengxuan.lin/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
             2) + "日/2020" + str(month).zfill(2) + str(i).zfill(
             2) + "_hz.h5"
         if not os.path.exists(data_target_path):
@@ -197,8 +197,8 @@ def get_total_od_points_by_day(month, start_day, end_day):
     res = []
     for i in range(start_day, end_day + 1):
         start_time = datetime.now()
-        data_target_path = "/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + ".pkl"
-        data_source_path = "/home/linzhengxuan/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
+        data_target_path = "/home/zhengxuan.lin/project/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + ".pkl"
+        data_source_path = "/home/zhengxuan.lin/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
             2) + "日/2020" + str(month).zfill(2) + str(i).zfill(
             2) + "_hz.h5"
         if not os.path.exists(data_target_path):
@@ -233,7 +233,7 @@ def get_endpoints(data_source_path, filter_step, day, use_cell=False):
 
 def get_trips_and_lines(data_source_path, filter_step, use_cell=False):
     print(os.getcwd())
-    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/region.pkl", 'rb') as file:
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/region.pkl", 'rb') as file:
         region = pickle.loads(file.read())
 
     # '../make_data/20200101_jianggan.h5'
@@ -273,7 +273,7 @@ def get_trips_and_lines(data_source_path, filter_step, use_cell=False):
 
 
 def trj_num_by_hour(month, start_day, end_day):
-    data_path = "/tmp/" + str(month).zfill(2) + "trj_num_by_hour.txt"
+    data_path = "/home/zhengxuan.lin/project/tmp/" + str(month).zfill(2) + "trj_num_by_hour.txt"
     if not os.path.exists(data_path):
         with open(data_path, "w") as f:
             res = []
