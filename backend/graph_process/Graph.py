@@ -2,7 +2,7 @@ import networkx as nx  # 导入networkx包
 import matplotlib.pyplot as plt
 import numpy as np
 
-from Point import Point
+from graph_process.Point import Point
 
 
 class Graph:

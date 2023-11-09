@@ -203,6 +203,21 @@ const globalModule = {
         context.commit('setOutAdjTable', res.data['out_adj_table']);
       })
     },
+    getGridResult(context: ActionContext<{}, {}>, params: any) {
+      axios.get('/api/getGridResult', params).then((res) => {
+        console.log('getGridResult', res, res.status === 200);
+        //  设置 od 点的坐标数组和 index 序号数组
+        context.commit('setPointClusterMap', res.data['point_cluster_dict']);
+        context.commit('setClusterPointMap', res.data['cluster_point_dict']);
+        context.commit('setPartClusterPointMap', res.data['part_cluster_point_dict']);
+        context.commit('setPartODPoints', res.data['part_od_points']);
+        context.commit('setODIndexList', res.data['index_lst']);
+        // context.commit('setForceTreeLinks', res.data['json_adj_table']);
+        // context.commit('setForceTreeNodes', res.data['json_nodes']);
+        context.commit('setInAdjTable', res.data['in_adj_table']);
+        context.commit('setOutAdjTable', res.data['out_adj_table']);
+      })
+    },
     getLineGraph(context: ActionContext<{}, {}>, params: any) {
       axios({
         method: 'post',

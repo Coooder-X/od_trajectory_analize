@@ -149,5 +149,5 @@ bin/
 upload/*
 kerberosConf/*
 executeInfo/
-backend/home/zhengxuan.lin/project/tmp/
 *.xml
+backend/home/zhengxuan.lin/project/tmp/
