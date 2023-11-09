@@ -12,7 +12,7 @@ import itertools
 import h5py
 from collections import Counter
 from scipy import spatial
-from time_utils import cfe, calAngle
+# from time_utils import cfe, calAngle
 
 UNK = 3
 
@@ -57,16 +57,35 @@ class SpatialRegion:
         # self.spatio_num = spatio_num
         # self.spatio_pos = spatio_pos
         self.hulls = hulls
-        self.centers = np.array([np.array(x.centroid.coords) for x in hulls]).squeeze()
+        # self.centers = np.array([np.array(x.centroid.coords) for x in hulls]).squeeze()
+        self.centers = []
         if self.use_grid:
             self.numx = round(self.maxx - self.minx, 6) / xstep
             self.numx = int(math.ceil(self.numx))
             self.numy = round(self.maxy - self.miny, 6) / ystep
             self.numy = int(math.ceil(self.numy))
+        self.init_region_center()
+
             # self.numz = 1
         # if needTime:
         #     self.numz = round(self.maxtime - self.mintime, 6) / timestep
         #     self.numz = int(math.ceil(self.numz))
+
+    def init_region_center(self):
+        if self.use_grid:
+            for i in range(self.numx):
+                for j in range(self.numy):
+                    cur_lon = self.minx + i * self.xstep + self.xstep / 2
+                    cur_lat = self.miny + i * self.ystep + self.ystep / 2
+                    lon, lat = meters2lonlat(cur_lon, cur_lat)
+                    self.centers.append([lon, lat])
+
+
+def get_cell_id_center_coord_dict(region):
+    cell_id_center_coord_dict = {}
+    for i in range(len(region.centers)):
+        cell_id_center_coord_dict[i] = region.centers[i]
+    return cell_id_center_coord_dict
 
 
 def inregionT(region, lon, lat, time):
@@ -337,6 +356,13 @@ def lonlat2meters(lon, lat):
     t = math.sin(north)
     return semimajoraxis * east, 3189068.5 * math.log((1 + t) / (1 - t))
 
+def meters2lonlat(x, y):
+    semimajoraxis = 6378137.0
+    lon = x / semimajoraxis / 0.017453292519943295
+    t = math.exp(y / 3189068.5)
+    lat = math.asin((t - 1) / (t + 1)) / 0.017453292519943295
+    return lon, lat
+
 
 def coordandtime2cell(region, x, y, timestamp):
     xoffset = round(x - region.minx, 6) / region.xstep
@@ -353,34 +379,34 @@ def coordandtime2cell(region, x, y, timestamp):
 
 
 # def cell2coordandtime(cell, region):
-def cell2coordandtime(region, cell):
-    if region.use_grid:
-        zoffset = cell // (region.numx * region.numy)
-        cell = cell % (region.numx * region.numy)
-        yoffset = cell / region.numx
-        xoffset = cell % region.numx
-        y = region.miny + (yoffset + 0.5) * region.ystep
-        x = region.minx + (xoffset + 0.5) * region.xstep
-        time = region.mintime + (zoffset + 0.5) * region.timestep
-        return x, y, time
-    else:
-        zoffset = cell // (len(region.hulls))
-        spatio_id = cell % (len(region.hulls))
-        (lat, lon) = region.centers[int(spatio_id)]
-        x, y = lonlat2meters(lon, lat)
-        # 归一化
-        y = (y - region.miny) / (region.maxy - region.miny)
-        x = (x - region.minx) / (region.maxx - region.minx)
-
-        total_pos = 86400 // region.timestep
-        angle = calAngle(zoffset, total_pos)
-        # tx, ty = math.cos(math.pi * angle) / math.sqrt(2), math.sin(math.pi * angle) / math.sqrt(2)
-        # tx, ty = math.cos(math.pi * angle) / 2, math.sin(math.pi * angle) / 2
-        tx, ty = math.cos(math.pi * angle), math.sin(math.pi * angle)
-        # tx, ty = tx * 0.1, ty * 0.1 # todo 改善 时间的权重
-        # time = region.mintime + (zoffset + 0.5) * region.timestep
-        return x, y, tx, ty
-        # return xoffset, yoffset, zoffset
+# def cell2coordandtime(region, cell):
+#     if region.use_grid:
+#         zoffset = cell // (region.numx * region.numy)
+#         cell = cell % (region.numx * region.numy)
+#         yoffset = cell / region.numx
+#         xoffset = cell % region.numx
+#         y = region.miny + (yoffset + 0.5) * region.ystep
+#         x = region.minx + (xoffset + 0.5) * region.xstep
+#         time = region.mintime + (zoffset + 0.5) * region.timestep
+#         return x, y, time
+#     else:
+#         zoffset = cell // (len(region.hulls))
+#         spatio_id = cell % (len(region.hulls))
+#         (lat, lon) = region.centers[int(spatio_id)]
+#         x, y = lonlat2meters(lon, lat)
+#         # 归一化
+#         y = (y - region.miny) / (region.maxy - region.miny)
+#         x = (x - region.minx) / (region.maxx - region.minx)
+#
+#         total_pos = 86400 // region.timestep
+#         angle = calAngle(zoffset, total_pos)
+#         # tx, ty = math.cos(math.pi * angle) / math.sqrt(2), math.sin(math.pi * angle) / math.sqrt(2)
+#         # tx, ty = math.cos(math.pi * angle) / 2, math.sin(math.pi * angle) / 2
+#         tx, ty = math.cos(math.pi * angle), math.sin(math.pi * angle)
+#         # tx, ty = tx * 0.1, ty * 0.1 # todo 改善 时间的权重
+#         # time = region.mintime + (zoffset + 0.5) * region.timestep
+#         return x, y, tx, ty
+#         # return xoffset, yoffset, zoffset
 
 
 def spatioidandtime2cell(region, spatio_id, timestamp):

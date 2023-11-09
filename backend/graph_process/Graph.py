@@ -2,7 +2,7 @@ import networkx as nx  # 导入networkx包
 import matplotlib.pyplot as plt
 import numpy as np
 
-from graph_process.Point import Point
+from Point import Point
 
 
 class Graph:
@@ -41,6 +41,7 @@ class Graph:
             labels[nodeId] = self.dict[nodeId].name
         # 生成节点位置
         pos = nx.random_layout(G)  # circular_layout
+        # pos = nx.circular_layout(G)  # circular_layout
         # 画节点
         nx.draw_networkx_nodes(G, pos, node_color='g', node_size=50, alpha=0.8)
         # 画边
@@ -104,6 +105,7 @@ class Graph:
         print('线图中的点数', len(L.nodes))
         print('线图中的边数', len(L.edges))
         pos = nx.random_layout(L)
+        # pos = nx.circular_layout(L)  # circular_layout
         # 生成节点标签
         labels = {}
         for node in L.nodes:
@@ -214,6 +216,21 @@ def main():
 
     g.drawGraph()
     g.drawLineGraph()
+
+    # lst = [Point('1', 1, 1, {}), Point('2', 2, 2, {}), Point('3', 3, 3, {}),
+    #        Point('4', 4, 4, {})]
+    #
+    # g = Graph()
+    # for k in lst:
+    #     g.addVertex(k)
+    #
+    # g.addDirectLine(lst[0], [[lst[1], 2], [lst[1], 1]])
+    # g.addDirectLine(lst[1], [[lst[0], 3]])
+    # g.addDirectLine(lst[2], [[lst[0], 0.5], [lst[1], 1]])
+    # g.addDirectLine(lst[3], [[lst[2], 4]])
+    #
+    # # g.drawGraph()
+    # g.drawLineGraph()
 
 
 if __name__ == '__main__':

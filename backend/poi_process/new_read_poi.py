@@ -14,7 +14,7 @@ from collections import Counter
 
 
 config_dict = {
-    'poi_dir': "/home/linzhengxuan/project/hangzhou-POI",
+    'poi_dir': "/app/hangzhou-POI",
     'poi_file_name_lst': ['餐饮.xlsx', '政府机构及社会团体.xlsx', '生活服务.xlsx', '商务住宅.xlsx', '金融保险服务.xlsx', '风景名胜.xlsx', '医疗保险服务.xlsx', '购物服务.xlsx', '交通设施服务.xlsx', '体育休闲服务.xlsx', '科技文化服务.xlsx', '住宿服务.xlsx', '公共设施.xlsx']
 }
 
@@ -186,7 +186,7 @@ if __name__ == '__main__':
     total_poi_coor, file_id_poi_id_dict, poi_id_file_id_dict = getPOI_Coor(config_dict['poi_dir'])
     total_poi_coor = lonlat2meters_poi(total_poi_coor)
     kdtree = buildKDTree(total_poi_coor)
-    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
+    with open("/app/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
         picklestring = pickle.dumps({
             'total_poi_coor': total_poi_coor,
             'file_id_poi_id_dict': file_id_poi_id_dict,

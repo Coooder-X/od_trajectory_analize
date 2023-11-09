@@ -1,6 +1,10 @@
 # Visualize the clustering
 import json
+import sys
 
+from trip_process.read_trips import getTrips
+
+sys.path.append(r'/app/od_trajectory_analize/backend/data_process')
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.cluster import AgglomerativeClustering
@@ -8,8 +12,9 @@ from time import time
 from sklearn import preprocessing
 from sklearn import manifold, datasets
 
-from poi_process.read_poi import getPOI_Coor
-from trip_process.read_trips import getTrips
+# from poi_process.read_poi import getPOI_Coor
+# from trip_process.read_trips import getTrips
+# from trip_process.read_trips import getTrips
 from vis.trajectoryVIS import FileInfo
 
 

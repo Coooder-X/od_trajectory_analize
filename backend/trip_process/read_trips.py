@@ -2,7 +2,8 @@ import pickle
 
 import h5py
 import numpy as np
-
+import sys
+sys.path.append(r'/app/od_trajectory_analize/backend/trip_process')
 from data_process.SpatialRegionTools import gps2vocab, gps2cell, cell2coord
 
 

@@ -12,6 +12,8 @@ import _thread
 import utils
 import os
 
+from data_process.SpatialRegionTools import get_cell_id_center_coord_dict
+from data_process.spatial_grid_utils import test, get_region, divide_od_into_grid, get_od_points_filter_by_region
 from graph_process.Graph import get_adj_matrix, get_feature_list, get_degree_by_node_name, get_dag_from_community
 from gcc.graph_convolutional_clustering.gcc.run import run, draw_cluster_in_trj_view
 # from model.t2vec import args
@@ -41,12 +43,11 @@ line_graph = None
 app.config["CACHE_TYPE"] = "simple"
 cache = Cache(app)
 
-
 @app.route('/')
 @cache.cached(timeout=0)
 def hello_world():  # put application's code here
     # start_time = datetime.now()
-    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
     #     obj = pickle.loads(f.read())
     #     total_poi_coor = obj['total_poi_coor']
     #     file_id_poi_id_dict = obj['file_id_poi_id_dict']
@@ -62,7 +63,7 @@ def hello_world():  # put application's code here
     # total_poi_coor, file_id_poi_id_dict, poi_id_file_id_dict = getPOI_Coor(config_dict['poi_dir'])
     # total_poi_coor = lonlat2meters_poi(total_poi_coor)
     # kdtree = buildKDTree(total_poi_coor)
-    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
+    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
     #     picklestring = pickle.dumps({
     #         'total_poi_coor': total_poi_coor,
     #         'file_id_poi_id_dict': file_id_poi_id_dict,
@@ -131,7 +132,7 @@ def get_total_trj_num_by_day():
 @app.route('/getTrjTotalNumByMonth', methods=['get'])
 def get_total_trj_num_by_Month():
     month = request.args.get('month', 5, type=int)
-    data_path = "/tmp/" + str(month).zfill(2) + "trj_num_by_month.txt"
+    data_path = "/home/zhengxuan.lin/project/tmp/" + str(month).zfill(2) + "trj_num_by_month.txt"
     if not os.path.exists(data_path):
         with open(data_path, "w") as f:
             res = []
@@ -276,6 +277,42 @@ def calTwoPointSpeed(p0, p1):
     xd, yd = utils.lonlat2meters(p1[0], p1[1])
     time = p1[2] - p0[2]
     return utils.cal_meter_dist((xo, yo), (xd, yd)) * 3.6 / time
+
+
+@app.route('/getGridResult', methods=['get', 'post'])
+@cache.cached(timeout=0)
+def get_grid_result():
+    region = cache.get('region')
+    month = int(request.args['month'])
+    start_day, end_day = int(request.args['startDay']), int(request.args['endDay'])
+    start_hour, end_hour = int(request.args['startHour']), int(request.args['endHour'])
+
+    start_time = datetime.now()
+    res = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day)
+    print(f'start {start_day} end {end_day}')
+    od_points = np.array(res['od_points'])
+    cache.set('total_od_points', od_points)
+    total_od_coord_points = od_points[:, 0:2]  # 并去掉时间戳留下经纬度坐标
+    print('读取OD点结束，用时: ', (datetime.now() - start_time))
+    res = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
+    index_lst = res['index_lst']
+    part_od_points = res['od_points']
+
+    part_od_points, index_lst = get_od_points_filter_by_region(region, part_od_points, index_lst)
+    point_cluster_dict, cluster_point_dict = divide_od_into_grid(region, part_od_points, index_lst)
+    out_adj_table, in_adj_table = build_od_graph(point_cluster_dict, od_points, index_lst)
+
+    return json.dumps({
+        'index_lst': index_lst,  # 当前小时时间段内的部分 OD 点索引
+        'point_cluster_dict': point_cluster_dict,  # 全量的
+        'cluster_point_dict': cluster_point_dict,  # 全量的
+        'part_cluster_point_dict': cluster_point_dict,  # 当前小时内部分的映射关系，保证每个簇内的点都在当前小时段内
+        'part_od_points': part_od_points,  # 当前小时段内部分的 OD 点
+        'json_adj_table': {},
+        'json_nodes': {},
+        'out_adj_table': out_adj_table,  # 当前小时段内过滤处的出边邻接表
+        'in_adj_table': in_adj_table,  # 当前小时段内过滤处的入边邻接表
+    })
 
 
 @app.route('/getClusteringResult', methods=['get', 'post'])
@@ -460,6 +497,7 @@ def get_trj_detail():
 
 @app.route('/getLineGraph', methods=['post'])
 def get_line_graph():
+    region = cache.get('region')
     data = request.get_json(silent=True)
     # print(data)
     month = int(data['month'])
@@ -467,8 +505,8 @@ def get_line_graph():
                                                 int(data['endDay']),
                                                 int(data['startHour']),
                                                 int(data['endHour'])]
-    selected_cluster_ids_in_brush = data['selectedClusterIdxsInBrush']
-    selected_cluster_ids = data['selectedClusterIdxs']
+    # selected_cluster_ids_in_brush = data['selectedClusterIdxsInBrush']
+    # selected_cluster_ids = data['selectedClusterIdxs']
     out_adj_table = data['outAdjTable']
     cluster_point_dict = data['cluster_point_dict']
     with_space_dist = data['withSpaceDist']
@@ -480,7 +518,9 @@ def get_line_graph():
     out_adj_table = tmp
     # print(out_adj_table)
     # 计算线图，返回适用于 d3 的结构和邻接表 ===========================
-    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_table)
+    cid_center_coord_dict = get_cell_id_center_coord_dict(region)
+    selected_cluster_ids = cid_center_coord_dict.keys()
+    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids, selected_cluster_ids, out_adj_table)
 
     #  计算簇中心坐标 ========================================
     tmp = {}
@@ -490,7 +530,7 @@ def get_line_graph():
 
     # total_od_points = cache.get('total_od_points')
     total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
-    cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
+    # cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
     cache.set('cid_center_coord_dict', cid_center_coord_dict)
 
     #  计算 OD 对之间的距离 ==================================
@@ -564,7 +604,7 @@ def get_line_graph():
         if get_degree_by_node_name(lg, node_names[i]) > 0:
             cluster_point_dict[label].append(node_names[i])
     print('实际社区个数: ', len(cluster_point_dict.keys()))
-    dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
+    # dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
 
     # draw_cluster_in_trj_view(trj_labels, gps_trips)
     tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
@@ -615,7 +655,7 @@ def get_poi_info_by_point():
 @app.route('/getGccDataVis', methods=['get'])
 def get_gcc_data_vis():
     dataset = ['cora', 'citeseer', 'pubmed', 'wiki']
-    data = sio.loadmat(os.path.join('/home/linzhengxuan/project/od_trajectory_analize/backend/datasetVis/', f'{dataset[2]}.mat'))
+    data = sio.loadmat(os.path.join('/home/zhengxuan.lin/project/od_trajectory_analize/backend/datasetVis/', f'{dataset[2]}.mat'))
     print(data.keys())
     adj = data['W']
     adj = adj.astype(float)
@@ -640,9 +680,9 @@ def get_gcc_data_vis():
     print(f'node num: {len(force_nodes)}', f'edge num: {len(force_edges)}')
 
     G = []
-    if os.path.exists('/home/linzhengxuan/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl'):
+    if os.path.exists('/home/zhengxuan.lin/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl'):
         print('exists trained G')
-        with open("/home/linzhengxuan/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl", 'rb') as f:
+        with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl", 'rb') as f:
             obj = pickle.loads(f.read())
             G = obj['G']
             G = G.numpy().tolist()
@@ -662,7 +702,7 @@ def get_gcc_data_vis():
 def runserver():
     print('-----------====================================================')
     start_time = datetime.now()
-    with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         total_poi_coor = obj['total_poi_coor']
         file_id_poi_id_dict = obj['file_id_poi_id_dict']
@@ -681,10 +721,15 @@ def runserver():
 
 if __name__ == '__main__':
     # runserver()
-    _thread.start_new_thread(app.run(port=5050, host='0.0.0.0'))
+    print('========>', os.getcwd())
+    # test()
+    region = get_region()
+    cache.set('region', region)
+    #==_asdfas2
+    _thread.start_new_thread(app.run(port=5000, host='0.0.0.0'))
     # start_time = datetime.now()
     # print('-----------====================================================')
-    # with open("/home/linzhengxuan/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
     #     obj = pickle.loads(f.read())
     #     total_poi_coor = obj['total_poi_coor']
     #     file_id_poi_id_dict = obj['file_id_poi_id_dict']

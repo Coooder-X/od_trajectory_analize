@@ -5,7 +5,7 @@ import numpy as np  # version 1.17.2
 from scipy.spatial import Delaunay  # version 1.4.1
 import matplotlib.pyplot as plt  # version 3.1.2
 
-from data_process.hierarchical_clustering import get_trip_endpoints, get_trip_endpoints_filter_by_coords
+from hierarchical_clustering import get_trip_endpoints, get_trip_endpoints_filter_by_coords
 # from data_process.od_pair_process import get_hour_od_points
 # from data_process.od_pair_process import get_total_od_points, get_hour_od_points
 from poi_process.read_poi import buildKDTree, lonlat2meters_coords
