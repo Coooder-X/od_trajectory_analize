@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt
 from matplotlib import collections as mc
 from tensorflow.python.util import deprecation
 
+from data_process.SpatialRegionTools import gps2cell, get_cell_id_center_coord_dict
+
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import pickle
@@ -57,18 +59,59 @@ def draw_cluster_in_trj_view(trj_labels, gps_trips):
 
     ax.set_xlabel('lon')  # 画出坐标轴
     ax.set_ylabel('lat')
-    plt.show()
+    # plt.show()
+    plt.savefig('000_test_trj_in_region.png')
     plt.close()
 
 
-def run(adj, features):
+def draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, od_region):
+    label_color_dict = {}
+    for label in to_draw_trips_dict:
+        label_color_dict[label] = randomcolor()
+
+    cell_id_center_coord_dict = get_cell_id_center_coord_dict(od_region)
+    # fig = plt.figure(figsize=(20, 10))
+    # ax = fig.subplots()
+    for label in to_draw_trips_dict:
+        fig = plt.figure(figsize=(20, 10))
+        ax = fig.subplots()
+        gps_trips = to_draw_trips_dict[label]
+        lines = []
+        for trip in gps_trips:
+            line = []
+            # for j in range(len(trip) - 1):
+            head_cell_id = gps2cell(od_region, trip[0][0], trip[0][1])
+            tail_cell_id = gps2cell(od_region, trip[-1][0], trip[-1][1])
+            print(f'===> cell id ={head_cell_id, tail_cell_id}')
+            line.append([cell_id_center_coord_dict[head_cell_id], cell_id_center_coord_dict[tail_cell_id]])
+            lines.append(line)
+        for index, line in enumerate(lines):
+            color = label_color_dict[label]
+            lc = mc.LineCollection(line, colors=color, linewidths=2)
+            ax.add_collection(lc)
+        for index, trip in enumerate(gps_trips):
+            trip = np.array(trip)
+            color = label_color_dict[label]
+            ax.scatter(trip[0][0], trip[0][1], s=8, c=color, marker='o')
+            ax.scatter(trip[-1][0], trip[-1][1], s=8, c=color, marker='o')
+
+        ax.set_xlabel('lon')  # 画出坐标轴
+        ax.set_ylabel('lat')
+        plt.savefig(f'trj_cluster_result{cluster_num}_社区{label}.png')
+        plt.close()
+
+
+def run(adj, features, cluster_num):
     """
     @param adj: csc 类型的稀疏矩阵，表示线图的邻接矩阵，节点的顺序与 G.nodes() 一致，切和 features 的顺序对应相同的节点
     @param features: 二维 numpy，第一维长度是节点个数，第二位长度是特征维度，节点顺序同上
     @return G: 返回 numpy 类型的数组，索引是节点id（从0-n），值是 label。顺序同上
     """
     # 社区划分的数量为 节点数 / 10
-    n_classes = len(features) // 10
+    if cluster_num is None:
+        n_classes = len(features) // 10
+    else:
+        n_classes = cluster_num
     # 在图神经网络中节点特征维度（被压缩后）(这个值最初在原项目中被设定为 n_classes 的值)
     node_feat_dim = 500
     # 保存训练完的 W 矩阵的文件名
@@ -106,7 +149,7 @@ def run(adj, features):
                                        max_iter=max_iter, tolerance=tolerance, model_path=model_path)
 
             metrics = output_metrics(features @ W, None, G)
-            print(G)
+            # print(G)
             if losses is not None:
                 run_metrics.append(metrics + [losses[-1]])
             #  G 是最终的 label，长度为节点个数，每个节点有一个 label 值
@@ -138,7 +181,7 @@ def run(adj, features):
             time_it_took = time.time() - t0
             times.append(time_it_took)
             metrics = output_metrics(features @ W, None, G)
-            print(G)
+            # print(G)
             print(G.shape)
             if losses is not None:
                 run_metrics.append(metrics + [losses[-1]])
