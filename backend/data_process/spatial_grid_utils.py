@@ -2,14 +2,16 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from SpatialRegionTools import SpatialRegion, inregionS, gps2cell
-from od_pair_process import get_trips_and_lines, get_od_points_filter_by_day_and_hour, \
+from od_pair_process import get_od_points_filter_by_day_and_hour, \
     get_trips_by_ids
 from utils import lonlat2meters, meters2lonlat
 from vis.trajectoryVIS import randomcolor
 from matplotlib import collections as mc
 
-region_size = 8000
-cellsize = region_size / 10
+# region_size = 8000
+# cellsize = region_size / 10
+cellsizeX = 9284.045532159507 / 10
+cellsizeY = 8765 / 10
 mid_lon, mid_lat = 120.29986, 30.41829
 cityname = "hangzhou"
 timecellsize = 120
@@ -68,7 +70,7 @@ def divide_od_into_grid(region, part_od_points, index_lst):
         point = part_od_points[i]
         lon, lat = point[0], point[1]
         grid_id = gps2cell(region, lon, lat)
-        print(f'({lon}, {lat})  grid_id = {grid_id}')
+        # print(f'({lon}, {lat})  grid_id = {grid_id}')
         point_cluster_dict[index_lst[i]] = grid_id
         if grid_id not in cluster_point_dict:
             cluster_point_dict[grid_id] = []
@@ -110,13 +112,14 @@ def show_trips(trips):
 
 
 def get_region():
-    min_lon, min_lat, max_lon, max_lat = get_lon_lat_scope(mid_lon, mid_lat, region_size)
+    # min_lon, min_lat, max_lon, max_lat = get_lon_lat_scope(mid_lon, mid_lat, region_size)
+    min_lon, min_lat, max_lon, max_lat = 120.1088, 30.2335, 120.1922, 30.3015
 
     region = SpatialRegion(cityname,
                            min_lon, min_lat,  # 整个hz
                            max_lon, max_lat,  # 整个hz
                            0, 86400,  # 时间范围,一天最大86400(以0点为相对值)
-                           cellsize, cellsize,
+                           cellsizeX, cellsizeY,
                            timecellsize,  # 时间步
                            1,  # minfreq 最小击中次数
                            40_0000,  # maxvocab_size

@@ -74,9 +74,9 @@ class SpatialRegion:
     def init_region_center(self):
         if self.use_grid:
             for i in range(self.numx):
+                cur_lon = self.minx + i * self.xstep + self.xstep / 2
                 for j in range(self.numy):
-                    cur_lon = self.minx + i * self.xstep + self.xstep / 2
-                    cur_lat = self.miny + i * self.ystep + self.ystep / 2
+                    cur_lat = self.miny + j * self.ystep + self.ystep / 2
                     lon, lat = meters2lonlat(cur_lon, cur_lat)
                     self.centers.append([lon, lat])
 
