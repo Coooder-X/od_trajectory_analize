@@ -155,24 +155,48 @@ def get_adj_matrix(G):
     return adj_mat
 
 
-def get_feature_list(G, node_feature_dict):
+def get_feature_list(G, node_feature_dict, avg_trj_num):
     """
     根据字典的键，即节点名称，整理出 G.nodes() 顺序的 节点特征数组
     字典的键 的形式是 {}_{}，而 G 中节点名称形式是 {}-{}，需要转换
     """
     features = []
     node_names = []
+    shape = [768]
     for node in G.nodes:
         name = G.nodes[node]['name']
         src, tgt = name.split('-')
         name = f'{src}_{tgt}'
-        if name not in node_feature_dict:
-            name = f'{tgt}_{src}'
-        feat = np.array(node_feature_dict[name])
+        # if name not in node_feature_dict:
+        #     name = f'{tgt}_{src}'
+        # feat = np.array(node_feature_dict[name])
+        if name in node_feature_dict:
+            node_feat = node_feature_dict[name]
+            # print('==============> shape', node_feat[0].shape)
+            if shape == [768]:
+                shape = node_feat[0].shape
+        else:
+            node_feat = [np.zeros(shape)]
+        feat = aggregate_node_trj_feat(node_feat, avg_trj_num)
         features.append(feat)
         node_names.append(name)
     features = np.array(features)
     return features, node_names
+
+
+def aggregate_node_trj_feat(feat_lst, num):
+    feat_mat = [np.array(feat) for feat in feat_lst]
+    feat_mat = np.array(feat_mat)
+    return np.average(feat_mat, axis=0)
+    # feat_mat = []
+    # for i in range(min(len(feat_lst), num)):
+    #     feat_mat.append(feat_lst[i])
+    # while(len(feat_mat) < num):
+    #     feat_mat.append(np.zeros(feat_lst[0].shape))
+    #
+    # feat_mat = [np.array(feat) for feat in feat_mat]
+    # feat_mat = np.array(feat_mat)
+    # return feat_mat
 
 
 def get_dag_from_community(cluster_point_dict: dict, lg_force_edge: list):
@@ -214,8 +238,23 @@ def main():
     g.addDirectLine(lst[3], [[lst[4], 0.5]])
     g.addDirectLine(lst[4], [[lst[1], 4], [lst[3], 0.7]])
 
-    g.drawGraph()
-    g.drawLineGraph()
+    print(g.G.edges())
+    print(g.G.nodes())
+    print(g.G.nodes)
+    for a in g.G.nodes():
+        for b in g.G.nodes():
+            if (a, b) in g.G.edges():
+                print(a, b)
+                print((a, b))
+
+    # print(g.G.nodes)
+    # print()
+    # for (i, node) in enumerate(g.G.nodes()):
+    #     print(g.G.nodes[i])
+        # print(g.G.nodes[node])
+        # print(node)
+    # g.drawGraph()
+    # g.drawLineGraph()
 
     # lst = [Point('1', 1, 1, {}), Point('2', 2, 2, {}), Point('3', 3, 3, {}),
     #        Point('4', 4, 4, {})]
