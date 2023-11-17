@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 import torch.nn as nn #专门为神经网络设计的模块化接口
 import os
 
-from data_process.SpatialRegionTools import cell2coord, inregionT, gpsandtime2cell, cell2vocab, tripandtime2seq
+from data_process.SpatialRegionTools import cell2coord, inregionT, gpsandtime2cell, cell2vocab, tripandtime2seq, trip2seq
 from data_utils import MyDataOrderScaner
 from model.models import EncoderDecoder_without_dropout, EncoderDecoder
 import time, os, shutil, logging, h5py
@@ -99,7 +99,15 @@ def get_feature_and_trips(args, gps_trips):
     # return features, cell_trips
 
 
-def run_model2(args, gps_trips):
+def run_model2(args, gps_trips, best_model, trj_region):
+    tmp_gps_trips = []
+    for trip in gps_trips:
+        tmp_trip = []
+        for p in trip:
+            tmp_trip.append([p[0], p[1]])
+        tmp_gps_trips.append(tmp_trip)
+    gps_trips = tmp_gps_trips
+
     vecs = []
     torch.cuda.set_device(args.device)  # 指定第几块显卡
     # 创建预训练时候用到的模型评估其性能
@@ -108,23 +116,24 @@ def run_model2(args, gps_trips):
                         args.dropout, args.bidirectional)
     # 取出最好的model
     if os.path.isfile(args.best_model):
-        print("=> loading best_model '{}'".format(args.best_model))
-        best_model = torch.load(args.best_model)
-        # 存时，"m0": m0.state_dict()
+        # print("=> loading best_model '{}'".format(args.best_model))
+        # best_model = torch.load(args.best_model)
+        # # 存时，"m0": m0.state_dict()
         m0.load_state_dict(best_model["m0"])
         if args.cuda and torch.cuda.is_available():
             m0.cuda()  # 注意：如果训练的时候用了cuda,这里也必须m0.cuda
         # 如果模型含dropout、batch normalization等层，需要该步骤
         m0.eval()
 
-        with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
-            region = pickle.loads(file.read())
+        # with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
+        #     region = pickle.loads(file.read())
         cell_trips = []
         for gps_trip in gps_trips:
-            cell_trj = tripandtime2seq(region, gps_trip)
+            # cell_trj = tripandtime2seq(region, gps_trip)
+            cell_trj = trip2seq(trj_region, gps_trip)
             # cell_trj = " ".join(cell_trj)
             cell_trips.append(cell_trj)
-        print('cell_trips', len(cell_trips), cell_trips)
+        # print('cell_trips', len(cell_trips), cell_trips)
         # torch.cuda.set_device(args.device)  # 指定第几块显卡
         # 初始化需要评估的数据集
         scaner = MyDataOrderScaner(cell_trips, len(cell_trips))
@@ -171,7 +180,7 @@ def run_model2(args, gps_trips):
 
         # 把3层特征拼接成一个特征
         # feature = vecs.view(size[0], size[1] * size[2])
-    print('vecs', vecs)
+    # print('vecs', vecs)
     return vecs
 
 

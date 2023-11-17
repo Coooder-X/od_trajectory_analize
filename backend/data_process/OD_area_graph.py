@@ -86,7 +86,6 @@ def get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_c
             if cid not in selected_cluster_ids_in_brush and to_cid not in selected_cluster_ids_in_brush:
                 continue
             if cid in out_adj_dict and to_cid in out_adj_dict[cid]:
-                print(cid, to_cid)
                 filtered_adj_dict[cid].append(to_cid)
 
     cluster_list = []   # 存储所有 Point 类型的 簇，作为 graph 的节点集
@@ -117,8 +116,8 @@ def get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_c
     line_graph = g.getLineGraph()
     # g.drawGraph()
     # g.drawLineGraph()
-    print(line_graph.nodes)
-    print(line_graph.edges)
+    # print(line_graph.nodes)
+    # print(line_graph.edges)
     # print('点数据', line_graph.nodes.data())
     print('点个数', len(line_graph.nodes))
     print('边个数', len(line_graph.edges))
