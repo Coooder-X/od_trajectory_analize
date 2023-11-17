@@ -7,6 +7,7 @@ import numpy
 import numpy as np
 
 from DT_graph_clustering import od_points_filter_by_hour
+from data_process.SpatialRegionTools import inregionS
 from hierarchical_clustering import get_trip_endpoints
 from poi_process.read_poi import lonlat2meters_coords
 from vis.trajectoryVIS import FileInfo
@@ -305,21 +306,29 @@ def trj_num_by_hour(month, start_day, end_day):
     return ret
 
 
-def get_trj_ids_by_force_node(force_nodes, part_cluster_point_dict, total_od_points):
+def get_trj_ids_by_force_node(force_nodes, part_cluster_point_dict, total_od_points, region):
     trj_ids = []
-    node_names = []
+    node_names_trjId_dict = {}
+    i = 0
+    num = len(force_nodes)
     for node in force_nodes:
+        i += 1
+        print(f'{i}/{num}, {node["name"]}')
         src_cid, tgt_cid = list(map(int, node['name'].split('_')))
         src_points, tgt_points = part_cluster_point_dict[src_cid], part_cluster_point_dict[tgt_cid]
         for src_pid in src_points:
             o = total_od_points[src_pid]
+            # print('o在区域内', inregionS(region, o[0], o[1]))
             for tgt_pid in tgt_points:
                 d = total_od_points[tgt_pid]
+                # print('d在区域内', inregionS(region, d[0], d[1]))
                 if o[5] == d[5] and o[3] == d[3] and o[4] == d[4] - 1:
                     trj_ids.append(int(d[3]))
-                    node_names.append(node['name'])
-                    break   # 粗略的初版实现：只在一个OD对中取一条轨迹。后续改成，一个OD对中多条轨迹都加入，然后特征取平均
-    return trj_ids, node_names
+                    if node['name'] not in node_names_trjId_dict:
+                        node_names_trjId_dict[node['name']] = []
+                    node_names_trjId_dict[node['name']].append(int(d[3]))
+                    # 粗略的初版实现：只在一个OD对中取一条轨迹。后续改成，一个OD对中多条轨迹都加入，然后特征取平均
+    return trj_ids, node_names_trjId_dict
 
 
 def get_trips_by_ids(trj_ids, month, start_day, end_day):
