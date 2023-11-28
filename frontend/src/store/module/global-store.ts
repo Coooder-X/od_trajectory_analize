@@ -116,6 +116,7 @@ const globalModule = {
       });
     },
     setCommunityGroup(state: GlobalState, payload: {[key: number]: string[]}) {
+      state.communityGroup = new Map();
       Object.keys(payload).forEach((key: string) => {
         let k = parseInt(key);
         if (payload[k].length > 0) {
