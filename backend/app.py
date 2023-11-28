@@ -4,6 +4,8 @@ import random
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
+import torch
 from flask import Flask, request
 from flask_caching import Cache
 from flask_cors import CORS
@@ -15,7 +17,7 @@ import os
 from data_process.SpatialRegionTools import get_cell_id_center_coord_dict
 from data_process.spatial_grid_utils import test, get_region, divide_od_into_grid, get_od_points_filter_by_region
 from graph_process.Graph import get_adj_matrix, get_feature_list, get_degree_by_node_name, get_dag_from_community
-from gcc.graph_convolutional_clustering.gcc.run import run, draw_cluster_in_trj_view
+from gcc.graph_convolutional_clustering.gcc.run import run, draw_cluster_in_trj_view, draw_cluster_in_trj_view_new
 # from model.t2vec import args
 from t2vec import args
 from t2vec_graph import get_feature_and_trips, run_model2, get_cluster_by_trj_feature
@@ -31,6 +33,7 @@ from data_process.DT_graph_clustering import delaunay_clustering, cluster_filter
 import os.path
 import scipy.io as sio
 import scipy.sparse as sp
+from exp3 import get_line_graph as get_line_graph2, get_grid_split
 
 app = Flask(__name__)
 # manager = Manager(app)
@@ -438,15 +441,10 @@ def get_trj_detail():
         tmp[int(key)] = cluster_point_dict[key]
     cluster_point_dict = tmp
     total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
-    trj_idxs, node_names = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
+    trj_idxs, node_name2trj_id = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
 
     # ------------考虑一个 OD 对包含多个轨迹的情况，记录 nodeName 到 轨迹 ids 的映射-------------------
-    node_name2trj_id = {}
-    for i in range(len(trj_idxs)):
-        if node_names[i] not in node_name2trj_id:
-            node_name2trj_id[node_names[i]] = [trj_idxs[i]]
-        else:
-            node_name2trj_id[node_names[i]].append(trj_idxs[i])
+    # node_name2trj_id = node_name2trj_id
     # -------------------------------------- -------------------------------------------------
     for key in node_name2trj_id.keys():
         print(key, node_name2trj_id[key])
@@ -505,126 +503,180 @@ def get_line_graph():
                                                 int(data['endDay']),
                                                 int(data['startHour']),
                                                 int(data['endHour'])]
-    # selected_cluster_ids_in_brush = data['selectedClusterIdxsInBrush']
-    # selected_cluster_ids = data['selectedClusterIdxs']
+    selected_cluster_ids_in_brush = data['selectedClusterIdxsInBrush']
+    selected_cluster_ids = data['selectedClusterIdxs']
     out_adj_table = data['outAdjTable']
     cluster_point_dict = data['cluster_point_dict']
     with_space_dist = data['withSpaceDist']
-    # with_space_dist: 是否考虑空间距离，如果不考虑，则把离散的点都连上 fake 边，保证它们聚集在一块，不会扩散到整个屏幕
-    #  得到的 json 中 key 是 string，这里转成 int
-    tmp = {}
-    for key in out_adj_table:
-        tmp[int(key)] = out_adj_table[key]
-    out_adj_table = tmp
-    # print(out_adj_table)
-    # 计算线图，返回适用于 d3 的结构和邻接表 ===========================
-    cid_center_coord_dict = get_cell_id_center_coord_dict(region)
-    selected_cluster_ids = cid_center_coord_dict.keys()
-    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids, selected_cluster_ids, out_adj_table)
 
-    #  计算簇中心坐标 ========================================
+    with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
+        trj_region = pickle.loads(file.read())
+    # res = get_grid_split(region)
+
+    # # with_space_dist: 是否考虑空间距离，如果不考虑，则把离散的点都连上 fake 边，保证它们聚集在一块，不会扩散到整个屏幕
+    # #  得到的 json 中 key 是 string，这里转成 int
+    used_od_cells = set(
+        [1, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19, 21, 23, 25, 26, 27, 28, 29, 31, 32, 33, 35, 36, 37, 38, 39, 41, 42, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
+         64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 89, 91, 93, 94, 95, 96, 99])
+    tmp = {}
+    for start in out_adj_table:
+        if int(start) in used_od_cells:
+            t = out_adj_table[start]
+            t = list(set(t).intersection(used_od_cells))
+            tmp[int(start)] = t
+    out_adj_table = tmp
+
+    # # print(out_adj_table)
+    # # 计算线图，返回适用于 d3 的结构和邻接表 ===========================
+    cid_center_coord_dict = get_cell_id_center_coord_dict(region)
+    # selected_cluster_ids = cid_center_coord_dict.keys()
+    selected_cluster_ids = list(set(selected_cluster_ids).intersection(used_od_cells))
+    selected_cluster_ids_in_brush = list(set(selected_cluster_ids_in_brush).intersection(used_od_cells))
+    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_table)
+    #
+    # #  计算簇中心坐标 ========================================
     tmp = {}
     for key in cluster_point_dict:
-        tmp[int(key)] = cluster_point_dict[key]
+        if int(key) in used_od_cells:
+            tmp[int(key)] = cluster_point_dict[key]
     cluster_point_dict = tmp
-
-    # total_od_points = cache.get('total_od_points')
+    #
+    # # total_od_points = cache.get('total_od_points')
     total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
-    # cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
-    cache.set('cid_center_coord_dict', cid_center_coord_dict)
-
-    #  计算 OD 对之间的距离 ==================================
-    edge_name_dist_map = get_odpair_space_similarity(selected_cluster_ids, cid_center_coord_dict, force_nodes)
-
-    #  将线图加入 fake 边，并给边添加距离，成为考虑 OD 对空间关系的线图 ===============================
-    # if with_space_dist:
-    force_edges = fuse_fake_edge_into_linegraph(force_nodes, force_edges, edge_name_dist_map)
-
-    print('完全线图-点数', len(force_nodes))
-    print('完全线图-边数', len(force_edges))
-
-    # if not with_space_dist:
-    #     force_edges = aggregate_single_points(force_nodes, force_edges, filtered_adj_dict)
-    #     print('单独点聚合后-边数', len(force_edges))
-
-    # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
-    # node_label_dict = None
-    trj_idxs, node_names = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
+    # # cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
+    # cache.set('cid_center_coord_dict', cid_center_coord_dict)
+    #
+    # #  计算 OD 对之间的距离 ==================================
+    # edge_name_dist_map = get_odpair_space_similarity(selected_cluster_ids, cid_center_coord_dict, force_nodes)
+    #
+    # #  将线图加入 fake 边，并给边添加距离，成为考虑 OD 对空间关系的线图 ===============================
+    # # if with_space_dist:
+    # force_edges = fuse_fake_edge_into_linegraph(force_nodes, force_edges, edge_name_dist_map)
+    #
+    # print('完全线图-点数', len(force_nodes))
+    # print('完全线图-边数', len(force_edges))
+    #
+    # # if not with_space_dist:
+    # #     force_edges = aggregate_single_points(force_nodes, force_edges, filtered_adj_dict)
+    # #     print('单独点聚合后-边数', len(force_edges))
+    #
+    # # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
+    # # node_label_dict = None
+    # trj_idxs, node_names = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
     # ----------- 简单聚合，每个OD对取一个轨迹的特征---------
-    tmp_trj_idx = []
-    tmp_node_names = []
-    name_set = {}
-    for i in range(len(node_names)):
-        if node_names[i] not in name_set:
-            tmp_trj_idx.append(trj_idxs[i])
-            tmp_node_names.append(node_names[i])
-            name_set[node_names[i]] = 1
-    # -------------------------------------------------
-    trj_idxs, node_names = tmp_trj_idx, tmp_node_names
-    print('按轨迹顺序排列的节点名的映射', node_names)
-    # tid_trip_dict = get_trips_by_ids(trj_idxs, month, start_day, end_day)
-    gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
-    # gps_trips = list(tid_trip_dict.values())
-    feature = run_model2(args, gps_trips)
-    # labels = get_cluster_by_trj_feature(args, feature)
-    # print('labels', labels)
-    # print('labels 数量', len(labels))
-    # print('labels 全部类别数量', len(list(set(labels))))
-    # print('labels 全部标签类别', list(set(labels)))
-    node_label_dict = {}
-    node_feature_dict = {}
-    trjid_feature_dict = {}
-    # for i in range(len(labels)):
-    #     node_label_dict[node_names[i]] = labels[i]
-    # 节点名称（${cid1}_${cid2}）和对应OD对特征的映射关系
-    for i in range(len(feature)):
-        node_feature_dict[node_names[i]] = feature[i]
-        trjid_feature_dict[node_names[i]] = trj_idxs[i]
-    print(f'轨迹id数{len(trj_idxs)}  轨迹数： {len(gps_trips)}  特征数: {len(feature)}  字典大小：{len(node_feature_dict.keys())} {len(node_names)}')
-    # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
+    # if os.path.exists(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl'):
+    #     with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'rb') as f:
+    #         obj = pickle.loads(f.read())
+    #         trj_idxs, node_names_trjId_dict = obj['trj_idxs'], obj['node_names_trjId_dict']
+    # else:
+    trj_idxs, node_names_trjId_dict = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points, region)
+    # with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'wb') as f:
+    #     picklestring = pickle.dumps({
+    #         'trj_idxs': trj_idxs,
+    #         'node_names_trjId_dict': node_names_trjId_dict
+    #     })
+    #     f.write(picklestring)
+    #     f.close()
+    print('get_trj_ids_by_force_node')
 
-    # ============== GCC 社区发现代码 ===============
+    if os.path.isfile(args.best_model):
+        print("=> loading best_model '{}'".format(args.best_model))
+        best_model = torch.load(args.best_model)
+
+    node_names_trjFeats_dict = {}  # 节点名 -> 包含的轨迹特征数组的 map
+    trjId_node_name_dict = {}  # 轨迹ID -> 所在的节点名的 map
+    node_names_trj_dict = {}  # 节点名 -> gps 轨迹数组的 map
+    for node_name in node_names_trjId_dict:
+        node_trj_idxs = node_names_trjId_dict[node_name]
+        for trj_id in node_trj_idxs:
+            trjId_node_name_dict[trj_id] = node_name
+
+    trj_idxs = list(trjId_node_name_dict.keys())  # 所有轨迹id, trjId 的形式为 {天}_{当天的轨迹id}，这是由于每新的一天，轨迹id都从0开始算
+    print('-----------------<>>> trj_idxs', trj_idxs)
+    gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
+
+    print('draw_cluster_in_trj_view======================')
+    draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
+    trj_feats = run_model2(args, gps_trips, best_model, trj_region)  # 特征数组，顺序与 trj_idxs 对应
+    print(f'轨迹id数= {len(trj_idxs)}, 轨迹数 = {len(gps_trips)}, 特征数 = {len(trj_feats)}')
+
+    for i in range(len(trj_idxs)):
+        id = trj_idxs[i]
+        feat = trj_feats[i]
+        trip = gps_trips[i]
+        node_name = trjId_node_name_dict[id]
+        if node_name not in node_names_trjFeats_dict:
+            node_names_trjFeats_dict[node_name] = []
+            node_names_trj_dict[node_name] = []
+        node_names_trjFeats_dict[node_name].append(feat)  # 得到每个节点对应的其包含的特征们
+        node_names_trj_dict[node_name].append(trip)
+
+    total_num = 0
+    for name in node_names_trjFeats_dict:
+        total_num += len(node_names_trjFeats_dict[name])
+        # print(f"{name} 包含 {len(node_names_trjFeats_dict[name])} 条轨迹")
+    avg_num = total_num // len(node_names_trjFeats_dict.keys())
+
     adj_mat = get_adj_matrix(lg)  # 根据线图得到 csc稀疏矩阵类型的邻接矩阵
-    features, related_node_names = get_feature_list(lg, node_feature_dict)  # 根据线图节点顺序，整理一个节点向量数组，以及对应顺序的node name
-    tmp_trj_idxs = []
-    #  得到features对应顺序的 trjIds
-    for node_name in related_node_names:
-        tmp_trj_idxs.append(trjid_feature_dict[node_name])
+    features, related_node_names = get_feature_list(lg, node_names_trjFeats_dict, avg_num)  # 根据线图节点顺序，整理一个节点向量数组，以及对应顺序的node name
+
     print(f'线图节点个数：{len(lg.nodes())}, 向量个数：{len(features)}')
     print('向量长度', len(features[0]))
-    trj_labels = run(adj_mat, features)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
-    trj_labels = trj_labels.numpy().tolist()
-    print(list(trj_labels))
+
+    is_baseline = False
+
+    cluster_num = len(features) // 10
+    print('cluster_num ===> ', cluster_num)
+    tsne_points = []
     cluster_point_dict = {}
-    for i in range(len(trj_labels)):
-        label = trj_labels[i]
-        if label not in cluster_point_dict:
-            cluster_point_dict[label] = []
-        # 在线图中度为 0 的散点，视为噪声，从社区中排除
-        if get_degree_by_node_name(lg, node_names[i]) > 0:
-            cluster_point_dict[label].append(node_names[i])
-    print('实际社区个数: ', len(cluster_point_dict.keys()))
+    if is_baseline:
+        labels_dict, trj_labels = get_cluster_by_trj_feature(cluster_num, torch.from_numpy(features))
+        tsne_points = utils.DoTSNE_show(features, 2, trj_labels)
+        print('tsne_points', len(tsne_points))
+        # print('labels_dict', labels_dict)
+        node_name_cluster_dict = {}
+        for i in labels_dict:
+            label = labels_dict[i]
+            if label not in cluster_point_dict:
+                cluster_point_dict[label] = []
+            # 在线图中度为 0 的散点，视为噪声，从社区中排除
+            # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
+            cluster_point_dict[label].append(related_node_names[int(i)])
+            node_name_cluster_dict[related_node_names[int(i)]] = label
+        print('实际社区个数: ', len(cluster_point_dict.keys()))
+    else:
+        trj_labels = run(adj_mat, features, cluster_num)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
+        trj_labels = trj_labels.numpy().tolist()
+        node_name_cluster_dict = {}
+        for i in range(len(trj_labels)):
+            label = trj_labels[i]
+            if label not in cluster_point_dict:
+                cluster_point_dict[label] = []
+            # 在线图中度为 0 的散点，视为噪声，从社区中排除
+            # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
+            cluster_point_dict[label].append(related_node_names[i])
+            node_name_cluster_dict[related_node_names[i]] = label
+        print('实际社区个数: ', len(cluster_point_dict.keys()))
+    print(f'=========> feat len={len(features)}  nodename len={len(related_node_names)}  label len={len(trj_labels)}')
+    print(list(trj_labels))
     # dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
 
-    # draw_cluster_in_trj_view(trj_labels, gps_trips)
-    tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
-    print('tsne_points', tsne_points)
+    to_draw_trips_dict = {}
+    for label in cluster_point_dict:
+        to_draw_trips_dict[label] = []
+        for node_name in cluster_point_dict[label]:
+            to_draw_trips_dict[label].extend(node_names_trj_dict[node_name])
+    # print('to_draw_trips_dict', to_draw_trips_dict)
+    data_dict = draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, region)
+    with pd.ExcelWriter(f'./cluster_res/excel_sys/od_{cluster_num}_cluster_data.xlsx') as writer:
+        for cluster_id in data_dict:
+            data_frame = data_dict[cluster_id]
+            data_frame = pd.DataFrame(data_frame)
+            data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}', index=False)
 
-    # ============== GCC 社区发现代码 ===============
+    print(len(lg.nodes))
 
-    # ============== SA-Cluster 社区发现代码 ===============
-    # # 为 line graph 添加属性，目前属性是随意值 TODO：属性改成轨迹特征聚类后的簇id，聚合成的一个整数　value
-    # lg = update_graph_with_attr(lg, node_label_dict)
-    # # 对线图进行图聚类，得到社区发现
-    # point_cluster_dict, cluster_point_dict = get_cluster(lg, 7)
-    # print('社区发现结果：')
-    # print('point_cluster_dict', point_cluster_dict)
-    # print('cluster_point_dict', cluster_point_dict)
-    # #  将带属性的线图 networkx 对象存在全局缓存中
-    # cache.set('line_graph', lg, timeout=0)
-    # ============== 社区发现代码 ===============
-
-    return json.dumps({
+    return {
         'force_nodes': force_nodes,
         'force_edges': force_edges,
         'filtered_adj_dict': filtered_adj_dict,
@@ -633,9 +685,22 @@ def get_line_graph():
         'tsne_points': tsne_points,
         'trj_labels': trj_labels,  # 每个节点（OD对）的社区label，与 tsne_points 顺序对应
         'related_node_names': related_node_names,
-        'tmp_trj_idxs': tmp_trj_idxs,  # 与 tsne_points 顺序对应
+        'tmp_trj_idxs': related_node_names,  # 与 tsne_points 顺序对应,
+        'node_name_cluster_dict': node_name_cluster_dict
         # 'tid_trip_dict': tid_trip_dict,
-    })
+    }
+    # return json.dumps({
+    #     'force_nodes': force_nodes,
+    #     'force_edges': force_edges,
+    #     'filtered_adj_dict': filtered_adj_dict,
+    #     'cid_center_coord_dict': cid_center_coord_dict,
+    #     'community_group': cluster_point_dict,
+    #     'tsne_points': tsne_points,
+    #     'trj_labels': trj_labels,  # 每个节点（OD对）的社区label，与 tsne_points 顺序对应
+    #     'related_node_names': related_node_names,
+    #     'tmp_trj_idxs': tmp_trj_idxs,  # 与 tsne_points 顺序对应
+    #     # 'tid_trip_dict': tid_trip_dict,
+    # })
 
 
 @app.route('/getPoiInfoByPoint', methods=['post'])

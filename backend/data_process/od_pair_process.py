@@ -361,11 +361,14 @@ def get_trip_detail_by_id(trj_ids, month, start_day, end_day, start_hour, end_ho
     total_trips = get_trj_num_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['trips']
     trips = []
     ids = []
-    for id in trj_ids:
-        # if start_hour * 3600 < total_trips[id][2][2] < end_hour * 3600:
-        ids.append(id)
-        trips.append(total_trips[id])
-    return ids, trips
+    for tid in trj_ids:
+        day, day_index = decode_trjId(tid)
+        for trip in total_trips:
+            #  当轨迹的日期和当日的索引于 trjId 匹配，则是对应的轨迹
+            if trip[0][0] == day_index and trip[1][0] == day:
+                trips.append(trip)  # 去掉索引和日期，流下轨迹点序列
+                ids.append(tid)
+    return trj_ids, trips
 
 
 if __name__ == '__main__':
