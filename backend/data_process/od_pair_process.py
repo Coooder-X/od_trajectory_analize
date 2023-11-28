@@ -326,9 +326,19 @@ def get_trj_ids_by_force_node(force_nodes, part_cluster_point_dict, total_od_poi
                     trj_ids.append(int(d[3]))
                     if node['name'] not in node_names_trjId_dict:
                         node_names_trjId_dict[node['name']] = []
-                    node_names_trjId_dict[node['name']].append(int(d[3]))
+                    #   trjId 的形式为 {天}_{当天的轨迹id}，这是由于每新的一天，轨迹id都从0开始算
+                    node_names_trjId_dict[node['name']].append(encode_trjId(d[5], d[3]))
                     # 粗略的初版实现：只在一个OD对中取一条轨迹。后续改成，一个OD对中多条轨迹都加入，然后特征取平均
     return trj_ids, node_names_trjId_dict
+
+
+def encode_trjId(day, day_index):
+    return f'{int(day)}_{int(day_index)}'
+
+
+def decode_trjId(trjId):
+    day, day_index = trjId.split('_')
+    return int(day), int(day_index)
 
 
 def get_trips_by_ids(trj_ids, month, start_day, end_day):
@@ -337,9 +347,13 @@ def get_trips_by_ids(trj_ids, month, start_day, end_day):
     # tid_trip_dict = {}
     gps_trips = []
     for tid in trj_ids:
-        gps_trips.append(total_trips[tid][2:])
+        day, day_index = decode_trjId(tid)
+        for trip in total_trips:
+            #  当轨迹的日期和当日的索引于 trjId 匹配，则是对应的轨迹
+            if trip[0][0] == day_index and trip[1][0] == day:
+                gps_trips.append(trip[2:])  # 去掉索引和日期，流下轨迹点序列
+        # gps_trips.append(total_trips[tid][2:])
         # tid_trip_dict[tid] = total_trips[tid][2:]
-
     return gps_trips  # tid_trip_dict
 
 

@@ -5,6 +5,7 @@ import time
 import threading
 
 import numpy as np
+import pandas as pd
 import torch
 
 import utils
@@ -21,6 +22,8 @@ from t2vec import args
 from t2vec_graph import run_model2, get_cluster_by_trj_feature
 import networkx as nx
 
+exp3_log_name = 'exp3_log'
+exp3_log = []
 
 def Q(G, node_name_cluster_dict):
     """
@@ -29,41 +32,41 @@ def Q(G, node_name_cluster_dict):
     node_names = set(list(node_name_cluster_dict.keys()))
     m = len(G.edges())
     res = 0.0
-    # for a in G.nodes():
-    #     src, tgt = G.nodes[a]['name'].split('-')
-    #     a_name = f'{src}_{tgt}'
-    #     for b in G.nodes():
-    #         if a == b:
-    #             continue
-    #         src, tgt = G.nodes[b]['name'].split('-')
-    #         b_name = f'{src}_{tgt}'
-    #         Aab = 1 if (a, b, 0) in G.edges() else 0
-    #         ksy = 0
-    #         if a_name in node_names and b_name in node_names:
-    #             ksy = 1 if node_name_cluster_dict[a_name] == node_name_cluster_dict[b_name] else 0
-    #         # E = G.out_degree(a) * G.out_degree(b) / m
-    #         # E = G.degree(a) * G.degree(b) / (2 * m)
-    #         E = G.out_degree(a) * G.in_degree(b) / m
-    #         res += (Aab - E) * ksy / m
-    #         if (Aab - E) * ksy / m > 0:
-    #             print(f'Aab={Aab}, E={E}, ksy={ksy}, cur={(Aab - E) * ksy / m}')
-
-    labels = list(node_name_cluster_dict.values())
-    for cluster_id in labels:
-        ai = 0
-        eij = 0
-        for a in G.nodes():
-            src, tgt = G.nodes[a]['name'].split('-')
-            a_name = f'{src}_{tgt}'
-            ksy = 1 if node_name_cluster_dict[a_name] == cluster_id else 0
-            ai += (1 / m) * G.out_degree(a) * ksy
-            for b in G.nodes():
-                src, tgt = G.nodes[b]['name'].split('-')
-                b_name = f'{src}_{tgt}'
-                Aab = 1 if (a, b, 0) in G.edges() else 0
-                ksy = node_name_cluster_dict[a_name] == cluster_id and node_name_cluster_dict[b_name] == cluster_id
-                eij += (1 / m) * Aab * ksy
-        res += eij - ai ** 2
+    for a in G.nodes():
+        src, tgt = G.nodes[a]['name'].split('-')
+        a_name = f'{src}_{tgt}'
+        for b in G.nodes():
+            # if a == b:
+            #     continue
+            src, tgt = G.nodes[b]['name'].split('-')
+            b_name = f'{src}_{tgt}'
+            Aab = 1 if (a, b, 0) in G.edges() else 0
+            ksy = 0
+            if a_name in node_names and b_name in node_names:
+                ksy = 1 if node_name_cluster_dict[a_name] == node_name_cluster_dict[b_name] else 0
+            # E = G.out_degree(a) * G.out_degree(b) / m
+            # E = G.degree(a) * G.degree(b) / (2 * m)
+            E = G.out_degree(a) * G.in_degree(b) / m
+            res += (Aab - E) * ksy / m
+            if (Aab - E) * ksy / m > 0:
+                print(f'Aab={Aab}, E={E}, ksy={ksy}, cur={(Aab - E) * ksy / m}')
+    exp3_log.append(f'cluster_num {len(set(list(node_name_cluster_dict.values())))} Q = {res}')
+    # labels = list(node_name_cluster_dict.values())
+    # for cluster_id in labels:
+    #     ai = 0
+    #     eij = 0
+    #     for a in G.nodes():
+    #         src, tgt = G.nodes[a]['name'].split('-')
+    #         a_name = f'{src}_{tgt}'
+    #         ksy = 1 if node_name_cluster_dict[a_name] == cluster_id else 0
+    #         ai += (1 / m) * G.out_degree(a) * ksy
+    #         for b in G.nodes():
+    #             src, tgt = G.nodes[b]['name'].split('-')
+    #             b_name = f'{src}_{tgt}'
+    #             Aab = 1 if (a, b, 0) in G.edges() else 0
+    #             ksy = node_name_cluster_dict[a_name] == cluster_id and node_name_cluster_dict[b_name] == cluster_id
+    #             eij += (1 / m) * Aab * ksy
+    #     res += eij - ai ** 2
 
     return res
 
@@ -84,7 +87,7 @@ def CON(G, cluster_id, node_name_cluster_dict):
     fm = max(fm, 0.01)
     end = datetime.now()
     print('用时', end - start)
-    res = fz / (fz + vol_C)
+    res = fz / (fz + vol_C + 0.01)
     print(f'CON=({res})')
     return res
 
@@ -94,7 +97,7 @@ def vol(G, cluster_id, node_name_cluster_dict):
     for node in G.nodes():
         src, tgt = G.nodes[node]['name'].split('-')
         name = f'{src}_{tgt}'
-        if node_name_cluster_dict[name] == cluster_id:
+        if name in node_name_cluster_dict and node_name_cluster_dict[name] == cluster_id:
             res += G.out_degree(node)
     return res
 
@@ -108,6 +111,7 @@ def avg_CON(G, cluster_point_dict, node_name_cluster_dict):
         print(f'cluster: {cluster_id}')
         avg += CON(G, cluster_id, node_name_cluster_dict)
     avg /= len(cluster_point_dict.keys())
+    exp3_log.append(f'cluster_num {len(cluster_point_dict.keys())} avg Con = {avg}')
     return avg
 
 
@@ -165,7 +169,7 @@ def avg_TPR(G, cluster_point_dict):
 
 
 month = 5
-start_day, end_day = 2, 2
+start_day, end_day = 14, 14
 start_hour, end_hour = 8, 9
 
 def get_grid_split(region):
@@ -242,19 +246,19 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
 
     # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
     # node_label_dict = None
-    # if os.path.exists(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl'):
-    #     with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'rb') as f:
-    #         obj = pickle.loads(f.read())
-    #         trj_idxs, node_names_trjId_dict = obj['trj_idxs'], obj['node_names_trjId_dict']
-    # else:
-    trj_idxs, node_names_trjId_dict = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points, region)
-    with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'wb') as f:
-        picklestring = pickle.dumps({
-            'trj_idxs': trj_idxs,
-            'node_names_trjId_dict': node_names_trjId_dict
-        })
-        f.write(picklestring)
-        f.close()
+    if os.path.exists(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl'):
+        with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'rb') as f:
+            obj = pickle.loads(f.read())
+            trj_idxs, node_names_trjId_dict = obj['trj_idxs'], obj['node_names_trjId_dict']
+    else:
+        trj_idxs, node_names_trjId_dict = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points, region)
+        with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'wb') as f:
+            picklestring = pickle.dumps({
+                'trj_idxs': trj_idxs,
+                'node_names_trjId_dict': node_names_trjId_dict
+            })
+            f.write(picklestring)
+            f.close()
     print('get_trj_ids_by_force_node')
     # ----------- 简单聚合，每个OD对取一个轨迹的特征---------
     # tmp_trj_idx = []
@@ -284,12 +288,9 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
         for trj_id in node_trj_idxs:
             trjId_node_name_dict[trj_id] = node_name
 
-    trj_idxs = list(trjId_node_name_dict.keys())  # 所有轨迹id
+    trj_idxs = list(trjId_node_name_dict.keys())  # 所有轨迹id, trjId 的形式为 {天}_{当天的轨迹id}，这是由于每新的一天，轨迹id都从0开始算
     gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
-    for trip in gps_trips:
-        o, d = trip[0], trip[-1]
-        print('o在区域内', inregionS(region, o[0], o[1]))
-        print('d在区域内', inregionS(region, d[0], d[1]))
+
     print('draw_cluster_in_trj_view======================')
     draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
     trj_feats = run_model2(args, gps_trips, best_model, trj_region)    # 特征数组，顺序与 trj_idxs 对应
@@ -357,23 +358,42 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     print(f'线图节点个数：{len(lg.nodes())}, 向量个数：{len(features)}')
     print('向量长度', len(features[0]))
 
-    ######## 仅在做实验时需要这个 for 循环，否则不需要循环，执行一次即可
-    for cluster_num in [5, 10, 20, 30, 40]:
-    # for cluster_num in [5, 50]:
-        trj_labels = run(adj_mat, features, cluster_num)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
-        trj_labels = trj_labels.numpy().tolist()
-        print(list(trj_labels))
-        cluster_point_dict = {}
-        node_name_cluster_dict = {}
-        for i in range(len(trj_labels)):
-            label = trj_labels[i]
-            if label not in cluster_point_dict:
-                cluster_point_dict[label] = []
-            # 在线图中度为 0 的散点，视为噪声，从社区中排除
-            if get_degree_by_node_name(lg, related_node_names[i]) > 0:
+    is_baseline = False
+
+    ######## 仅在做实验时需要这个 for 循环，否则不需要循环，执行一次即可\
+    tsne_points = []
+    cluster_point_dict = {}
+    for cluster_num in [10, 20, 30, 40, 50]:
+        if is_baseline:
+            labels_dict, trj_labels = get_cluster_by_trj_feature(cluster_num, torch.from_numpy(features))
+            tsne_points = utils.DoTSNE_show(features, 2, trj_labels)
+            print('tsne_points', len(tsne_points))
+            # print('labels_dict', labels_dict)
+            node_name_cluster_dict = {}
+            for i in labels_dict:
+                label = labels_dict[i]
+                if label not in cluster_point_dict:
+                    cluster_point_dict[label] = []
+                # 在线图中度为 0 的散点，视为噪声，从社区中排除
+                # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
+                cluster_point_dict[label].append(related_node_names[int(i)])
+                node_name_cluster_dict[related_node_names[int(i)]] = label
+            print('实际社区个数: ', len(cluster_point_dict.keys()))
+        else:
+            trj_labels = run(adj_mat, features, cluster_num)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
+            trj_labels = trj_labels.numpy().tolist()
+            node_name_cluster_dict = {}
+            for i in range(len(trj_labels)):
+                label = trj_labels[i]
+                if label not in cluster_point_dict:
+                    cluster_point_dict[label] = []
+                # 在线图中度为 0 的散点，视为噪声，从社区中排除
+                # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
                 cluster_point_dict[label].append(related_node_names[i])
                 node_name_cluster_dict[related_node_names[i]] = label
-        print('实际社区个数: ', len(cluster_point_dict.keys()))
+            print('实际社区个数: ', len(cluster_point_dict.keys()))
+        print(f'=========> feat len={len(features)}  nodename len={len(related_node_names)}  label len={len(trj_labels)}')
+        print(list(trj_labels))
         # dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
 
         to_draw_trips_dict = {}
@@ -382,14 +402,35 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             for node_name in cluster_point_dict[label]:
                 to_draw_trips_dict[label].extend(node_names_trj_dict[node_name])
         # print('to_draw_trips_dict', to_draw_trips_dict)
-        draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, region)
-        tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
-        print('tsne_points', len(tsne_points))
+        data_dict = draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, region)
+        with pd.ExcelWriter(f'./cluster_res/excel/od_{cluster_num}_cluster_data.xlsx') as writer:
+            for cluster_id in data_dict:
+                data_frame = data_dict[cluster_id]
+                data_frame = pd.DataFrame(data_frame)
+                data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}', index=False)
+        # tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
         print(len(lg.nodes))
 
-        # print(f'====> 社区个数：{cluster_num}, Q = {Q(lg, node_name_cluster_dict)}')
+        # print(f'每个社区的节点个数：{[[i, len(cluster_point_dict[i])] for i in cluster_point_dict.keys()]}')
+        # node_name_lst = []
+        # for a in lg.nodes():
+        #     src, tgt = lg.nodes[a]['name'].split('-')
+        #     a_name = f'{src}_{tgt}'
+        #     node_name_lst.append(a_name)
+        # node_name_lst = sorted(node_name_lst)
+        # node_name_lst2 = sorted(list(node_name_cluster_dict.keys()))
+        # # print('图', node_name_lst)
+        # # print('国', node_name_lst2)
+
+
+
+        print(f'====> 社区个数：{cluster_num}, Q = {Q(lg, node_name_cluster_dict)}')
         # print(f'====> 社区个数：{cluster_num}, CON = {avg_CON(lg, cluster_point_dict, node_name_cluster_dict)}')
         # print(f'====> 社区个数：{cluster_num}, TPR = {avg_TPR(lg, cluster_point_dict)}')
+    f = open(f'{exp3_log_name}_{"baseline" if is_baseline else "our"}_Q.txt', 'w')
+    for log in exp3_log:
+        f.write(log + '\n')
+    f.close()
 
     return {
         'force_nodes': force_nodes,
@@ -419,6 +460,9 @@ if __name__ == '__main__':
     thread.start()
 
     od_region = get_region()
+    # cell_id_center_coord_dict = get_cell_id_center_coord_dict(od_region)
+    # for key in cell_id_center_coord_dict:
+    #     print(key, cell_id_center_coord_dict[key])
     with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
     # makeVocab(trj_region, h5_files)

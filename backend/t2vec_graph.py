@@ -245,16 +245,16 @@ def run_model(args, model, data, data_num):
 #         print()
 
 
-def get_cluster_by_trj_feature(args, feature):
-    centroids, inertia_start, inertia_end, n_iter, labels_dict, labels = get_cluster_centroid(args, feature)
-    return labels
+def get_cluster_by_trj_feature(clusterNum, feature):
+    centroids, inertia_start, inertia_end, n_iter, labels_dict, labels = get_cluster_centroid(clusterNum, feature)
+    return labels_dict, labels
 
 
-def get_cluster_centroid(args, feature):
+def get_cluster_centroid(clusterNum, feature):
     # feature = torch.tensor(feature)
     centroids, inertia_start, inertia_end, n_iter, \
     cluster_data_neighbors, labels_dict, labels\
-        = DoKMeansWithError(k=args.clusterNum,
+        = DoKMeansWithError(k=clusterNum,
         center=None, feature=feature.cpu().data)
 
     return centroids, inertia_start, inertia_end, n_iter, labels_dict, labels
@@ -276,7 +276,7 @@ def DoKMeansWithError(k=10, center=None, feature=None):
         inertia_start = 0
         # kmeans = KMeans(n_clusters=k, n_init=30, tol=1e-5, max_iter=10000).fit(data)
         # 根据簇数目做聚类
-        k = int(len(data) * 2 / 5)
+        # k = int(len(data) * 2 / 5)
         print('簇数目', k)
         kmeans = KMeans(n_clusters=k, random_state=0, init='k-means++').fit(data)  # 模拟数据用这个
     # else:
@@ -308,7 +308,6 @@ def DoKMeansWithError(k=10, center=None, feature=None):
         for data_id in data_ids:
             neighbor = np.array(data_ids)[np.random.randint(len(data_ids) / 2, len(data_ids), 3)]
             cluster_data_neighbors[data_id] = neighbor
-
     return centroids, inertia_start, inertia_end, n_iter, cluster_data_neighbors, labels_dict, labels
 
 

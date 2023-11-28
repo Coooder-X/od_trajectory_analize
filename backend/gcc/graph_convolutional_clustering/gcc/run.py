@@ -1,5 +1,6 @@
 import os
 
+import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib import collections as mc
 from tensorflow.python.util import deprecation
@@ -69,22 +70,44 @@ def draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, od_region):
     for label in to_draw_trips_dict:
         label_color_dict[label] = randomcolor()
 
+    total_data_dict = {}
+
     cell_id_center_coord_dict = get_cell_id_center_coord_dict(od_region)
     # fig = plt.figure(figsize=(20, 10))
     # ax = fig.subplots()
+    idx = 0
     for label in to_draw_trips_dict:
+
+        data_dict = {'line_name': [],
+                     'index': [],
+                     'lon': [],
+                     'lat': []}
+
         fig = plt.figure(figsize=(20, 10))
         ax = fig.subplots()
         gps_trips = to_draw_trips_dict[label]
         lines = []
-        for trip in gps_trips:
+        for (i, trip) in enumerate(gps_trips):
             line = []
             # for j in range(len(trip) - 1):
             head_cell_id = gps2cell(od_region, trip[0][0], trip[0][1])
             tail_cell_id = gps2cell(od_region, trip[-1][0], trip[-1][1])
-            print(f'===> cell id ={head_cell_id, tail_cell_id}')
+            # print(f'===> cell id ={head_cell_id, tail_cell_id}')
             line.append([cell_id_center_coord_dict[head_cell_id], cell_id_center_coord_dict[tail_cell_id]])
             lines.append(line)
+            # 添加线起点
+            idx += 1
+            data_dict['line_name'].append(f'line{i}')
+            data_dict['index'].append(idx)
+            data_dict['lon'].append(cell_id_center_coord_dict[head_cell_id][0])
+            data_dict['lat'].append(cell_id_center_coord_dict[head_cell_id][1])
+            # 添加线终点
+            idx += 1
+            data_dict['line_name'].append(f'line{i}')
+            data_dict['index'].append(idx)
+            data_dict['lon'].append(cell_id_center_coord_dict[tail_cell_id][0])
+            data_dict['lat'].append(cell_id_center_coord_dict[tail_cell_id][1])
+            # data_dict['index'].append(index)
         for index, line in enumerate(lines):
             color = label_color_dict[label]
             lc = mc.LineCollection(line, colors=color, linewidths=2)
@@ -97,8 +120,11 @@ def draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, od_region):
 
         ax.set_xlabel('lon')  # 画出坐标轴
         ax.set_ylabel('lat')
-        plt.savefig(f'trj_cluster_result{cluster_num}_社区{label}.png')
+        plt.savefig(f'./cluster_res/img/trj_cluster_result{cluster_num}_社区{label}.png')
         plt.close()
+
+        total_data_dict[label] = data_dict
+    return total_data_dict
 
 
 def run(adj, features, cluster_num):
