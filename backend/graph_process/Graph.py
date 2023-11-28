@@ -189,6 +189,14 @@ def aggregate_node_trj_feat(feat_lst, num):
     feat_mat = np.array(feat_mat)
     return np.average(feat_mat, axis=0)
     # feat_mat = []
+    # for feat in feat_lst:
+    #     feat_mat.extend(feat)
+    #     # print('trj len', len(feat))
+    # feat_mat = np.array(feat_mat)
+    # # print(feat_mat)
+    # # print('od len', len(feat_mat))
+    # return feat_mat
+    # feat_mat = []
     # for i in range(min(len(feat_lst), num)):
     #     feat_mat.append(feat_lst[i])
     # while(len(feat_mat) < num):

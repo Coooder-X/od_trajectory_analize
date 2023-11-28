@@ -47,6 +47,7 @@ class SpatialRegion:
         self.xstep = xstep
         self.ystep = ystep
         self.timestep = timestep
+        #  x对应经度，y对应纬度
         self.minx, self.miny = lonlat2meters(minlon, minlat)
         self.maxx, self.maxy = lonlat2meters(maxlon, maxlat)
         self.maxDis = math.sqrt(abs(self.minx - self.miny) ** 2 +
@@ -73,10 +74,12 @@ class SpatialRegion:
 
     def init_region_center(self):
         if self.use_grid:
-            for i in range(self.numx):
-                cur_lon = self.minx + i * self.xstep + self.xstep / 2
-                for j in range(self.numy):
-                    cur_lat = self.miny + j * self.ystep + self.ystep / 2
+            #  纬度
+            for j in range(self.numy):
+                cur_lat = self.miny + j * self.ystep + self.ystep / 2
+                #  经度
+                for i in range(self.numx):
+                    cur_lon = self.minx + i * self.xstep + self.xstep / 2
                     lon, lat = meters2lonlat(cur_lon, cur_lat)
                     self.centers.append([lon, lat])
 
