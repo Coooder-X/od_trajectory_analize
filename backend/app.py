@@ -636,7 +636,7 @@ def get_line_graph():
         # print('labels_dict', labels_dict)
         node_name_cluster_dict = {}
         for i in labels_dict:
-            label = labels_dict[i]
+            label = int(labels_dict[i])
             if label not in cluster_point_dict:
                 cluster_point_dict[label] = []
             # 在线图中度为 0 的散点，视为噪声，从社区中排除
@@ -644,9 +644,11 @@ def get_line_graph():
             cluster_point_dict[label].append(related_node_names[int(i)])
             node_name_cluster_dict[related_node_names[int(i)]] = label
         print('实际社区个数: ', len(cluster_point_dict.keys()))
+        trj_labels = trj_labels.tolist()
     else:
         trj_labels = run(adj_mat, features, cluster_num)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
         trj_labels = trj_labels.numpy().tolist()
+        tsne_points = utils.DoTSNE_show(features, 2, trj_labels)
         node_name_cluster_dict = {}
         for i in range(len(trj_labels)):
             label = trj_labels[i]
