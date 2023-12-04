@@ -198,11 +198,10 @@ def aggregate_node_trj_feat(feat_lst, num):
     # return feat_mat
     # feat_mat = []
     # for i in range(min(len(feat_lst), num)):
-    #     feat_mat.append(feat_lst[i])
+    #     feat_mat.extend(feat_lst[i])
     # while(len(feat_mat) < num):
-    #     feat_mat.append(np.zeros(feat_lst[0].shape))
+    #     feat_mat.extend(np.zeros(feat_lst[0].shape))
     #
-    # feat_mat = [np.array(feat) for feat in feat_mat]
     # feat_mat = np.array(feat_mat)
     # return feat_mat
 

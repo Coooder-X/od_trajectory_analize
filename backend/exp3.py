@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 
 import utils
+from cal_od import exp_od_pair_set, get_od_filter_by_day_and_hour, get_od_hot_cell, encode_od_point
 from data_process import od_pair_process
 from data_process.OD_area_graph import build_od_graph, fuse_fake_edge_into_linegraph, \
     get_line_graph_by_selected_cluster
@@ -83,12 +84,16 @@ def CON(G, cluster_id, node_name_cluster_dict):
             fz += 1
     vol_C = vol(G, cluster_id, node_name_cluster_dict)
     print(f'vol_C={vol_C}({cluster_id})')
-    fm = min(vol_C, 2 * m - vol_C)
-    fm = max(fm, 0.01)
+    fm = fz + vol_C
+    # fm = min(vol_C, m - vol_C)
+    if fm == 0 or fz == 0:
+        return -1
     end = datetime.now()
     print('用时', end - start)
-    res = fz / (fz + vol_C + 0.01)
-    print(f'CON=({res})')
+    print(f'分子={fz}， 分母={fm}')
+    # res = fz / (fz + vol_C + 0.01)
+    # print(f'CON=({res})')
+    res = fz / fm
     return res
 
 
@@ -98,19 +103,24 @@ def vol(G, cluster_id, node_name_cluster_dict):
         src, tgt = G.nodes[node]['name'].split('-')
         name = f'{src}_{tgt}'
         if name in node_name_cluster_dict and node_name_cluster_dict[name] == cluster_id:
-            res += G.out_degree(node)
+            res += G.degree(node)
     return res
 
 
 def avg_CON(G, cluster_point_dict, node_name_cluster_dict):
     avg = 0.0
-    i = 0
     print(len(cluster_point_dict.keys()))
+    ok_cluster_num = 0
     for cluster_id in cluster_point_dict:
-        i += 1
-        print(f'cluster: {cluster_id}')
-        avg += CON(G, cluster_id, node_name_cluster_dict)
-    avg /= len(cluster_point_dict.keys())
+        # if len(cluster_point_dict[cluster_id]) > 5:
+        cur_con = CON(G, cluster_id, node_name_cluster_dict)
+        if cur_con == -1:
+            continue
+        ok_cluster_num += 1
+        avg += cur_con
+        print(f'cluster: {cluster_id} cur_con = {cur_con}')
+
+    avg /= ok_cluster_num
     exp3_log.append(f'cluster_num {len(cluster_point_dict.keys())} avg Con = {avg}')
     return avg
 
@@ -168,11 +178,20 @@ def avg_TPR(G, cluster_point_dict):
     return avg
 
 
-month = 5
-start_day, end_day = 14, 14
-start_hour, end_hour = 8, 9
+def get_ok_cluster_num(cluster_point_dict):
+    ok_cluster_num = 0
+    for cluster_id in cluster_point_dict:
+        if len(cluster_point_dict[cluster_id]) > 5:
+            ok_cluster_num += 1
+    return ok_cluster_num
 
-def get_grid_split(region):
+
+month = 5
+start_day, end_day = 11, 12
+start_hour, end_hour = 18, 20
+# start_hour, end_hour = 8, 10
+
+def get_grid_split(region, od_pair_set, hot_od_gps_set):
     #   研究区域确定、网格划分、轨迹数据的时间确定
     start_time = datetime.now()
     res = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day)
@@ -183,6 +202,14 @@ def get_grid_split(region):
     res = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
     index_lst = res['index_lst']
     part_od_points = res['od_points']
+    tmp_index, tmp_od = [], []
+    print('++++++++++++++++++', part_od_points[0])
+    for i in range(len(part_od_points)):
+        if encode_od_point(part_od_points[i]) in hot_od_gps_set:
+            tmp_index.append(index_lst[i])
+            tmp_od.append(part_od_points[i])
+    part_od_points = tmp_od
+    index_lst = tmp_index
 
     part_od_points, index_lst = get_od_points_filter_by_region(region, part_od_points, index_lst)
     point_cluster_dict, cluster_point_dict = divide_od_into_grid(region, part_od_points, index_lst)
@@ -199,7 +226,7 @@ def get_grid_split(region):
     }
 
 
-def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, end_hour, out_adj_table, cluster_point_dict):
+def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, end_hour, out_adj_table, cluster_point_dict, exp_od_pair_set):
     with_space_dist = False
     # 计算线图，返回适用于 d3 的结构和邻接表 ===========================
     used_od_cells = set([1, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19, 21, 23, 25, 26, 27, 28, 29, 31, 32, 33, 35, 36, 37, 38, 39, 41, 42, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 89, 91, 93, 94, 95, 96, 99])
@@ -214,7 +241,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     # selected_cluster_ids = list(cid_center_coord_dict.keys())
     selected_cluster_ids = set(cid_center_coord_dict.keys())
     selected_cluster_ids = list(selected_cluster_ids.intersection(used_od_cells))
-    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids, selected_cluster_ids, out_adj_table)
+    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids, selected_cluster_ids, out_adj_table, exp_od_pair_set)
 
     # print('边 ', lg.edges())
     # print('点 ', lg.nodes())
@@ -229,20 +256,6 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     # total_od_points = cache.get('total_od_points')
     total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)['od_points']
     # cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
-
-    #  计算 OD 对之间的距离 ==================================
-    # edge_name_dist_map = get_odpair_space_similarity(selected_cluster_ids, cid_center_coord_dict, force_nodes)
-
-    #  将线图加入 fake 边，并给边添加距离，成为考虑 OD 对空间关系的线图 ===============================
-    # if with_space_dist:
-    # force_edges = fuse_fake_edge_into_linegraph(force_nodes, force_edges, edge_name_dist_map)
-    #
-    # print('完全线图-点数', len(force_nodes))
-    # print('完全线图-边数', len(force_edges))
-
-    # if not with_space_dist:
-    #     force_edges = aggregate_single_points(force_nodes, force_edges, filtered_adj_dict)
-    #     print('单独点聚合后-边数', len(force_edges))
 
     # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
     # node_label_dict = None
@@ -260,26 +273,13 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             f.write(picklestring)
             f.close()
     print('get_trj_ids_by_force_node')
-    # ----------- 简单聚合，每个OD对取一个轨迹的特征---------
-    # tmp_trj_idx = []
-    # tmp_node_names = []
-    # name_set = {}
-    # for i in range(len(node_names)):
-    #     if node_names[i] not in name_set:
-    #         tmp_trj_idx.append(trj_idxs[i])
-    #         tmp_node_names.append(node_names[i])
-    #         name_set[node_names[i]] = 1
-    # -------------------------------------------------
-    # trj_idxs, node_names = tmp_trj_idx, tmp_node_names
-    # print('按轨迹顺序排列的节点名的映射', node_names)
-    # tid_trip_dict = get_trips_by_ids(trj_idxs, month, start_day, end_day)
-    # gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
-    # print('=============> gps_trips', gps_trips)
+
     if os.path.isfile(args.best_model):
         print("=> loading best_model '{}'".format(args.best_model))
         best_model = torch.load(args.best_model)
 
-
+    print('trj len', len(trj_idxs))
+    print('node name len', len(node_names_trjId_dict.keys()))
     node_names_trjFeats_dict = {}   # 节点名 -> 包含的轨迹特征数组的 map
     trjId_node_name_dict = {}   # 轨迹ID -> 所在的节点名的 map
     node_names_trj_dict = {}    # 节点名 -> gps 轨迹数组的 map
@@ -313,59 +313,33 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
         # print(f"{name} 包含 {len(node_names_trjFeats_dict[name])} 条轨迹")
     avg_num = total_num // len(node_names_trjFeats_dict.keys())
 
-
-    # total_feats = []
-    # for node_name in node_names_trjId_dict:
-    #     node_trj_idxs = node_names_trjId_dict[node_name]
-    #     print(f'====> 节点{node_name}的轨迹数量为', len(node_trj_idxs))
-    #     node_gps_trips = get_trips_by_ids(node_trj_idxs, month, start_day, end_day)
-    #     print('gps trips ===>', node_gps_trips)
-    #     node_trj_feats = run_model2(args, node_gps_trips, best_model, trj_region)
-    #     node_names_trjFeats_dict[node_name] = node_trj_feats
-    #     total_feats.extend(node_trj_feats)
-    # labels = get_cluster_by_trj_feature(args, total_feats)
-
-
-    # gps_trips = list(tid_trip_dict.values())
-    # feature = run_model2(args, gps_trips)
-    # labels = get_cluster_by_trj_feature(args, feature)
-    # print('labels', labels)
-    # print('labels 数量', len(labels))
-    # print('labels 全部类别数量', len(list(set(labels))))
-    # print('labels 全部标签类别', list(set(labels)))
-    # node_label_dict = {}
-    # node_feature_dict = {}
-    # trjid_feature_dict = {}
-    # for i in range(len(labels)):
-    #     node_label_dict[node_names[i]] = labels[i]
-    # 节点名称（${cid1}_${cid2}）和对应OD对特征的映射关系
-    # for i in range(len(feature)):
-    #     node_feature_dict[node_names[i]] = feature[i]
-    #     trjid_feature_dict[node_names[i]] = trj_idxs[i]
-    # print(f'轨迹id数{len(trj_idxs)}  轨迹数： {len(gps_trips)}  特征数: {len(feature)}  字典大小：{len(node_feature_dict.keys())} {len(node_names)}')
-    # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
-
     # ============== GCC 社区发现代码 ===============
     adj_mat = get_adj_matrix(lg)  # 根据线图得到 csc稀疏矩阵类型的邻接矩阵
     features, related_node_names = get_feature_list(lg, node_names_trjFeats_dict, avg_num)  # 根据线图节点顺序，整理一个节点向量数组，以及对应顺序的node name
 
-    # print(f'=====================> related_node_names={related_node_names}')
-    # print(f'=====================> node_names_trj_dict={list(node_names_trj_dict.keys())}')
-    # tmp_node_idxs = []
-    #  得到features对应顺序的 节点名称 (这里 features 顺序就是节点顺序)
-    # for node_name in related_node_names:
-    #     tmp_node_idxs.append(trjid_feature_dict[node_name])
     print(f'线图节点个数：{len(lg.nodes())}, 向量个数：{len(features)}')
     print('向量长度', len(features[0]))
 
-    is_baseline = False
+    is_none_graph_baseline = False
+    is_none_feat_baseline = True
+
+    if is_none_feat_baseline is True:
+        shape = features[0].shape
+        # print(features[0])
+        features = []
+        for i in range(len(related_node_names)):
+            features.append(np.random.random(shape))
+            # features.append(np.zeros(shape))
+        features = np.array(features)
+        # print(features[0])
 
     ######## 仅在做实验时需要这个 for 循环，否则不需要循环，执行一次即可\
     tsne_points = []
     cluster_point_dict = {}
-    for cluster_num in [10, 20, 30, 40, 50]:
-        if is_baseline:
+    for cluster_num in [5, 10, 20, 30, 40, 50]:
+        if is_none_graph_baseline:
             labels_dict, trj_labels = get_cluster_by_trj_feature(cluster_num, torch.from_numpy(features))
+            # print('labels_dict==============t', labels_dict)
             tsne_points = utils.DoTSNE_show(features, 2, trj_labels)
             print('tsne_points', len(tsne_points))
             # print('labels_dict', labels_dict)
@@ -378,7 +352,8 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
                 # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
                 cluster_point_dict[label].append(related_node_names[int(i)])
                 node_name_cluster_dict[related_node_names[int(i)]] = label
-            print('实际社区个数: ', len(cluster_point_dict.keys()))
+            print('实际有效社区个数: ', get_ok_cluster_num(cluster_point_dict))
+            exp3_log.append(f'实际有效社区个数: {get_ok_cluster_num(cluster_point_dict)}')
         else:
             trj_labels = run(adj_mat, features, cluster_num)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
             trj_labels = trj_labels.numpy().tolist()
@@ -391,7 +366,8 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
                 # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
                 cluster_point_dict[label].append(related_node_names[i])
                 node_name_cluster_dict[related_node_names[i]] = label
-            print('实际社区个数: ', len(cluster_point_dict.keys()))
+            print('实际有效社区个数: ', get_ok_cluster_num(cluster_point_dict))
+            exp3_log.append(f'实际有效社区个数: {get_ok_cluster_num(cluster_point_dict)}')
         print(f'=========> feat len={len(features)}  nodename len={len(related_node_names)}  label len={len(trj_labels)}')
         print(list(trj_labels))
         # dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
@@ -401,33 +377,31 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             to_draw_trips_dict[label] = []
             for node_name in cluster_point_dict[label]:
                 to_draw_trips_dict[label].extend(node_names_trj_dict[node_name])
-        # print('to_draw_trips_dict', to_draw_trips_dict)
-        data_dict = draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, region)
-        with pd.ExcelWriter(f'./cluster_res/excel/od_{cluster_num}_cluster_data.xlsx') as writer:
+        print('to_draw_trips_dict', to_draw_trips_dict)
+        data_dict, od_dict = draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, region)
+        with pd.ExcelWriter(f'./cluster_res/excel/{start_day}-{end_day}-{start_hour}-{end_hour}-od_{cluster_num}_cluster_data.xlsx') as writer:
             for cluster_id in data_dict:
                 data_frame = data_dict[cluster_id]
                 data_frame = pd.DataFrame(data_frame)
                 data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}', index=False)
-        # tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
+                od_data_frame = od_dict[cluster_id]
+                od_data_frame = pd.DataFrame(od_data_frame)
+                od_data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}_od点', index=False)
+        tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
         print(len(lg.nodes))
 
-        # print(f'每个社区的节点个数：{[[i, len(cluster_point_dict[i])] for i in cluster_point_dict.keys()]}')
-        # node_name_lst = []
-        # for a in lg.nodes():
-        #     src, tgt = lg.nodes[a]['name'].split('-')
-        #     a_name = f'{src}_{tgt}'
-        #     node_name_lst.append(a_name)
-        # node_name_lst = sorted(node_name_lst)
-        # node_name_lst2 = sorted(list(node_name_cluster_dict.keys()))
-        # # print('图', node_name_lst)
-        # # print('国', node_name_lst2)
 
-
-
-        print(f'====> 社区个数：{cluster_num}, Q = {Q(lg, node_name_cluster_dict)}')
-        # print(f'====> 社区个数：{cluster_num}, CON = {avg_CON(lg, cluster_point_dict, node_name_cluster_dict)}')
+        # print(f'====> 社区个数：{cluster_num}, Q = {Q(lg, node_name_cluster_dict)}')
+        print(f'====> 社区个数：{cluster_num}, CON = {avg_CON(lg, cluster_point_dict, node_name_cluster_dict)}')
         # print(f'====> 社区个数：{cluster_num}, TPR = {avg_TPR(lg, cluster_point_dict)}')
-    f = open(f'{exp3_log_name}_{"baseline" if is_baseline else "our"}_Q.txt', 'w')
+
+    if is_none_graph_baseline:
+        file_name = f'{exp3_log_name}_none_graph_baseline_Q.txt'
+    elif is_none_feat_baseline:
+        file_name = f'{exp3_log_name}_none_feat_baseline_Q.txt'
+    else:
+        file_name = f'{exp3_log_name}_our_Q.txt'
+    f = open(file_name, 'w')
     for log in exp3_log:
         f.write(log + '\n')
     f.close()
@@ -466,7 +440,10 @@ if __name__ == '__main__':
     with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
     # makeVocab(trj_region, h5_files)
-    res = get_grid_split(od_region)
-    get_line_graph(od_region, trj_region, month, start_day, end_day, start_hour, end_hour, res['out_adj_table'], res['cluster_point_dict'])
+    total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, od_region)
+    # print(total_od_pairs[0:3])
+    od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, od_region, 1000, 0)
+    res = get_grid_split(od_region, od_pair_set, hot_od_gps_set)
+    get_line_graph(od_region, trj_region, month, start_day, end_day, start_hour, end_hour, res['out_adj_table'], res['cluster_point_dict'], od_pair_set)
 
 

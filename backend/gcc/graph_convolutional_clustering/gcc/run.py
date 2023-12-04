@@ -71,6 +71,7 @@ def draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, od_region):
         label_color_dict[label] = randomcolor()
 
     total_data_dict = {}
+    total_od_dict = {}
 
     cell_id_center_coord_dict = get_cell_id_center_coord_dict(od_region)
     # fig = plt.figure(figsize=(20, 10))
@@ -81,6 +82,8 @@ def draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, od_region):
         data_dict = {'line_name': [],
                      'index': [],
                      'lon': [],
+                     'lat': []}
+        od_dict = {'lon': [],
                      'lat': []}
 
         fig = plt.figure(figsize=(20, 10))
@@ -99,12 +102,16 @@ def draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, od_region):
             idx += 1
             data_dict['line_name'].append(f'line{i}')
             data_dict['index'].append(idx)
+            od_dict['lon'].append(trip[0][0])
+            od_dict['lat'].append(trip[0][1])
             data_dict['lon'].append(cell_id_center_coord_dict[head_cell_id][0])
             data_dict['lat'].append(cell_id_center_coord_dict[head_cell_id][1])
             # 添加线终点
             idx += 1
             data_dict['line_name'].append(f'line{i}')
             data_dict['index'].append(idx)
+            od_dict['lon'].append(trip[-1][0])
+            od_dict['lat'].append(trip[-1][1])
             data_dict['lon'].append(cell_id_center_coord_dict[tail_cell_id][0])
             data_dict['lat'].append(cell_id_center_coord_dict[tail_cell_id][1])
             # data_dict['index'].append(index)
@@ -124,7 +131,8 @@ def draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, od_region):
         plt.close()
 
         total_data_dict[label] = data_dict
-    return total_data_dict
+        total_od_dict[label] = od_dict
+    return total_data_dict, total_od_dict
 
 
 def run(adj, features, cluster_num):
