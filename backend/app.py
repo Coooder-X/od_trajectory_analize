@@ -285,7 +285,8 @@ def calTwoPointSpeed(p0, p1):
 @app.route('/getGridResult', methods=['get', 'post'])
 @cache.cached(timeout=0)
 def get_grid_result():
-    region = cache.get('region')
+    # region = cache.get('region')
+    region = get_region()
     month = int(request.args['month'])
     start_day, end_day = int(request.args['startDay']), int(request.args['endDay'])
     start_hour, end_hour = int(request.args['startHour']), int(request.args['endHour'])
@@ -455,8 +456,12 @@ def get_trj_detail():
     for trip in trips:
         od_gps_lst.append(trip[2])
         od_gps_lst.append(trip[-1])
-    poi_id_file_id_dict = cache.get('poi_id_file_id_dict')
-    kdtree = cache.get('kdtree')
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+        obj = pickle.loads(f.read())
+        poi_id_file_id_dict = obj['poi_id_file_id_dict']
+        kdtree = obj['kdtree']
+    # poi_id_file_id_dict = cache.get('poi_id_file_id_dict')
+    # kdtree = cache.get('kdtree')
     print('kdtree', kdtree)
     poi_info_lst = get_poi_info_lst_by_points(od_gps_lst, poi_id_file_id_dict, config_dict, kdtree, 300)
     print('poi_info_lst', poi_info_lst)
@@ -495,7 +500,8 @@ def get_trj_detail():
 
 @app.route('/getLineGraph', methods=['post'])
 def get_line_graph():
-    region = cache.get('region')
+    # region = cache.get('region')
+    region = get_region()
     data = request.get_json(silent=True)
     # print(data)
     month = int(data['month'])
@@ -564,19 +570,19 @@ def get_line_graph():
     # # node_label_dict = None
     # trj_idxs, node_names = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
     # ----------- 简单聚合，每个OD对取一个轨迹的特征---------
-    # if os.path.exists(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl'):
-    #     with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'rb') as f:
-    #         obj = pickle.loads(f.read())
-    #         trj_idxs, node_names_trjId_dict = obj['trj_idxs'], obj['node_names_trjId_dict']
-    # else:
-    trj_idxs, node_names_trjId_dict = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points, region)
-    # with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'wb') as f:
-    #     picklestring = pickle.dumps({
-    #         'trj_idxs': trj_idxs,
-    #         'node_names_trjId_dict': node_names_trjId_dict
-    #     })
-    #     f.write(picklestring)
-    #     f.close()
+    if os.path.exists(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl'):
+        with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'rb') as f:
+            obj = pickle.loads(f.read())
+            trj_idxs, node_names_trjId_dict = obj['trj_idxs'], obj['node_names_trjId_dict']
+    else:
+        trj_idxs, node_names_trjId_dict = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points, region)
+        with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'wb') as f:
+            picklestring = pickle.dumps({
+                'trj_idxs': trj_idxs,
+                'node_names_trjId_dict': node_names_trjId_dict
+            })
+            f.write(picklestring)
+            f.close()
     print('get_trj_ids_by_force_node')
 
     if os.path.isfile(args.best_model):
@@ -655,26 +661,26 @@ def get_line_graph():
             if label not in cluster_point_dict:
                 cluster_point_dict[label] = []
             # 在线图中度为 0 的散点，视为噪声，从社区中排除
-            # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
-            cluster_point_dict[label].append(related_node_names[i])
-            node_name_cluster_dict[related_node_names[i]] = label
+            if get_degree_by_node_name(lg, related_node_names[i]) > 0:
+                cluster_point_dict[label].append(related_node_names[i])
+                node_name_cluster_dict[related_node_names[i]] = label
         print('实际社区个数: ', len(cluster_point_dict.keys()))
     print(f'=========> feat len={len(features)}  nodename len={len(related_node_names)}  label len={len(trj_labels)}')
     print(list(trj_labels))
     # dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
 
-    to_draw_trips_dict = {}
-    for label in cluster_point_dict:
-        to_draw_trips_dict[label] = []
-        for node_name in cluster_point_dict[label]:
-            to_draw_trips_dict[label].extend(node_names_trj_dict[node_name])
+    # to_draw_trips_dict = {}
+    # for label in cluster_point_dict:
+    #     to_draw_trips_dict[label] = []
+    #     for node_name in cluster_point_dict[label]:
+    #         to_draw_trips_dict[label].extend(node_names_trj_dict[node_name])
     # print('to_draw_trips_dict', to_draw_trips_dict)
-    data_dict = draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, region)
-    with pd.ExcelWriter(f'./cluster_res/excel_sys/od_{cluster_num}_cluster_data.xlsx') as writer:
-        for cluster_id in data_dict:
-            data_frame = data_dict[cluster_id]
-            data_frame = pd.DataFrame(data_frame)
-            data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}', index=False)
+    # data_dict = draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, region)
+    # with pd.ExcelWriter(f'./cluster_res/excel_sys/od_{cluster_num}_cluster_data.xlsx') as writer:
+    #     for cluster_id in data_dict:
+    #         data_frame = data_dict[cluster_id]
+    #         data_frame = pd.DataFrame(data_frame)
+    #         data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}', index=False)
 
     print(len(lg.nodes))
 
@@ -711,8 +717,12 @@ def get_poi_info_by_point():
     data = request.get_json(silent=True)
     point_in_cluster, radius = data['point_in_cluster'], int(data['radius'])
 
-    poi_id_file_id_dict = cache.get('poi_id_file_id_dict')
-    kdtree = cache.get('kdtree')
+    # poi_id_file_id_dict = cache.get('poi_id_file_id_dict')
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+        obj = pickle.loads(f.read())
+        poi_id_file_id_dict = obj['poi_id_file_id_dict']
+        kdtree = obj['kdtree']
+    # kdtree = cache.get('kdtree')
     poi_type_dict = get_poi_type_filter_by_radius(point_in_cluster, poi_id_file_id_dict, config_dict, kdtree, radius)
     return json.dumps({
         'poi_type_dict': poi_type_dict,
@@ -788,6 +798,12 @@ def runserver():
 
 if __name__ == '__main__':
     # runserver()
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+        obj = pickle.loads(f.read())
+        file_id_poi_id_dict = obj['file_id_poi_id_dict']
+        poi_id_file_id_dict = obj['poi_id_file_id_dict']
+        kdtree = obj['kdtree']
+        cache.set('kdtree', kdtree)
     print('========>', os.getcwd())
     # test()
     region = get_region()
