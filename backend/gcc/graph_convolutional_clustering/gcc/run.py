@@ -135,6 +135,69 @@ def draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, od_region):
     return total_data_dict, total_od_dict
 
 
+def draw_cluster_in_trj_view_new_exp4(to_draw_od_dict, cluster_num, od_region):
+    label_color_dict = {}
+    for label in to_draw_od_dict:
+        label_color_dict[label] = randomcolor()
+
+    total_data_dict = {}
+
+    cell_id_center_coord_dict = get_cell_id_center_coord_dict(od_region)
+    # fig = plt.figure(figsize=(20, 10))
+    # ax = fig.subplots()
+    idx = 0
+    for label in to_draw_od_dict:
+
+        data_dict = {'line_name': [],
+                     'index': [],
+                     'lon': [],
+                     'lat': []}
+
+        fig = plt.figure(figsize=(20, 10))
+        ax = fig.subplots()
+        od_pairs = to_draw_od_dict[label]
+        lines = []
+        for (i, od_pair) in enumerate(od_pairs):
+            line = []
+            # for j in range(len(trip) - 1):
+            head_cell_id = od_pair[0]
+            tail_cell_id = od_pair[1]
+            # print(f'===> cell id ={head_cell_id, tail_cell_id}')
+            line.append([cell_id_center_coord_dict[head_cell_id], cell_id_center_coord_dict[tail_cell_id]])
+            lines.append(line)
+            # print('line ===========> ', line)
+            # 添加线起点
+            idx += 1
+            data_dict['line_name'].append(f'line{i}')
+            data_dict['index'].append(idx)
+            data_dict['lon'].append(cell_id_center_coord_dict[head_cell_id][0])
+            data_dict['lat'].append(cell_id_center_coord_dict[head_cell_id][1])
+            # 添加线终点
+            idx += 1
+            data_dict['line_name'].append(f'line{i}')
+            data_dict['index'].append(idx)
+            data_dict['lon'].append(cell_id_center_coord_dict[tail_cell_id][0])
+            data_dict['lat'].append(cell_id_center_coord_dict[tail_cell_id][1])
+            # data_dict['index'].append(index)
+        for index, line in enumerate(lines):
+            color = label_color_dict[label]
+            lc = mc.LineCollection(line, colors=color, linewidths=2)
+            ax.add_collection(lc)
+        for index, od_pair in enumerate(od_pairs):
+            # trip = np.array(trip)
+            color = label_color_dict[label]
+            ax.scatter(cell_id_center_coord_dict[od_pair[0]][0], cell_id_center_coord_dict[od_pair[0]][1], s=8, c=color, marker='o')
+            ax.scatter(cell_id_center_coord_dict[od_pair[1]][0], cell_id_center_coord_dict[od_pair[1]][1], s=8, c=color, marker='o')
+
+        ax.set_xlabel('lon')  # 画出坐标轴
+        ax.set_ylabel('lat')
+        plt.savefig(f'./cluster_res/exp4_img/trj_cluster_result{cluster_num}_社区{label}.png')
+        plt.close()
+
+        total_data_dict[label] = data_dict
+    return total_data_dict
+
+
 def run(adj, features, cluster_num):
     """
     @param adj: csc 类型的稀疏矩阵，表示线图的邻接矩阵，节点的顺序与 G.nodes() 一致，切和 features 的顺序对应相同的节点
@@ -147,7 +210,7 @@ def run(adj, features, cluster_num):
     else:
         n_classes = cluster_num
     # 在图神经网络中节点特征维度（被压缩后）(这个值最初在原项目中被设定为 n_classes 的值)
-    node_feat_dim = 500
+    node_feat_dim = min(500, len(features[0]))
     # 保存训练完的 W 矩阵的文件名
     model_W_file_name = 'gcc_W'
 

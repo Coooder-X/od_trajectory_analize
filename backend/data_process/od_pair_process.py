@@ -306,7 +306,7 @@ def trj_num_by_hour(month, start_day, end_day):
     return ret
 
 
-def get_trj_ids_by_force_node(force_nodes, part_cluster_point_dict, total_od_points, region):
+def get_trj_ids_by_force_node(force_nodes, part_cluster_point_dict, total_od_points, region=None):
     trj_ids = []
     node_names_trjId_dict = {}
     i = 0
