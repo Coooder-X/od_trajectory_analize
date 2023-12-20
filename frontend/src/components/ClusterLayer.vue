@@ -32,6 +32,7 @@ export default defineComponent({
     let colorTable = colorPool;
 
     let partOdPoints: ComputedRef<number[][]> = computed(() => getters.partOdPoints);
+    // let partOdPoints: Ref<number[][]> = ref([[120.1088, 30.2335], [120.1922, 30.3015]]);
     let pointClusterMap = computed(() => getters.pointClusterMap);
     let clusterPointMap = computed(() => getters.clusterPointMap);
     let partClusterPointMap = computed(() => getters.partClusterPointMap);
@@ -66,7 +67,7 @@ export default defineComponent({
       setBrushLayerVisible(mapMode.value.has(MapMode.SELECT));
     }, { deep: true }); //  watch 监听 Set 对象内容必须添加 deep: true，否则只会监听 Set 对象本身的变化，而不是它的元素的变化
 
-    watch([selectedODIdxs, selectedClusterIdxs],
+    watch([selectedODIdxs, selectedClusterIdxs, partOdPoints],
       debounce(() => {  //  节流，不然每次 brush 调用都存 store，性能非常差
         store.commit('setSelectedODIdxs', selectedODIdxs.value);
         store.commit('setSelectedClusterIdxs', selectedClusterIdxs.value);
@@ -86,8 +87,8 @@ export default defineComponent({
           endDay: dateScope.value[1] + 1,
           startHour: timeScope.value[0],
           endHour: timeScope.value[0],
-          // selectedClusterIdxsInBrush: selectedClusterIdxsInBrush.value,
-          // selectedClusterIdxs: selectedClusterIdxs.value,
+          selectedClusterIdxsInBrush: selectedClusterIdxsInBrush.value,
+          selectedClusterIdxs: selectedClusterIdxs.value,
           outAdjTable: adjTable,
           cluster_point_dict: clusterPointObj,
           withSpaceDist: withSpaceDist.value,
@@ -194,6 +195,9 @@ export default defineComponent({
       props.map.on("move", render);
       props.map.on("moveend", render);
     }
+
+    // initLayer();
+    // paintLayer(clusterLayerSvg.value, partOdPoints.value);
 
 
     return {
