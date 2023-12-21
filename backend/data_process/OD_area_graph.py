@@ -86,8 +86,9 @@ def get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_c
             # 如果起终点都不在地图选取框框内的，就过滤掉
             if cid not in selected_cluster_ids_in_brush and to_cid not in selected_cluster_ids_in_brush:
                 continue
-            if cid in out_adj_dict and to_cid in out_adj_dict[cid] and \
-                    (cid, to_cid) in exp_od_pair_set:
+            # if cid in out_adj_dict and to_cid in out_adj_dict[cid] and \
+            #         (cid, to_cid) in exp_od_pair_set:
+            if cid in out_adj_dict and to_cid in out_adj_dict[cid]:
                 filtered_adj_dict[cid].append(to_cid)
 
     cluster_list = []   # 存储所有 Point 类型的 簇，作为 graph 的节点集

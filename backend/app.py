@@ -14,6 +14,7 @@ import _thread
 import utils
 import os
 
+from cal_od import get_od_hot_cell, get_od_filter_by_day_and_hour
 from data_process.SpatialRegionTools import get_cell_id_center_coord_dict
 from data_process.spatial_grid_utils import test, get_region, divide_od_into_grid, get_od_points_filter_by_region
 from graph_process.Graph import get_adj_matrix, get_feature_list, get_degree_by_node_name, get_dag_from_community
@@ -515,7 +516,7 @@ def get_line_graph():
     cluster_point_dict = data['cluster_point_dict']
     with_space_dist = data['withSpaceDist']
 
-    with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
     # res = get_grid_split(region)
 
@@ -538,7 +539,9 @@ def get_line_graph():
     # selected_cluster_ids = cid_center_coord_dict.keys()
     selected_cluster_ids = list(set(selected_cluster_ids).intersection(used_od_cells))
     selected_cluster_ids_in_brush = list(set(selected_cluster_ids_in_brush).intersection(used_od_cells))
-    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_table)
+    total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, region)
+    od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, region, 1000, 0)
+    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_table, od_pair_set)
     #
     # #  计算簇中心坐标 ========================================
     tmp = {}
