@@ -125,7 +125,7 @@ def run_model2(args, gps_trips, best_model, trj_region):
         # 如果模型含dropout、batch normalization等层，需要该步骤
         m0.eval()
 
-        # with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
+        # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/region.pkl", 'rb') as file:
         #     region = pickle.loads(file.read())
         cell_trips = []
         for gps_trip in gps_trips:

@@ -321,7 +321,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     print('向量长度', len(features[0]))
 
     is_none_graph_baseline = False
-    is_none_feat_baseline = True
+    is_none_feat_baseline = False
 
     if is_none_feat_baseline is True:
         shape = features[0].shape
@@ -437,7 +437,7 @@ if __name__ == '__main__':
     # cell_id_center_coord_dict = get_cell_id_center_coord_dict(od_region)
     # for key in cell_id_center_coord_dict:
     #     print(key, cell_id_center_coord_dict[key])
-    with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
+    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
     # makeVocab(trj_region, h5_files)
     total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, od_region)

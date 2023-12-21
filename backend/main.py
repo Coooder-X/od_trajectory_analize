@@ -102,7 +102,7 @@ def write_h5(data):
 
 
 if __name__ == '__main__':
-    # with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
+    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/region.pkl", 'rb') as file:
     #     region = pickle.loads(file.read())
     total_datas = read_trip(None)
     print(total_datas[0:10])
