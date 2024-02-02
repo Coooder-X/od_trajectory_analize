@@ -64,11 +64,21 @@ def get_od_hot_cell(od_pairs, region, k, lower_bound):
     data = sorted(data, key=lambda x: x[1], reverse=True)[0:k]
     od_pair_set = set()
     cnt = 0
+    od_flow_dict = {}
+    for od_pair, num in od_pair_num_dict.items():
+        od_flow_dict[od_pair] = num
     for d in data:
         if d[1] > 1:
             cnt += 1
             od_pair_set.add(d[0])
             print(f'od: {d[0]}  流量：{d[1]}')
+
+    with open(f'./od_flow_dict.pkl', 'wb') as f:
+        picklestring = pickle.dumps({
+            'od_flow_dict': od_flow_dict,
+        })
+        f.write(picklestring)
+        f.close()
     print(f'OD对数量：{cnt}/{len(data)}')
     for od in data:
         o_cell, d_cell = od[0][0], od[0][1]

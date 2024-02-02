@@ -1,6 +1,7 @@
 import networkx as nx  # 导入networkx包
 import matplotlib.pyplot as plt
 import numpy as np
+import igraph as ig
 
 from graph_process.Point import Point
 
@@ -8,6 +9,7 @@ from graph_process.Point import Point
 class Graph:
     def __init__(self):
         self.G = nx.MultiDiGraph()
+        # self.G = nx.Graph()
         self.dict = {}  # 结点对应节点ID的字典
         self.nodeList = []
         self.multiEdgeDict = {}  # 存储旧图的重边的edge_feature，键为旧图的节点id构成的元组：(old_from_id, old_to_id)
@@ -80,10 +82,10 @@ class Graph:
             L.nodes[node]['name'] = str(self.dict[start].name) + '-' + str(self.dict[end].name)
             # print(self.multiEdgeDict[(node[0], node[1])])
             #  TODO: 看一下 self.multiEdgeDict[(node[0], node[1])] 的长度什么情况会是 0，为 0 是不是正常的
-            if len(self.multiEdgeDict[(node[0], node[1])]) > 0:
-                curEdge = self.multiEdgeDict[(node[0], node[1])][-1]
-                self.multiEdgeDict[(node[0], node[1])].pop()
-                L.nodes[node]['Lnode_feature'] = curEdge  # origin_G[node[0]][node[1]] # 原图边的信息作为线图的点信息加入。但原图可能有多条等效边，因此线图需要依次为等效点分配feat，这里还没处理
+            # if len(self.multiEdgeDict[(node[0], node[1])]) > 0:
+            #     curEdge = self.multiEdgeDict[(node[0], node[1])][-1]
+            #     self.multiEdgeDict[(node[0], node[1])].pop()
+            #     L.nodes[node]['Lnode_feature'] = curEdge  # origin_G[node[0]][node[1]] # 原图边的信息作为线图的点信息加入。但原图可能有多条等效边，因此线图需要依次为等效点分配feat，这里还没处理
 
         for edge in L.edges():  # like [((1, 3, 0), (3, 1, 0), 0), ((1, 3, 0), (3, 4, 0), 0)]，第3维恒是0
             # print('edge', edge) # like ((1, 3, 0), (3, 1, 0))
@@ -94,7 +96,7 @@ class Graph:
             # print('connectPoint', connectPoint)
             # print(G.edges[(st, end, 0)])
             # print('connectPoint', self.dict[connectPoint])
-            L.edges[(st, end, 0)]['Ledge_feature'] = self.dict[connectPoint].feature  # 'feat of origin point ' + str(connectPoint)
+            # L.edges[(st, end, 0)]['Ledge_feature'] = self.dict[connectPoint].feature  # 'feat of origin point ' + str(connectPoint)
 
         # print('line_graph', L.nodes.data())
         # print(L.edges.data())
@@ -230,6 +232,20 @@ def get_dag_from_community(cluster_point_dict: dict, lg_force_edge: list):
     print('dag_force_edge', dag_force_edge)
     print('dag_force_node', dag_force_node)
     return dag_force_node, dag_force_edge
+
+
+def networkx2igraph(graph, directed=True):
+    g = ig.Graph(directed=directed)
+    g = g.from_networkx(graph)
+    return g
+
+
+def igraph2networkx(graph, graphClass):
+    # g = graph.to_networkx(graph, graphClass)
+    # return g
+    edges = graph.get_edgelist()
+    g = graphClass(edges)
+    return g
 
 
 def main():
