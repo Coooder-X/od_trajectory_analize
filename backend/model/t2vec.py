@@ -72,7 +72,7 @@ parser.add_argument("-print_freq", type=int, default=40,
 parser.add_argument("-save_freq", type=int, default=40,
     help="Save frequency")
 
-parser.add_argument("-cuda", type=bool, default=True,
+parser.add_argument("-cuda", type=bool, default=False,
     help="True if we use GPU to train the model")
 
 parser.add_argument("-criterion_name", default="KLDIV",
