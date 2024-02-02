@@ -196,7 +196,7 @@ def DoTSNE_show(features, n_components, labels):
     from vis.trajectoryVIS import randomcolor
     # n_components 嵌入空间的维度
     nums = len(features)
-    features_embedded = TSNE(n_components=n_components, init='random', perplexity=10 if nums < 50 else nums / 7).fit_transform(features)
+    features_embedded = TSNE(n_components=n_components, init='pca', perplexity=40, learning_rate=300, n_iter=1500, early_exaggeration=2 if nums < 50 else nums / 7).fit_transform(features)
 
     color_dict = {}
     color_lst = []
