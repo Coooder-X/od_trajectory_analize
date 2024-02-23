@@ -166,9 +166,9 @@ def get_ok_cluster_num(cluster_point_dict):
     return ok_cluster_num
 
 
-consider_edge_weight = False
+consider_edge_weight = True
 use_line_graph = False
-use_igraph = True
+use_igraph = False
 
 
 def get_origin_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_dict,
@@ -451,8 +451,8 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     ######## 仅在做实验时需要这个 for 循环，否则不需要循环，执行一次即可\
     tsne_points = []
     cluster_point_dict = {}
-    for cluster_num in [10, 20, 30, 40, 50]:
-    # for cluster_num in [5, 5]:
+    # for cluster_num in [10, 20, 30, 40, 50]:
+    for cluster_num in [5, 5]:
         if is_none_graph_baseline:
             pass
             # labels_dict, trj_labels = get_cluster_by_trj_feature(cluster_num, torch.from_numpy(features))
@@ -474,21 +474,21 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
         else:
             weight = 'edge_feature' if consider_edge_weight is True else None
             # louvain --------------------------------------------------------------------
-            # communities = networkx.algorithms.community.louvain_partitions(g, weight=weight, resolution=0.5, threshold=1e-03, seed=30)
-            # print('=====> communities1=', communities)
-            # trj_labels = []
-            # for c in communities:
-            #     print('c ===', c)
-            #     trj_labels.append(c)
-            # print('trj==', trj_labels)
-            # communities = trj_labels[0]
-            # print('=====> communities2=', communities)
-            # node_name_cluster_dict = {}
-            # cluster_point_dict = {}
-            # for (i, cluster) in enumerate(communities):
-            #     cluster_point_dict[i] = list(cluster)
-            #     for cluster_id in cluster:
-            #         node_name_cluster_dict[cluster_id] = i
+            communities = nx.algorithms.community.louvain_partitions(g, weight=weight, resolution=0.7, threshold=1e-03, seed=30)
+            print('=====> communities1=', communities)
+            trj_labels = []
+            for c in communities:
+                print('c ===', c)
+                trj_labels.append(c)
+            print('trj==', trj_labels)
+            communities = trj_labels[0]
+            print('=====> communities2=', communities)
+            node_name_cluster_dict = {}
+            cluster_point_dict = {}
+            for (i, cluster) in enumerate(communities):
+                cluster_point_dict[i] = list(cluster)
+                for cluster_id in cluster:
+                    node_name_cluster_dict[cluster_id] = i
 
             # em --------------------------------------------------------------------------
             # communities = algorithms.em(g, cluster_num)
@@ -509,21 +509,21 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             #         node_name_cluster_dict[cluster_id] = i
 
             # community_edge_betweenness (igraph)  ------------------------------------------------------
-            com = g.community_edge_betweenness(clusters=cluster_num, directed=True, weights=None)
-            # com = g.community_leading_eigenvector(clusters=cluster_num, arpack_options=None, weights=None)
-            # print('com is ==============>', com)
-            # com = ig.GraphBase.community_edge_betweenness(g, 3, True)
-            print('com ===========>', com.as_clustering())
-            print('com ===========>', com)
-            communities = com.as_clustering()
-            trj_labels = communities
-            # communities = list(communities.communities)
-            node_name_cluster_dict = {}
-            cluster_point_dict = {}
-            for (i, cluster) in enumerate(communities):
-                cluster_point_dict[i] = list(cluster)
-                for cluster_id in cluster:
-                    node_name_cluster_dict[cluster_id] = i
+            # com = g.community_edge_betweenness(clusters=cluster_num, directed=True, weights=None)
+            # # com = g.community_leading_eigenvector(clusters=cluster_num, arpack_options=None, weights=None)
+            # # print('com is ==============>', com)
+            # # com = ig.GraphBase.community_edge_betweenness(g, 3, True)
+            # print('com ===========>', com.as_clustering())
+            # print('com ===========>', com)
+            # communities = com.as_clustering()
+            # trj_labels = communities
+            # # communities = list(communities.communities)
+            # node_name_cluster_dict = {}
+            # cluster_point_dict = {}
+            # for (i, cluster) in enumerate(communities):
+            #     cluster_point_dict[i] = list(cluster)
+            #     for cluster_id in cluster:
+            #         node_name_cluster_dict[cluster_id] = i
 
             # asyn_lpa_communities --------------------------------------------------------
             # communities = networkx.algorithms.community.asyn_lpa_communities(g, weight=weight, seed=None)
@@ -542,7 +542,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             #         node_name_cluster_dict[cluster_id] = i
 
             # greedy_modularity_communities --------------------------------------------------------
-            # communities = networkx.algorithms.community.greedy_modularity_communities(g, weight=weight, resolution=1, cutoff=1, best_n=None)
+            # communities = nx.algorithms.community.greedy_modularity_communities(g, weight=weight, resolution=1.72, cutoff=1.2, best_n=None)
             # print('=====> communities1=', communities)
             # trj_labels = []
             # for c in communities:
