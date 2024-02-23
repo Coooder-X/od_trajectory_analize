@@ -68,7 +68,7 @@ def get_od_hot_cell(od_pairs, region, k, lower_bound):
     for od_pair, num in od_pair_num_dict.items():
         od_flow_dict[od_pair] = num
     for d in data:
-        if d[1] > 1:
+        if d[1] > lower_bound:
             cnt += 1
             od_pair_set.add(d[0])
             print(f'od: {d[0]}  流量：{d[1]}')
@@ -87,9 +87,9 @@ def get_od_hot_cell(od_pairs, region, k, lower_bound):
         # print(f'od={o_cell, d_cell}')
     print('使用到的OD区域数', len(od_cell_set))
     print(od_cell_set)
-    for i in range(100):
-        if i not in od_cell_set:
-            print(i)
+    # for i in range(100):
+    #     if i not in od_cell_set:
+    #         print(i)
     return data, od_cell_set, od_pair_set, hot_od_gps_set
 
 
@@ -104,6 +104,8 @@ if __name__ == '__main__':
     # # print(total_od_pairs[0:3])
     # od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, od_region, 1000, 1)
     # print(od_pair_set)
+    tmp = get_od_filter_by_day_and_hour(5, 12, 14, 8, 10, od_region)
+    print('====> D1的OD对个数：', len(tmp))
     total_od_pairs = get_od_filter_by_day_and_hour(5, 1, 30, 0, 24, od_region)
     # print(total_od_pairs[0:3])
     od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, od_region, 1000, 0)
