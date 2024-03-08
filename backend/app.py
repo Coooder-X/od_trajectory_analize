@@ -605,7 +605,7 @@ def get_line_graph():
     gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
 
     print('draw_cluster_in_trj_view======================')
-    draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
+    # draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
     trj_feats = run_model2(args, gps_trips, best_model, trj_region)  # 特征数组，顺序与 trj_idxs 对应
     print(f'轨迹id数= {len(trj_idxs)}, 轨迹数 = {len(gps_trips)}, 特征数 = {len(trj_feats)}')
 

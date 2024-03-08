@@ -207,15 +207,15 @@ def DoTSNE_show(features, n_components, labels):
 
 
     points_2d = []
-    plt.figure(dpi=400)
+    # plt.figure(dpi=400)
     for i in range(len(features_embedded)):
     # for point in features_embedded:
         point = features_embedded[i]
         color = color_lst[i]
         points_2d.append([float(point[0]), float(point[1])])
-        plt.scatter(point[0], point[1], s=1, alpha=1, color=color)
-    plt.savefig(f'线图节点特征聚类tsne结果_cluster{len(color_dict.keys())}.png')
-    plt.close()
+    #     plt.scatter(point[0], point[1], s=1, alpha=1, color=color)
+    # plt.savefig(f'线图节点特征聚类tsne结果_cluster{len(color_dict.keys())}.png')
+    # plt.close()
 
     return points_2d
 
