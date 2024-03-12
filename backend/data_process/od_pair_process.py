@@ -8,6 +8,12 @@ import numpy as np
 
 from DT_graph_clustering import od_points_filter_by_hour
 from data_process.SpatialRegionTools import inregionS
+
+from database.db_funcs import query_od_points_by_day_and_hour
+
+from database.db_funcs import query_trips_by_day
+
+from database.db_funcs import query_trj_by_day_and_hour
 from hierarchical_clustering import get_trip_endpoints
 from poi_process.read_poi import lonlat2meters_coords
 from vis.trajectoryVIS import FileInfo
@@ -124,22 +130,27 @@ def get_odpair_space_similarity(cid_lst: list, cid_center_coord_dict, force_node
 #     return {'od_points': part_od_coord_points.tolist(), 'index_lst': index_lst[0].tolist()}
 
 def get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour=0, end_hour=24):
-    od_points = get_total_od_points_by_day(month, start_day, end_day)
-    res = []
-    index_list = []
-    for i in range(0, len(od_points), 2):
-        if start_hour * 3600 <= od_points[i][2] <= end_hour * 3600:  # and start_hour * 3600 <= od_points[i + 1][2] <= end_hour * 3600: todo: 这样部分跨时间的OD对会被拆分，有的地方可能会取到
-            res.append(od_points[i])
-            res.append(od_points[i + 1])
-            index_list.append(i)
-            index_list.append(i + 1)
-    print(f'{start_day}-{end_day} {start_hour}-{end_hour} OD点总数：', len(od_points))
-    return {'od_points': res, 'index_lst': index_list}
+    # od_points = get_total_od_points_by_day(month, start_day, end_day)
+    # res = []
+    # index_list = []
+    # for i in range(0, len(od_points), 2):
+    #     if start_hour * 3600 <= od_points[i][2] <= end_hour * 3600:  # and start_hour * 3600 <= od_points[i + 1][2] <= end_hour * 3600: todo: 这样部分跨时间的OD对会被拆分，有的地方可能会取到
+    #         res.append(od_points[i])
+    #         res.append(od_points[i + 1])
+    #         index_list.append(i)
+    #         index_list.append(i + 1)
+    # print(f'{start_day}-{end_day} {start_hour}-{end_hour} OD点总数：', len(od_points))
+    # return {'od_points': res, 'index_lst': index_list}
+    return query_od_points_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
 
 
 def get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour=0, end_hour=24):
-    trips = get_trj_num_filter_by_day(month, start_day, end_day)
-    part_od_coord_trips, index_list = trips_filter_by_hour(trips, start_hour, end_hour)
+    # trips = get_trj_num_filter_by_day(month, start_day, end_day)
+    # print(f'[WARN] trips {trips[0]}')
+    # trips = query_trips_by_day('trajectory_db', start_day, end_day + 1)
+    # part_od_coord_trips, index_list = trips_filter_by_hour(trips, start_hour, end_hour)
+    part_od_coord_trips, index_list = query_trj_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
+    print(f'[WARN] trips {part_od_coord_trips[0]}')
     return {'trips': part_od_coord_trips, 'index_lst': index_list}
 
 
@@ -280,9 +291,11 @@ def trj_num_by_hour(month, start_day, end_day):
             res = []
             for i in range(31):
                 count = [0 for x in range(24)]
-                trips = get_trj_num_filter_by_day(month, i + 1, i + 1)
+                # trips = get_trj_num_filter_by_day(month, i + 1, i + 1)
+                trips = query_trips_by_day('trajectory_db', i + 1, i + 2)
                 for trip in trips:
-                    count[int(trip[2][2] / 3600)] += 1
+                    # count[int(trip[2][2] / 3600)] += 1
+                    count[int(trip[3] / 3600)] += 1
                 res.append(count)
             for r in res:
                 for l in r:

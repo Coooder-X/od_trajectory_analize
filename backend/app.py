@@ -14,6 +14,7 @@ import _thread
 import utils
 import os
 
+from database.db_funcs import query_trj_num_by_day
 from cal_od import get_od_hot_cell, get_od_filter_by_day_and_hour
 from data_process.SpatialRegionTools import get_cell_id_center_coord_dict
 from data_process.spatial_grid_utils import test, get_region, divide_od_into_grid, get_od_points_filter_by_region
@@ -50,39 +51,13 @@ cache = Cache(app)
 @app.route('/')
 @cache.cached(timeout=0)
 def hello_world():  # put application's code here
-    # start_time = datetime.now()
-    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
-    #     obj = pickle.loads(f.read())
-    #     total_poi_coor = obj['total_poi_coor']
-    #     file_id_poi_id_dict = obj['file_id_poi_id_dict']
-    #     poi_id_file_id_dict = obj['poi_id_file_id_dict']
-    #     kdtree = obj['kdtree']
-    #     cache.set('file_id_poi_id_dict', file_id_poi_id_dict)
-    #     cache.set('poi_id_file_id_dict', poi_id_file_id_dict)
-    #     cache.set('total_poi_coor', total_poi_coor)
-    #     cache.set('kdtree', kdtree)
-    #     print('total_poi_coor', kdtree)
-    #     print('读取POI文件结束，用时: ', (datetime.now() - start_time))
-    # start_time = datetime.now()
-    # total_poi_coor, file_id_poi_id_dict, poi_id_file_id_dict = getPOI_Coor(config_dict['poi_dir'])
-    # total_poi_coor = lonlat2meters_poi(total_poi_coor)
-    # kdtree = buildKDTree(total_poi_coor)
-    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
-    #     picklestring = pickle.dumps({
-    #         'total_poi_coor': total_poi_coor,
-    #         'file_id_poi_id_dict': file_id_poi_id_dict,
-    #         'poi_id_file_id_dict': poi_id_file_id_dict,
-    #         'kdtree': kdtree,
-    #     })
-    #     f.write(picklestring)
-    # print('写入文件结束，用时: ', (datetime.now() - start_time))
     return 'Hello World!'
 
 
-@app.route('/getTotalODPoints', methods=['get', 'post'])
-def get_total_od_points():
-    # return json.dumps(od_pair_process.get_hour_od_points())
-    return json.dumps(od_pair_process.get_total_od_points())
+# @app.route('/getTotalODPoints', methods=['get', 'post'])
+# def get_total_od_points():
+#     # return json.dumps(od_pair_process.get_hour_od_points())
+#     return json.dumps(od_pair_process.get_total_od_points())
 
 
 @app.route('/getODPointsFilterByHour', methods=['get', 'post'])
@@ -105,32 +80,32 @@ def get_od_points_filter_by_day_and_hour():
     return json.dumps({month: od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)})
 
 
-@app.route('/getTrjNumByDayAndHour', methods=['get'])
-def get_trj_num_by_day_and_hour():
-    month = request.args.get('month', 5, type=int)
-    start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
-                                               request.args.get('endDay', type=int), \
-                                               request.args.get('startHour', 0, type=int), \
-                                               request.args.get('endHour', 24, type=int)
-    print(start_day, end_day, start_hour, end_hour)
-    trj_num = len(od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips'])
-    print(trj_num)
-    return json.dumps({'trj_num': trj_num})
+# @app.route('/getTrjNumByDayAndHour', methods=['get'])
+# def get_trj_num_by_day_and_hour():
+#     month = request.args.get('month', 5, type=int)
+#     start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
+#                                                request.args.get('endDay', type=int), \
+#                                                request.args.get('startHour', 0, type=int), \
+#                                                request.args.get('endHour', 24, type=int)
+#     print(start_day, end_day, start_hour, end_hour)
+#     trj_num = len(od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips'])
+#     print(trj_num)
+#     return json.dumps({'trj_num': trj_num})
 
 
-@app.route('/getTrjTotalNumByDay', methods=['get'])
-def get_total_trj_num_by_day():
-    month = request.args.get('month', 5, type=int)
-    start_day, end_day = request.args.get('startDay', 1, type=int), request.args.get('endDay', 31, type=int)
-    print(start_day, end_day)
-    nums = []
-    for d in range(start_day, end_day + 1):
-        num = len(od_pair_process.get_trj_num_filter_by_day(month, d, d))
-        nums.append(num)
-    days = [d for d in range(start_day, end_day + 1)]
-    nums_dict = dict(zip(days, nums))
-    res = {month: nums_dict}
-    return json.dumps(res)
+# @app.route('/getTrjTotalNumByDay', methods=['get'])
+# def get_total_trj_num_by_day():
+#     month = request.args.get('month', 5, type=int)
+#     start_day, end_day = request.args.get('startDay', 1, type=int), request.args.get('endDay', 31, type=int)
+#     print(start_day, end_day)
+#     nums = []
+#     for d in range(start_day, end_day + 1):
+#         num = len(od_pair_process.get_trj_num_filter_by_day(month, d, d))
+#         nums.append(num)
+#     days = [d for d in range(start_day, end_day + 1)]
+#     nums_dict = dict(zip(days, nums))
+#     res = {month: nums_dict}
+#     return json.dumps(res)
 
 
 @app.route('/getTrjTotalNumByMonth', methods=['get'])
@@ -141,7 +116,8 @@ def get_total_trj_num_by_Month():
         with open(data_path, "w") as f:
             res = []
             for d in range(31):
-                num = len(od_pair_process.get_trj_num_filter_by_day(month, d + 1, d + 1))
+                # num = len(od_pair_process.get_trj_num_filter_by_day(month, d + 1, d + 1))
+                num = query_trj_num_by_day(month, d + 1)
                 res.append(num)
             for r in res:
                 f.write(str(r))
@@ -200,27 +176,27 @@ def get_trj_num_by_od():
     return res
 
 
-@app.route('/getTripsById', methods=['post'])
-def get_trips_by_id():
-    data = request.get_json(silent=True)
-    month = int(data['month'])
-    start_day, end_day, start_hour, end_hour = [int(data['startDay']),
-                                                int(data['endDay']),
-                                                int(data['startHour']),
-                                                int(data['endHour'])]
-    trj_ids = data['trjIdList']
-    print(start_day, end_day, start_hour, end_hour, trj_ids)
-    total_trips = od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips']
-
-    tid_trip_dict = {}
-    for tid in trj_ids:
-        tid_trip_dict[tid] = total_trips[tid][3:]
-
-    return json.dumps(
-        {
-            'tid_trip_dict': tid_trip_dict,
-        }
-    )
+# @app.route('/getTripsById', methods=['post'])
+# def get_trips_by_id():
+#     data = request.get_json(silent=True)
+#     month = int(data['month'])
+#     start_day, end_day, start_hour, end_hour = [int(data['startDay']),
+#                                                 int(data['endDay']),
+#                                                 int(data['startHour']),
+#                                                 int(data['endHour'])]
+#     trj_ids = data['trjIdList']
+#     print(start_day, end_day, start_hour, end_hour, trj_ids)
+#     total_trips = od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips']
+#
+#     tid_trip_dict = {}
+#     for tid in trj_ids:
+#         tid_trip_dict[tid] = total_trips[tid][3:]
+#
+#     return json.dumps(
+#         {
+#             'tid_trip_dict': tid_trip_dict,
+#         }
+#     )
 
 
 @app.route('/calSpeed', methods=['get'])
