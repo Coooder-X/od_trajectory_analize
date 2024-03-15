@@ -7,6 +7,7 @@ import numpy as np
 
 import pandas as pd
 
+from global_param import project_father_path
 from cal_od import get_od_filter_by_day_and_hour, get_od_hot_cell
 from data_process.SpatialRegionTools import gps2cell
 from data_process.spatial_grid_utils import get_region
@@ -139,7 +140,7 @@ def create_grid_od(hot_od_cell_set, od_limit):
     data['time'] = np.nan
     df = pd.DataFrame(data)
     print('begin writing file')
-    file_name = '/home/zhengxuan.lin/project/Bigscity-LibCity/raw_data/NYC_TOD/NYC_TOD_' + str(od_limit) + '.gridod'
+    file_name = f'{project_father_path}Bigscity-LibCity/raw_data/NYC_TOD/NYC_TOD_' + str(od_limit) + '.gridod'
     df.to_csv(file_name, index=True)
     print('finish writing')
 

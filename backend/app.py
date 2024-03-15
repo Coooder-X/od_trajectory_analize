@@ -437,7 +437,7 @@ def get_trj_detail():
     for trip in trips:
         od_gps_lst.append(trip[2])
         od_gps_lst.append(trip[-1])
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    with open("./data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         poi_id_file_id_dict = obj['poi_id_file_id_dict']
         kdtree = obj['kdtree']
@@ -496,7 +496,7 @@ def get_line_graph():
     cluster_point_dict = data['cluster_point_dict']
     with_space_dist = data['withSpaceDist']
 
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/region.pkl", 'rb') as file:
+    with open("./data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
     # res = get_grid_split(region)
 
@@ -705,7 +705,7 @@ def get_poi_info_by_point():
     point_in_cluster, radius = data['point_in_cluster'], int(data['radius'])
 
     # poi_id_file_id_dict = cache.get('poi_id_file_id_dict')
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    with open("./data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         poi_id_file_id_dict = obj['poi_id_file_id_dict']
         kdtree = obj['kdtree']
@@ -719,7 +719,7 @@ def get_poi_info_by_point():
 @app.route('/getGccDataVis', methods=['get'])
 def get_gcc_data_vis():
     dataset = ['cora', 'citeseer', 'pubmed', 'wiki']
-    data = sio.loadmat(os.path.join('/home/zhengxuan.lin/project/od_trajectory_analize/backend/datasetVis/', f'{dataset[2]}.mat'))
+    data = sio.loadmat(os.path.join('./datasetVis/', f'{dataset[2]}.mat'))
     print(data.keys())
     adj = data['W']
     adj = adj.astype(float)
@@ -744,9 +744,9 @@ def get_gcc_data_vis():
     print(f'node num: {len(force_nodes)}', f'edge num: {len(force_edges)}')
 
     G = []
-    if os.path.exists('/home/zhengxuan.lin/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl'):
+    if os.path.exists('./gcc/graph_convolutional_clustering/data/gcc_G.pkl'):
         print('exists trained G')
-        with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl", 'rb') as f:
+        with open("./gcc/graph_convolutional_clustering/data/gcc_G.pkl", 'rb') as f:
             obj = pickle.loads(f.read())
             G = obj['G']
             G = G.numpy().tolist()
@@ -766,7 +766,7 @@ def get_gcc_data_vis():
 def runserver():
     print('-----------====================================================')
     start_time = datetime.now()
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    with open("./data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         total_poi_coor = obj['total_poi_coor']
         file_id_poi_id_dict = obj['file_id_poi_id_dict']
@@ -786,7 +786,7 @@ def runserver():
 if __name__ == '__main__':
     # runserver()
     print('是否使用数据库：', use_database)
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    with open("./data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         file_id_poi_id_dict = obj['file_id_poi_id_dict']
         poi_id_file_id_dict = obj['poi_id_file_id_dict']
