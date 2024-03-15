@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from database.test import get_db_connection, get_trips_by_day
 
@@ -46,7 +47,7 @@ def query_od_by_trj_day_and_hour(month, start_day, end_day, start_hour, end_hour
     db = get_db_connection(db_name)
     cursor = db.cursor()
     # 获取的是起始、结束时间都在给定时间范围内的轨迹！
-    sql = f"SELECT * FROM {table_name} " \
+    sql = f"SELECT point_list FROM {table_name} " \
           f"where date >= {start_day} and date < {end_day} " \
           f"and month={month} " \
           f"and start_time >= {start_hour * 3600} and end_time <= {end_hour * 3600};"
@@ -56,7 +57,7 @@ def query_od_by_trj_day_and_hour(month, start_day, end_day, start_hour, end_hour
     trips = cursor.fetchall()  # fetchall() 获取所有记录
     res = []
     for trip in trips:
-        point_list = json.loads(trip[5])
+        point_list = json.loads(trip[0])
         o, d = point_list[0], point_list[-1]
         if inregionS(region, o[0], o[1]) and inregionS(region, d[0], d[1]):
             res.append([o, d])
@@ -72,20 +73,23 @@ def query_od_points_by_day_and_hour(month, start_day, end_day, start_hour, end_h
     db = get_db_connection(db_name)
     cursor = db.cursor()
     # 只要 O 点的时间在范围内即可，D 点也加入进去
-    sql = f"SELECT * FROM {table_name} " \
+    sql = f"SELECT date, point_list FROM {table_name} " \
           f"where date >= {start_day} and date <= {end_day} " \
           f"and month={month} " \
           f"and start_time >= {start_hour * 3600} and start_time <= {end_hour * 3600};"
     print(f'[INFO] 执行 sql, 查询 {month} 月 [{start_day}, {end_day}] 日间，出发时间在 [{start_hour}, {end_hour}] 时内的轨迹: {sql}')
+    t = datetime.now()
     cursor.execute(sql)
 
     trips = cursor.fetchall()  # fetchall() 获取所有记录
+    print(f'[INFO] =====> 查询轨迹数据耗时 {datetime.now() - t}')
     res = []
     index_list = []
+    t = datetime.now()
     for index, trip in enumerate(trips):
-        point_list = json.loads(trip[5])
+        point_list = json.loads(trip[1])
         o, d = point_list[0], point_list[-1]
-        day = trip[2]
+        day = trip[0]
         lon, lat, time = o[0], o[1], o[2]
         # 此处的 OD 点数据结构沿用了旧的结构，与数据库中的不相同
         res.append([lon, lat, time, index, 0, day])
@@ -94,6 +98,7 @@ def query_od_points_by_day_and_hour(month, start_day, end_day, start_hour, end_h
         res.append([lon, lat, time, index, 1, day])
         index_list.append(index * 2 + 1)
 
+    print(f'[INFO] =====> 处理轨迹数据耗时 {datetime.now() - t}')
     print(f'[INFO] {start_day}-{end_day} {start_hour}-{end_hour} OD点总数：', len(res))
     return {'od_points': res, 'index_lst': index_list}
 

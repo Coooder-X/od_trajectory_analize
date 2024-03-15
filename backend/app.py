@@ -13,7 +13,9 @@ from flask_cors import CORS
 import _thread
 import utils
 import os
+import psutil
 
+from global_param import use_database, tmp_file_path
 from database.db_funcs import query_trj_num_by_day
 from cal_od import get_od_hot_cell, get_od_filter_by_day_and_hour
 from data_process.SpatialRegionTools import get_cell_id_center_coord_dict
@@ -111,13 +113,15 @@ def get_od_points_filter_by_day_and_hour():
 @app.route('/getTrjTotalNumByMonth', methods=['get'])
 def get_total_trj_num_by_Month():
     month = request.args.get('month', 5, type=int)
-    data_path = "/home/zhengxuan.lin/project/tmp/" + str(month).zfill(2) + "trj_num_by_month.txt"
+    data_path = tmp_file_path + str(month).zfill(2) + "trj_num_by_month.txt"
     if not os.path.exists(data_path):
         with open(data_path, "w") as f:
             res = []
             for d in range(31):
-                # num = len(od_pair_process.get_trj_num_filter_by_day(month, d + 1, d + 1))
-                num = query_trj_num_by_day(month, d + 1)
+                if not use_database:
+                    num = len(od_pair_process.get_trj_num_filter_by_day(month, d + 1, d + 1))
+                else:
+                    num = query_trj_num_by_day(month, d + 1)
                 res.append(num)
             for r in res:
                 f.write(str(r))
@@ -518,6 +522,7 @@ def get_line_graph():
     total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, region)
     od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, region, 1000, 0)
     force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_table, od_pair_set)
+    print(f'[INFO] (get line graph)当前进程内存使用 {psutil.Process(os.getpid()).memory_info().rss / (1024 ** 3)} G')
     #
     # #  计算簇中心坐标 ========================================
     tmp = {}
@@ -550,11 +555,13 @@ def get_line_graph():
     # trj_idxs, node_names = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
     # ----------- 简单聚合，每个OD对取一个轨迹的特征---------
     if os.path.exists(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl'):
+        print(f'f[WARN] 已存在 read_trjs 文件 read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl')
         with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'rb') as f:
             obj = pickle.loads(f.read())
             trj_idxs, node_names_trjId_dict = obj['trj_idxs'], obj['node_names_trjId_dict']
     else:
         trj_idxs, node_names_trjId_dict = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points, region)
+        print(f'[WARN] 写入 read_trjs 文件...')
         with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'wb') as f:
             picklestring = pickle.dumps({
                 'trj_idxs': trj_idxs,
@@ -644,6 +651,7 @@ def get_line_graph():
                 cluster_point_dict[label].append(related_node_names[i])
                 node_name_cluster_dict[related_node_names[i]] = label
         print('实际社区个数: ', len(cluster_point_dict.keys()))
+    print(f'[INFO] (get line graph)当前进程内存使用 {psutil.Process(os.getpid()).memory_info().rss / (1024 ** 3)} G, 总内存 {psutil.virtual_memory().total / 1024 / 1024 / 1024} G')
     print(f'=========> feat len={len(features)}  nodename len={len(related_node_names)}  label len={len(trj_labels)}')
     print(list(trj_labels))
     # dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
@@ -777,6 +785,7 @@ def runserver():
 
 if __name__ == '__main__':
     # runserver()
+    print('是否使用数据库：', use_database)
     with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         file_id_poi_id_dict = obj['file_id_poi_id_dict']

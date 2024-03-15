@@ -2,6 +2,7 @@ import os
 import pickle
 from datetime import datetime
 
+from global_param import use_database, tmp_file_path, project_father_path
 from database.db_funcs import query_od_by_trj_day_and_hour
 from data_process.SpatialRegionTools import get_cell_id_center_coord_dict, makeVocab, inregionS, gps2cell
 from data_process.spatial_grid_utils import get_region
@@ -16,29 +17,31 @@ exp_od_pair_set = {(47, 53), (55, 66), (47, 62), (48, 36), (48, 45), (55, 93), (
 
 def get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, region):
     # =============== 旧的实现 ==================
-    # res = []
-    # start_time = datetime.now()
-    # for i in range(start_day, end_day + 1):
-    #     data_target_path = "/home/zhengxuan.lin/project/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + "_trj.pkl"
-    #     data_source_path = "/home/zhengxuan.lin/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
-    #         2) + "日/2020" + str(month).zfill(2) + str(i).zfill(
-    #         2) + "_hz.h5"
-    #     if not os.path.exists(data_target_path):
-    #         pass
-    #     with open(data_target_path, 'rb') as file:
-    #         trjs = pickle.loads(file.read())
-    #         print(i, trjs[0])
-    #     print('读取文件结束，用时: ', (datetime.now() - start_time))
-    #     # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556
-    #     for (idx, trj) in enumerate(trjs):
-    #         t = trj[2:]
-    #         o, d = t[0], t[-1]
-    #         if inregionS(region, o[0], o[1]) and inregionS(region, d[0], d[1]) and \
-    #                 start_hour * 3600 <= o[2] <= end_hour * 3600 and\
-    #                 start_hour * 3600 <= d[2] <= end_hour * 3600:
-    #             res.append([o, d])   # trj[0] 是轨迹的id，trj[1]是日期，trj[2:]是轨迹点序列
+    if not use_database:
+        res = []
+        start_time = datetime.now()
+        for i in range(start_day, end_day + 1):
+            data_target_path = tmp_file_path + "2020" + str(month).zfill(2) + str(i).zfill(2) + "_trj.pkl"
+            data_source_path = project_father_path + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
+                2) + "日/2020" + str(month).zfill(2) + str(i).zfill(
+                2) + "_hz.h5"
+            if not os.path.exists(data_target_path):
+                pass
+            with open(data_target_path, 'rb') as file:
+                trjs = pickle.loads(file.read())
+                print(i, trjs[0])
+            print('读取文件结束，用时: ', (datetime.now() - start_time))
+            # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556
+            for (idx, trj) in enumerate(trjs):
+                t = trj[2:]
+                o, d = t[0], t[-1]
+                if inregionS(region, o[0], o[1]) and inregionS(region, d[0], d[1]) and \
+                        start_hour * 3600 <= o[2] <= end_hour * 3600 and\
+                        start_hour * 3600 <= d[2] <= end_hour * 3600:
+                    res.append([o, d])   # trj[0] 是轨迹的id，trj[1]是日期，trj[2:]是轨迹点序列
     # =============== 基于数据库的实现 ==================
-    res = query_od_by_trj_day_and_hour(month, start_day, end_day, start_hour, end_hour, region)
+    else:
+        res = query_od_by_trj_day_and_hour(month, start_day, end_day, start_hour, end_hour, region)
     return res
 
 

@@ -6,6 +6,8 @@ import mysql.connector
 import numpy as np
 from data_process.SpatialRegionTools import get_cell_id_center_coord_dict, makeVocab, inregionS
 
+from backend.global_param import project_father_path
+
 
 def get_db_connection(db_name=None):
     if db_name is None:
@@ -93,7 +95,7 @@ def create_trj_table(db_name):
                      )
     print('数据库创建成功，开始初始化轨迹数据...')
 
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/region.pkl", 'rb') as file:
+    with open("./data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
         print('是否考虑轨迹时间：', trj_region.needTime)
         needTime = True
@@ -102,7 +104,7 @@ def create_trj_table(db_name):
     for day in range(start_day, end_day + 1):
         print(f'正在插入第 {day} 天的轨迹数据...')
         # data_target_path = "/home/zhengxuan.lin/project/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + "_trj.pkl"
-        data_source_path = "/home/zhengxuan.lin/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(
+        data_source_path = project_father_path + str(month) + "月/" + str(month).zfill(2) + "月" + str(
             day).zfill(
             2) + "日/2020" + str(month).zfill(2) + str(day).zfill(
             2) + "_hz.h5"

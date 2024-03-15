@@ -14,6 +14,8 @@ from database.db_funcs import query_od_points_by_day_and_hour
 from database.db_funcs import query_trips_by_day
 
 from database.db_funcs import query_trj_by_day_and_hour
+
+from global_param import tmp_file_path, project_father_path, use_database
 from hierarchical_clustering import get_trip_endpoints
 from poi_process.read_poi import lonlat2meters_coords
 from vis.trajectoryVIS import FileInfo
@@ -32,7 +34,7 @@ def get_hour_od_points():
     start_time = datetime.now()
     #  D:/研究生/chinavis2023/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl
     # /home/zhengxuan.lin/project/od_trajectory_analize/backend/data/
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
+    with open("./data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
         od_points = pickle.loads(file.read())
     print('读取文件结束，用时: ', (datetime.now() - start_time))
     # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556
@@ -49,7 +51,7 @@ def get_hour_od_points():
 
 def get_total_od_points():
     start_time = datetime.now()
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
+    with open("./data/全天OD点经纬度(带轨迹id).pkl", 'rb') as file:
         od_points = pickle.loads(file.read())
     print('读取文件结束，用时: ', (datetime.now() - start_time))
     # print(len(od_points), od_points)  # 读取文件结束，用时:  0:00:00.004556
@@ -130,27 +132,31 @@ def get_odpair_space_similarity(cid_lst: list, cid_center_coord_dict, force_node
 #     return {'od_points': part_od_coord_points.tolist(), 'index_lst': index_lst[0].tolist()}
 
 def get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour=0, end_hour=24):
-    # od_points = get_total_od_points_by_day(month, start_day, end_day)
-    # res = []
-    # index_list = []
-    # for i in range(0, len(od_points), 2):
-    #     if start_hour * 3600 <= od_points[i][2] <= end_hour * 3600:  # and start_hour * 3600 <= od_points[i + 1][2] <= end_hour * 3600: todo: 这样部分跨时间的OD对会被拆分，有的地方可能会取到
-    #         res.append(od_points[i])
-    #         res.append(od_points[i + 1])
-    #         index_list.append(i)
-    #         index_list.append(i + 1)
-    # print(f'{start_day}-{end_day} {start_hour}-{end_hour} OD点总数：', len(od_points))
-    # return {'od_points': res, 'index_lst': index_list}
-    return query_od_points_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
+    if not use_database:
+        od_points = get_total_od_points_by_day(month, start_day, end_day)
+        res = []
+        index_list = []
+        for i in range(0, len(od_points), 2):
+            if start_hour * 3600 <= od_points[i][2] <= end_hour * 3600:  # and start_hour * 3600 <= od_points[i + 1][2] <= end_hour * 3600: todo: 这样部分跨时间的OD对会被拆分，有的地方可能会取到
+                res.append(od_points[i])
+                res.append(od_points[i + 1])
+                index_list.append(i)
+                index_list.append(i + 1)
+        print(f'{start_day}-{end_day} {start_hour}-{end_hour} OD点总数：', len(od_points))
+        return {'od_points': res, 'index_lst': index_list}
+    else:
+        return query_od_points_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
 
 
 def get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour=0, end_hour=24):
-    # trips = get_trj_num_filter_by_day(month, start_day, end_day)
-    # print(f'[WARN] trips {trips[0]}')
-    # trips = query_trips_by_day('trajectory_db', start_day, end_day + 1)
-    # part_od_coord_trips, index_list = trips_filter_by_hour(trips, start_hour, end_hour)
-    part_od_coord_trips, index_list = query_trj_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
-    print(f'[WARN] trips {part_od_coord_trips[0]}')
+    if not use_database:
+        trips = get_trj_num_filter_by_day(month, start_day, end_day)
+        print(f'[WARN] trips from pkl {trips[0]}')
+        part_od_coord_trips, index_list = trips_filter_by_hour(trips, start_hour, end_hour)
+    else:
+        # trips = query_trips_by_day('trajectory_db', start_day, end_day + 1)
+        part_od_coord_trips, index_list = query_trj_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)
+        print(f'[WARN] trips from mysql {part_od_coord_trips[0]}')
     return {'trips': part_od_coord_trips, 'index_lst': index_list}
 
 
@@ -169,8 +175,8 @@ def get_trj_num_filter_by_day(month, start_day, end_day):
     res = []
     start_time = datetime.now()
     for i in range(start_day, end_day + 1):
-        data_target_path = "/home/zhengxuan.lin/project/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + "_trj.pkl"
-        data_source_path = "/home/zhengxuan.lin/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
+        data_target_path = tmp_file_path + "2020" + str(month).zfill(2) + str(i).zfill(2) + "_trj.pkl"
+        data_source_path = project_father_path + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
             2) + "日/2020" + str(month).zfill(2) + str(i).zfill(
             2) + "_hz.h5"
         if not os.path.exists(data_target_path):
@@ -209,8 +215,8 @@ def get_total_od_points_by_day(month, start_day, end_day):
     res = []
     for i in range(start_day, end_day + 1):
         start_time = datetime.now()
-        data_target_path = "/home/zhengxuan.lin/project/tmp/" + "2020" + str(month).zfill(2) + str(i).zfill(2) + ".pkl"
-        data_source_path = "/home/zhengxuan.lin/project/" + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
+        data_target_path = tmp_file_path + "2020" + str(month).zfill(2) + str(i).zfill(2) + ".pkl"
+        data_source_path = project_father_path + str(month) + "月/" + str(month).zfill(2) + "月" + str(i).zfill(
             2) + "日/2020" + str(month).zfill(2) + str(i).zfill(
             2) + "_hz.h5"
         if not os.path.exists(data_target_path):
@@ -245,7 +251,7 @@ def get_endpoints(data_source_path, filter_step, day, use_cell=False):
 
 def get_trips_and_lines(data_source_path, filter_step, use_cell=False):
     print(os.getcwd())
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/region.pkl", 'rb') as file:
+    with open("./data/region.pkl", 'rb') as file:
         region = pickle.loads(file.read())
 
     # '../make_data/20200101_jianggan.h5'
@@ -285,17 +291,21 @@ def get_trips_and_lines(data_source_path, filter_step, use_cell=False):
 
 
 def trj_num_by_hour(month, start_day, end_day):
-    data_path = "/home/zhengxuan.lin/project/tmp/" + str(month).zfill(2) + "trj_num_by_hour.txt"
+    data_path = tmp_file_path + str(month).zfill(2) + "trj_num_by_hour.txt"
     if not os.path.exists(data_path):
         with open(data_path, "w") as f:
             res = []
             for i in range(31):
                 count = [0 for x in range(24)]
-                # trips = get_trj_num_filter_by_day(month, i + 1, i + 1)
-                trips = query_trips_by_day('trajectory_db', i + 1, i + 2)
+                if not use_database:
+                    trips = get_trj_num_filter_by_day(month, i + 1, i + 1)
+                else:
+                    trips = query_trips_by_day('trajectory_db', i + 1, i + 2)
                 for trip in trips:
-                    # count[int(trip[2][2] / 3600)] += 1
-                    count[int(trip[3] / 3600)] += 1
+                    if not use_database:
+                        count[int(trip[2][2] / 3600)] += 1
+                    else:
+                        count[int(trip[3] / 3600)] += 1
                 res.append(count)
             for r in res:
                 for l in r:
