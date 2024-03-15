@@ -86,7 +86,7 @@ export default defineComponent({
           startDay: dateScope.value[0] + 1,
           endDay: dateScope.value[1] + 1,
           startHour: timeScope.value[0],
-          endHour: timeScope.value[0],
+          endHour: timeScope.value[1],
           selectedClusterIdxsInBrush: selectedClusterIdxsInBrush.value,
           selectedClusterIdxs: selectedClusterIdxs.value,
           outAdjTable: adjTable,
