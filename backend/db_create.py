@@ -1,10 +1,10 @@
+from global_param import db_name
 from database.table_create import get_db_connection, init_database, create_trj_table, delete_trj_table, get_trips_by_day, create_od_table
 
 
 def init_trj_table():
-    delete_trj_table('trajectory_db')
+    delete_trj_table(db_name)
     get_db_connection()
-    db_name = 'trajectory_db'
     init_database(db_name)
     create_trj_table(db_name)
 
