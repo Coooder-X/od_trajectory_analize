@@ -5,6 +5,8 @@ from database.test import get_db_connection, get_trips_by_day
 
 from data_process.SpatialRegionTools import inregionS
 
+from global_param import db_name
+
 
 def query_trips_by_day(db_name, start_day, end_day):
     return get_trips_by_day(db_name, start_day, end_day)
@@ -14,7 +16,6 @@ def query_trj_by_day_and_hour(month, start_day, end_day, start_hour, end_hour):
     """
     给定时间范围，查询出发时间在该范围内轨迹。
     """
-    db_name = 'trajectory_db'
     table_name = 'trj_table'
     db = get_db_connection(db_name)
     cursor = db.cursor()
@@ -42,7 +43,6 @@ def query_od_by_trj_day_and_hour(month, start_day, end_day, start_hour, end_hour
     给定时间范围，查询出发、到达时间均在该范围内轨迹。根据查询到的轨迹，获取轨迹头尾的采样点，作为 OD 对。
     用于构建线图逻辑中，计算 total_od_pairs 的部分。
     """
-    db_name = 'trajectory_db'
     table_name = 'trj_table'
     db = get_db_connection(db_name)
     cursor = db.cursor()
@@ -68,7 +68,6 @@ def query_od_points_by_day_and_hour(month, start_day, end_day, start_hour, end_h
     """
     给定时间范围，查询出发时间在该范围内轨迹的 OD 点，返回的数据用于前端数据视图确定参数后，展示GIS视图中的OD点
     """
-    db_name = 'trajectory_db'
     table_name = 'trj_table'
     db = get_db_connection(db_name)
     cursor = db.cursor()
@@ -104,7 +103,6 @@ def query_od_points_by_day_and_hour(month, start_day, end_day, start_hour, end_h
 
 
 def query_trj_num_by_day(month, day):
-    db_name = 'trajectory_db'
     table_name = 'trj_table'
     db = get_db_connection(db_name)
     cursor = db.cursor()

@@ -15,7 +15,8 @@ from database.db_funcs import query_trips_by_day
 
 from database.db_funcs import query_trj_by_day_and_hour
 
-from global_param import tmp_file_path, project_father_path, use_database
+from global_param import tmp_file_path, project_father_path, use_database, db_name
+
 from hierarchical_clustering import get_trip_endpoints
 from poi_process.read_poi import lonlat2meters_coords
 from vis.trajectoryVIS import FileInfo
@@ -300,7 +301,7 @@ def trj_num_by_hour(month, start_day, end_day):
                 if not use_database:
                     trips = get_trj_num_filter_by_day(month, i + 1, i + 1)
                 else:
-                    trips = query_trips_by_day('trajectory_db', i + 1, i + 2)
+                    trips = query_trips_by_day(db_name, i + 1, i + 2)
                 for trip in trips:
                     if not use_database:
                         count[int(trip[2][2] / 3600)] += 1
