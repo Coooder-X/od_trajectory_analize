@@ -4,7 +4,7 @@
     <div class="trajectory-view-content">
       <div class="trj-table">
         <el-table :data="trjDetails" stripe style="width: 100%; height: 100%;">
-          <el-table-column prop="TrjId" label="TrjId" align="center"> </el-table-column>
+          <el-table-column prop="TrjId" label="Trajectory_ID" align="center"> </el-table-column>
           <el-table-column prop="startPoint" label="Start Point" width="175" align="center"> </el-table-column>
           <el-table-column prop="endPoint" label="End Point" width="175" align="center"> </el-table-column>
           <el-table-column prop="startTime" label="Start Time" align="center"> </el-table-column>

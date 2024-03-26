@@ -65,9 +65,9 @@
         <div class="data-info">
           <div v-if="tableData.length">
             <b>全局信息：</b> <br>
-            <div style="margin-top: 15px;"><b>{{ `${dateScope[0]+1}日-${dateScope[1]+1}日轨迹总数：${odPoints.length/2}` }}</b> <br></div>
+            <div style="margin-top: 15px;"><b>{{ `${dateScope[0]+1}日-${dateScope[1]+1}日轨迹总数：${Math.ceil(odPoints.length/2)}` }}</b> <br></div>
             <b></b>
-            <div style="margin-top: 15px;"><b>{{ `${timeScope[0]}时-${timeScope[1]}时轨迹总数：${partOdPoints.length/2}` }}</b> </div>
+            <div style="margin-top: 15px;"><b>{{ `${timeScope[0]}时-${timeScope[1]}时轨迹总数：${Math.ceil(partOdPoints.length/2)}` }}</b> </div>
             <b></b> <span></span>
           </div>
         </div>

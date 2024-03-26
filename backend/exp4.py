@@ -580,7 +580,7 @@ if __name__ == '__main__':
     # cell_id_center_coord_dict = get_cell_id_center_coord_dict(od_region)
     # for key in cell_id_center_coord_dict:
     #     print(key, cell_id_center_coord_dict[key])
-    with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
+    with open("./data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
     # makeVocab(trj_region, h5_files)
     # total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, od_region)

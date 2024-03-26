@@ -196,7 +196,7 @@ def DoTSNE_show(features, n_components, labels):
     from vis.trajectoryVIS import randomcolor
     # n_components 嵌入空间的维度
     nums = len(features)
-    features_embedded = TSNE(n_components=n_components, init='random', perplexity=10 if nums < 50 else nums / 7).fit_transform(features)
+    features_embedded = TSNE(n_components=n_components, init='pca', perplexity=40, learning_rate=300, n_iter=1500, early_exaggeration=2 if nums < 50 else nums / 7).fit_transform(features)
 
     color_dict = {}
     color_lst = []
@@ -207,15 +207,15 @@ def DoTSNE_show(features, n_components, labels):
 
 
     points_2d = []
-    plt.figure(dpi=400)
+    # plt.figure(dpi=400)
     for i in range(len(features_embedded)):
     # for point in features_embedded:
         point = features_embedded[i]
         color = color_lst[i]
         points_2d.append([float(point[0]), float(point[1])])
-        plt.scatter(point[0], point[1], s=1, alpha=1, color=color)
-    plt.savefig(f'线图节点特征聚类tsne结果_cluster{len(color_dict.keys())}.png')
-    plt.close()
+    #     plt.scatter(point[0], point[1], s=1, alpha=1, color=color)
+    # plt.savefig(f'线图节点特征聚类tsne结果_cluster{len(color_dict.keys())}.png')
+    # plt.close()
 
     return points_2d
 

@@ -187,9 +187,10 @@ def get_ok_cluster_num(cluster_point_dict):
 
 
 month = 5
-start_day, end_day = 11, 12
-start_hour, end_hour = 18, 20
-# start_hour, end_hour = 8, 10
+# start_day, end_day = 11, 12
+start_day, end_day = 12, 14
+# start_hour, end_hour = 18, 20
+start_hour, end_hour = 8, 10
 
 def get_grid_split(region, od_pair_set, hot_od_gps_set):
     #   研究区域确定、网格划分、轨迹数据的时间确定
@@ -230,6 +231,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     with_space_dist = False
     # 计算线图，返回适用于 d3 的结构和邻接表 ===========================
     used_od_cells = set([1, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19, 21, 23, 25, 26, 27, 28, 29, 31, 32, 33, 35, 36, 37, 38, 39, 41, 42, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 89, 91, 93, 94, 95, 96, 99])
+    # used_od_cells = set([x for x in range(1000)])  # set({1, 3, 10, 13, 14, 16, 17, 18, 19, 23, 33, 34, 35, 36, 37, 38, 39, 42, 44, 50, 51, 52, 53, 54, 55, 59, 60, 62, 70, 71, 72, 73, 74, 75, 76, 79, 80, 81, 82, 84, 91, 92, 93, 94, 95, 96, 97, 98, 99, 102, 104, 106, 107, 111, 112, 113, 114, 115, 116, 117, 118, 119, 122, 123, 124, 125, 126, 132, 133, 134, 135, 136, 137, 138, 139, 142, 143, 144, 146, 147, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 162, 163, 164, 168, 169, 170, 171, 172, 173, 174, 175, 176, 178, 179, 183, 184, 185, 186, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 240, 241, 242, 243, 244, 245, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 285, 288, 289, 290, 291, 292, 293, 294, 295, 296, 298, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 335, 337, 338, 339, 340, 342, 343, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 358, 360, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 373, 375, 376, 378, 379, 380, 381, 382, 383, 385, 386, 387, 388, 389, 390, 391, 392, 393, 395, 398, 399})
     tmp = {}
     for start in out_adj_table:
         if start in used_od_cells:
@@ -273,9 +275,10 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             f.write(picklestring)
             f.close()
     print('get_trj_ids_by_force_node')
-
+    print('=============>', args.best_model)
     if os.path.isfile(args.best_model):
         print("=> loading best_model '{}'".format(args.best_model))
+        # best_model = torch.load(args.best_model, map_location=torch.device('cpu'))
         best_model = torch.load(args.best_model)
 
     print('trj len', len(trj_idxs))
@@ -292,7 +295,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
 
     print('draw_cluster_in_trj_view======================')
-    draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
+    # draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
     trj_feats = run_model2(args, gps_trips, best_model, trj_region)    # 特征数组，顺序与 trj_idxs 对应
     print(f'轨迹id数= {len(trj_idxs)}, 轨迹数 = {len(gps_trips)}, 特征数 = {len(trj_feats)}')
 
@@ -336,11 +339,12 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     ######## 仅在做实验时需要这个 for 循环，否则不需要循环，执行一次即可\
     tsne_points = []
     cluster_point_dict = {}
-    for cluster_num in [5, 10, 20, 30, 40, 50]:
+    # for cluster_num in [10, 20, 30, 40, 50]:
+    for cluster_num in [5, 5, 5, 5, 5]:
         if is_none_graph_baseline:
             labels_dict, trj_labels = get_cluster_by_trj_feature(cluster_num, torch.from_numpy(features))
             # print('labels_dict==============t', labels_dict)
-            tsne_points = utils.DoTSNE_show(features, 2, trj_labels)
+            # tsne_points = utils.DoTSNE_show(features, 2, trj_labels)
             print('tsne_points', len(tsne_points))
             # print('labels_dict', labels_dict)
             node_name_cluster_dict = {}
@@ -372,22 +376,22 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
         print(list(trj_labels))
         # dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
 
-        to_draw_trips_dict = {}
-        for label in cluster_point_dict:
-            to_draw_trips_dict[label] = []
-            for node_name in cluster_point_dict[label]:
-                to_draw_trips_dict[label].extend(node_names_trj_dict[node_name])
-        print('to_draw_trips_dict', to_draw_trips_dict)
-        data_dict, od_dict = draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, region)
-        with pd.ExcelWriter(f'./cluster_res/excel/{start_day}-{end_day}-{start_hour}-{end_hour}-od_{cluster_num}_cluster_data.xlsx') as writer:
-            for cluster_id in data_dict:
-                data_frame = data_dict[cluster_id]
-                data_frame = pd.DataFrame(data_frame)
-                data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}', index=False)
-                od_data_frame = od_dict[cluster_id]
-                od_data_frame = pd.DataFrame(od_data_frame)
-                od_data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}_od点', index=False)
-        tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
+        # to_draw_trips_dict = {}
+        # for label in cluster_point_dict:
+        #     to_draw_trips_dict[label] = []
+        #     for node_name in cluster_point_dict[label]:
+        #         to_draw_trips_dict[label].extend(node_names_trj_dict[node_name])
+        # print('to_draw_trips_dict', to_draw_trips_dict)
+        # data_dict, od_dict = draw_cluster_in_trj_view_new(to_draw_trips_dict, cluster_num, region)
+        # with pd.ExcelWriter(f'./cluster_res/excel/{start_day}-{end_day}-{start_hour}-{end_hour}-od_{cluster_num}_cluster_data.xlsx') as writer:
+        #     for cluster_id in data_dict:
+        #         data_frame = data_dict[cluster_id]
+        #         data_frame = pd.DataFrame(data_frame)
+        #         data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}', index=False)
+        #         od_data_frame = od_dict[cluster_id]
+        #         od_data_frame = pd.DataFrame(od_data_frame)
+        #         od_data_frame.to_excel(writer, sheet_name=f'社区{cluster_id}_od点', index=False)
+        # tsne_points = utils.DoTSNE(features, 2, cluster_point_dict)
         print(len(lg.nodes))
 
 
@@ -437,12 +441,12 @@ if __name__ == '__main__':
     # cell_id_center_coord_dict = get_cell_id_center_coord_dict(od_region)
     # for key in cell_id_center_coord_dict:
     #     print(key, cell_id_center_coord_dict[key])
-    with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
+    with open("./data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
     # makeVocab(trj_region, h5_files)
     total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, od_region)
     # print(total_od_pairs[0:3])
-    od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, od_region, 1000, 0)
+    od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, od_region, 1000, 1)
     res = get_grid_split(od_region, od_pair_set, hot_od_gps_set)
     get_line_graph(od_region, trj_region, month, start_day, end_day, start_hour, end_hour, res['out_adj_table'], res['cluster_point_dict'], od_pair_set)
 

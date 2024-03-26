@@ -151,7 +151,7 @@ for dirpath,dirnames,filenames in os.walk(args.data):
         if (file_type == "h5"):
             args.knearestvocabs = os.path.join(dirpath, file)  # 文件全名
             break
-args.expId = 1
+args.expId = 4
 s = str.split(args.checkpoint, '.')
 args.checkpoint = s[0] + '_' + str(args.expId) + "." + s[1]
 s = str.split(args.best_model, '.')
@@ -169,7 +169,7 @@ args.device = args.devices[(args.expId - 1) % 8]
 args.save = True
 args.mode = 5
 args.criterion_name = 'NLL'  #"KLDIV_cluster"
-args.vocab_size = 8032
+args.vocab_size = 247415
 args.clusterNum = 80
 args.hasLabel = True
 args.embedding_size = 512 # 嵌入层输出 128

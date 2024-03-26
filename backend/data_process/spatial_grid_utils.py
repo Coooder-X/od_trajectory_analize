@@ -1,9 +1,10 @@
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 
 from SpatialRegionTools import SpatialRegion, inregionS, gps2cell
 from od_pair_process import get_od_points_filter_by_day_and_hour, \
-    get_trips_by_ids
+    get_trips_by_ids, encode_trjId
 from utils import lonlat2meters, meters2lonlat
 from vis.trajectoryVIS import randomcolor
 from matplotlib import collections as mc
@@ -136,6 +137,32 @@ def get_region():
     return region
 
 
+def get_gps_trj_excel(to_draw_trips):
+    idx = 0
+
+    data_dict = {'line_name': [],
+                 'index': [],
+                 'lon': [],
+                 'lat': []}
+
+    for (i, trip) in enumerate(to_draw_trips):
+        for j in range(len(trip) - 1):
+            # 添加线起点
+            idx += 1
+            data_dict['line_name'].append(f'line{i}')
+            data_dict['index'].append(idx)
+            data_dict['lon'].append(trip[j][0])
+            data_dict['lat'].append(trip[j][1])
+            # 添加线终点
+            idx += 1
+            data_dict['line_name'].append(f'line{i}')
+            data_dict['index'].append(idx)
+            data_dict['lon'].append(trip[j+1][0])
+            data_dict['lat'].append(trip[j+1][1])
+
+    return data_dict
+
+
 def test():
     region = get_region()
 
@@ -145,19 +172,25 @@ def test():
     for point in od_points:
         # print('point ===', point)
         point[3] = int(point[3])
-        if point[3] not in trjId_od_dict:
-            trjId_od_dict[point[3]] = []
-        if inregionS(region, point[0], point[1]):
-            trjId_od_dict[point[3]].append(point)
+        trjId = encode_trjId(point[5], point[3])
+        if trjId not in trjId_od_dict:
+            trjId_od_dict[trjId] = []
+        # if inregionS(region, point[0], point[1]):
+        trjId_od_dict[trjId].append(point)
 
     for trj_id in trjId_od_dict:
-        if len(trjId_od_dict[trj_id]) >= 2:
+        if len(trjId_od_dict[trj_id]) >= 2 and len(trj_ids) < 500:
             trj_ids.append(trj_id)
 
     print('len of trjId_od_dict ======>', len(trjId_od_dict.keys()))
     print('trip idx =======>', len(trj_ids), trj_ids)
     gps_trips = get_trips_by_ids(trj_ids=trj_ids, month=5, start_day=1, end_day=2)
     show_trips(gps_trips)
+
+    data_dict = get_gps_trj_excel(gps_trips)
+    with pd.ExcelWriter(f'./gps_trj_excel.xlsx') as writer:
+        data_frame = pd.DataFrame(data_dict)
+        data_frame.to_excel(writer, index=False)
 
 
 if __name__ == '__main__':

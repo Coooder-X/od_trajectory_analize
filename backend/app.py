@@ -13,7 +13,11 @@ from flask_cors import CORS
 import _thread
 import utils
 import os
+import psutil
 
+from global_param import use_database, tmp_file_path
+from database.db_funcs import query_trj_num_by_day
+from cal_od import get_od_hot_cell, get_od_filter_by_day_and_hour
 from data_process.SpatialRegionTools import get_cell_id_center_coord_dict
 from data_process.spatial_grid_utils import test, get_region, divide_od_into_grid, get_od_points_filter_by_region
 from graph_process.Graph import get_adj_matrix, get_feature_list, get_degree_by_node_name, get_dag_from_community
@@ -49,39 +53,13 @@ cache = Cache(app)
 @app.route('/')
 @cache.cached(timeout=0)
 def hello_world():  # put application's code here
-    # start_time = datetime.now()
-    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
-    #     obj = pickle.loads(f.read())
-    #     total_poi_coor = obj['total_poi_coor']
-    #     file_id_poi_id_dict = obj['file_id_poi_id_dict']
-    #     poi_id_file_id_dict = obj['poi_id_file_id_dict']
-    #     kdtree = obj['kdtree']
-    #     cache.set('file_id_poi_id_dict', file_id_poi_id_dict)
-    #     cache.set('poi_id_file_id_dict', poi_id_file_id_dict)
-    #     cache.set('total_poi_coor', total_poi_coor)
-    #     cache.set('kdtree', kdtree)
-    #     print('total_poi_coor', kdtree)
-    #     print('读取POI文件结束，用时: ', (datetime.now() - start_time))
-    # start_time = datetime.now()
-    # total_poi_coor, file_id_poi_id_dict, poi_id_file_id_dict = getPOI_Coor(config_dict['poi_dir'])
-    # total_poi_coor = lonlat2meters_poi(total_poi_coor)
-    # kdtree = buildKDTree(total_poi_coor)
-    # with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'wb') as f:
-    #     picklestring = pickle.dumps({
-    #         'total_poi_coor': total_poi_coor,
-    #         'file_id_poi_id_dict': file_id_poi_id_dict,
-    #         'poi_id_file_id_dict': poi_id_file_id_dict,
-    #         'kdtree': kdtree,
-    #     })
-    #     f.write(picklestring)
-    # print('写入文件结束，用时: ', (datetime.now() - start_time))
     return 'Hello World!'
 
 
-@app.route('/getTotalODPoints', methods=['get', 'post'])
-def get_total_od_points():
-    # return json.dumps(od_pair_process.get_hour_od_points())
-    return json.dumps(od_pair_process.get_total_od_points())
+# @app.route('/getTotalODPoints', methods=['get', 'post'])
+# def get_total_od_points():
+#     # return json.dumps(od_pair_process.get_hour_od_points())
+#     return json.dumps(od_pair_process.get_total_od_points())
 
 
 @app.route('/getODPointsFilterByHour', methods=['get', 'post'])
@@ -104,43 +82,46 @@ def get_od_points_filter_by_day_and_hour():
     return json.dumps({month: od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)})
 
 
-@app.route('/getTrjNumByDayAndHour', methods=['get'])
-def get_trj_num_by_day_and_hour():
-    month = request.args.get('month', 5, type=int)
-    start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
-                                               request.args.get('endDay', type=int), \
-                                               request.args.get('startHour', 0, type=int), \
-                                               request.args.get('endHour', 24, type=int)
-    print(start_day, end_day, start_hour, end_hour)
-    trj_num = len(od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips'])
-    print(trj_num)
-    return json.dumps({'trj_num': trj_num})
+# @app.route('/getTrjNumByDayAndHour', methods=['get'])
+# def get_trj_num_by_day_and_hour():
+#     month = request.args.get('month', 5, type=int)
+#     start_day, end_day, start_hour, end_hour = request.args.get('startDay', type=int), \
+#                                                request.args.get('endDay', type=int), \
+#                                                request.args.get('startHour', 0, type=int), \
+#                                                request.args.get('endHour', 24, type=int)
+#     print(start_day, end_day, start_hour, end_hour)
+#     trj_num = len(od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips'])
+#     print(trj_num)
+#     return json.dumps({'trj_num': trj_num})
 
 
-@app.route('/getTrjTotalNumByDay', methods=['get'])
-def get_total_trj_num_by_day():
-    month = request.args.get('month', 5, type=int)
-    start_day, end_day = request.args.get('startDay', 1, type=int), request.args.get('endDay', 31, type=int)
-    print(start_day, end_day)
-    nums = []
-    for d in range(start_day, end_day + 1):
-        num = len(od_pair_process.get_trj_num_filter_by_day(month, d, d))
-        nums.append(num)
-    days = [d for d in range(start_day, end_day + 1)]
-    nums_dict = dict(zip(days, nums))
-    res = {month: nums_dict}
-    return json.dumps(res)
+# @app.route('/getTrjTotalNumByDay', methods=['get'])
+# def get_total_trj_num_by_day():
+#     month = request.args.get('month', 5, type=int)
+#     start_day, end_day = request.args.get('startDay', 1, type=int), request.args.get('endDay', 31, type=int)
+#     print(start_day, end_day)
+#     nums = []
+#     for d in range(start_day, end_day + 1):
+#         num = len(od_pair_process.get_trj_num_filter_by_day(month, d, d))
+#         nums.append(num)
+#     days = [d for d in range(start_day, end_day + 1)]
+#     nums_dict = dict(zip(days, nums))
+#     res = {month: nums_dict}
+#     return json.dumps(res)
 
 
 @app.route('/getTrjTotalNumByMonth', methods=['get'])
 def get_total_trj_num_by_Month():
     month = request.args.get('month', 5, type=int)
-    data_path = "/home/zhengxuan.lin/project/tmp/" + str(month).zfill(2) + "trj_num_by_month.txt"
+    data_path = tmp_file_path + str(month).zfill(2) + "trj_num_by_month.txt"
     if not os.path.exists(data_path):
         with open(data_path, "w") as f:
             res = []
             for d in range(31):
-                num = len(od_pair_process.get_trj_num_filter_by_day(month, d + 1, d + 1))
+                if not use_database:
+                    num = len(od_pair_process.get_trj_num_filter_by_day(month, d + 1, d + 1))
+                else:
+                    num = query_trj_num_by_day(month, d + 1)
                 res.append(num)
             for r in res:
                 f.write(str(r))
@@ -199,27 +180,27 @@ def get_trj_num_by_od():
     return res
 
 
-@app.route('/getTripsById', methods=['post'])
-def get_trips_by_id():
-    data = request.get_json(silent=True)
-    month = int(data['month'])
-    start_day, end_day, start_hour, end_hour = [int(data['startDay']),
-                                                int(data['endDay']),
-                                                int(data['startHour']),
-                                                int(data['endHour'])]
-    trj_ids = data['trjIdList']
-    print(start_day, end_day, start_hour, end_hour, trj_ids)
-    total_trips = od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips']
-
-    tid_trip_dict = {}
-    for tid in trj_ids:
-        tid_trip_dict[tid] = total_trips[tid][3:]
-
-    return json.dumps(
-        {
-            'tid_trip_dict': tid_trip_dict,
-        }
-    )
+# @app.route('/getTripsById', methods=['post'])
+# def get_trips_by_id():
+#     data = request.get_json(silent=True)
+#     month = int(data['month'])
+#     start_day, end_day, start_hour, end_hour = [int(data['startDay']),
+#                                                 int(data['endDay']),
+#                                                 int(data['startHour']),
+#                                                 int(data['endHour'])]
+#     trj_ids = data['trjIdList']
+#     print(start_day, end_day, start_hour, end_hour, trj_ids)
+#     total_trips = od_pair_process.get_trj_num_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour)['trips']
+#
+#     tid_trip_dict = {}
+#     for tid in trj_ids:
+#         tid_trip_dict[tid] = total_trips[tid][3:]
+#
+#     return json.dumps(
+#         {
+#             'tid_trip_dict': tid_trip_dict,
+#         }
+#     )
 
 
 @app.route('/calSpeed', methods=['get'])
@@ -456,7 +437,7 @@ def get_trj_detail():
     for trip in trips:
         od_gps_lst.append(trip[2])
         od_gps_lst.append(trip[-1])
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    with open("./data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         poi_id_file_id_dict = obj['poi_id_file_id_dict']
         kdtree = obj['kdtree']
@@ -515,7 +496,7 @@ def get_line_graph():
     cluster_point_dict = data['cluster_point_dict']
     with_space_dist = data['withSpaceDist']
 
-    with open("/home/zhengxuan.lin/project/deepcluster/data/region.pkl", 'rb') as file:
+    with open("./data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
     # res = get_grid_split(region)
 
@@ -538,7 +519,10 @@ def get_line_graph():
     # selected_cluster_ids = cid_center_coord_dict.keys()
     selected_cluster_ids = list(set(selected_cluster_ids).intersection(used_od_cells))
     selected_cluster_ids_in_brush = list(set(selected_cluster_ids_in_brush).intersection(used_od_cells))
-    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_table)
+    total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, region)
+    od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, region, 1000, 0)
+    force_nodes, force_edges, filtered_adj_dict, lg = get_line_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_table, od_pair_set)
+    print(f'[INFO] (get line graph)当前进程内存使用 {psutil.Process(os.getpid()).memory_info().rss / (1024 ** 3)} G')
     #
     # #  计算簇中心坐标 ========================================
     tmp = {}
@@ -571,11 +555,13 @@ def get_line_graph():
     # trj_idxs, node_names = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points)
     # ----------- 简单聚合，每个OD对取一个轨迹的特征---------
     if os.path.exists(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl'):
+        print(f'f[WARN] 已存在 read_trjs 文件 read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl')
         with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'rb') as f:
             obj = pickle.loads(f.read())
             trj_idxs, node_names_trjId_dict = obj['trj_idxs'], obj['node_names_trjId_dict']
     else:
         trj_idxs, node_names_trjId_dict = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points, region)
+        print(f'[WARN] 写入 read_trjs 文件...')
         with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'wb') as f:
             picklestring = pickle.dumps({
                 'trj_idxs': trj_idxs,
@@ -602,7 +588,7 @@ def get_line_graph():
     gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
 
     print('draw_cluster_in_trj_view======================')
-    draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
+    # draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
     trj_feats = run_model2(args, gps_trips, best_model, trj_region)  # 特征数组，顺序与 trj_idxs 对应
     print(f'轨迹id数= {len(trj_idxs)}, 轨迹数 = {len(gps_trips)}, 特征数 = {len(trj_feats)}')
 
@@ -665,6 +651,7 @@ def get_line_graph():
                 cluster_point_dict[label].append(related_node_names[i])
                 node_name_cluster_dict[related_node_names[i]] = label
         print('实际社区个数: ', len(cluster_point_dict.keys()))
+    print(f'[INFO] (get line graph)当前进程内存使用 {psutil.Process(os.getpid()).memory_info().rss / (1024 ** 3)} G, 总内存 {psutil.virtual_memory().total / 1024 / 1024 / 1024} G')
     print(f'=========> feat len={len(features)}  nodename len={len(related_node_names)}  label len={len(trj_labels)}')
     print(list(trj_labels))
     # dag_force_nodes, dag_force_edges = get_dag_from_community(cluster_point_dict, force_nodes)
@@ -718,7 +705,7 @@ def get_poi_info_by_point():
     point_in_cluster, radius = data['point_in_cluster'], int(data['radius'])
 
     # poi_id_file_id_dict = cache.get('poi_id_file_id_dict')
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    with open("./data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         poi_id_file_id_dict = obj['poi_id_file_id_dict']
         kdtree = obj['kdtree']
@@ -732,7 +719,7 @@ def get_poi_info_by_point():
 @app.route('/getGccDataVis', methods=['get'])
 def get_gcc_data_vis():
     dataset = ['cora', 'citeseer', 'pubmed', 'wiki']
-    data = sio.loadmat(os.path.join('/home/zhengxuan.lin/project/od_trajectory_analize/backend/datasetVis/', f'{dataset[2]}.mat'))
+    data = sio.loadmat(os.path.join('./datasetVis/', f'{dataset[2]}.mat'))
     print(data.keys())
     adj = data['W']
     adj = adj.astype(float)
@@ -757,9 +744,9 @@ def get_gcc_data_vis():
     print(f'node num: {len(force_nodes)}', f'edge num: {len(force_edges)}')
 
     G = []
-    if os.path.exists('/home/zhengxuan.lin/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl'):
+    if os.path.exists('./gcc/graph_convolutional_clustering/data/gcc_G.pkl'):
         print('exists trained G')
-        with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/gcc/graph_convolutional_clustering/data/gcc_G.pkl", 'rb') as f:
+        with open("./gcc/graph_convolutional_clustering/data/gcc_G.pkl", 'rb') as f:
             obj = pickle.loads(f.read())
             G = obj['G']
             G = G.numpy().tolist()
@@ -779,7 +766,7 @@ def get_gcc_data_vis():
 def runserver():
     print('-----------====================================================')
     start_time = datetime.now()
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    with open("./data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         total_poi_coor = obj['total_poi_coor']
         file_id_poi_id_dict = obj['file_id_poi_id_dict']
@@ -798,7 +785,8 @@ def runserver():
 
 if __name__ == '__main__':
     # runserver()
-    with open("/home/zhengxuan.lin/project/od_trajectory_analize/backend/data/POI映射关系.pkl", 'rb') as f:
+    print('是否使用数据库：', use_database)
+    with open("./data/POI映射关系.pkl", 'rb') as f:
         obj = pickle.loads(f.read())
         file_id_poi_id_dict = obj['file_id_poi_id_dict']
         poi_id_file_id_dict = obj['poi_id_file_id_dict']
