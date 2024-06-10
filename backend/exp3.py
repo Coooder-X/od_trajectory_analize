@@ -187,10 +187,10 @@ def get_ok_cluster_num(cluster_point_dict):
 
 
 month = 5
-# start_day, end_day = 11, 12
 start_day, end_day = 12, 14
-# start_hour, end_hour = 18, 20
 start_hour, end_hour = 8, 10
+# start_day, end_day = 11, 12
+# start_hour, end_hour = 18, 20
 
 def get_grid_split(region, od_pair_set, hot_od_gps_set):
     #   研究区域确定、网格划分、轨迹数据的时间确定

@@ -117,8 +117,8 @@ def get_region():
     min_lon, min_lat, max_lon, max_lat = 120.1088, 30.2335, 120.1922, 30.3015
 
     region = SpatialRegion(cityname,
-                           min_lon, min_lat,  # 整个hz
-                           max_lon, max_lat,  # 整个hz
+                           min_lon, min_lat,  # 大论文800*800研究区域（与OD预测项目的区域一致）
+                           max_lon, max_lat,  # 大论文800*800研究区域
                            0, 86400,  # 时间范围,一天最大86400(以0点为相对值)
                            cellsizeX, cellsizeY,
                            timecellsize,  # 时间步
