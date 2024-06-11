@@ -6,7 +6,7 @@ import mysql.connector
 import numpy as np
 from data_process.SpatialRegionTools import get_cell_id_center_coord_dict, makeVocab, inregionS
 
-from backend.global_param import project_father_path
+from global_param import project_father_path
 
 
 def get_db_connection(db_name=None):

@@ -151,3 +151,4 @@ kerberosConf/*
 executeInfo/
 *.xml
 backend/home/zhengxuan.lin/project/tmp/
+*.pt

@@ -6,11 +6,11 @@ from matplotlib import collections as mc
 from tensorflow.python.util import deprecation
 
 from data_process.SpatialRegionTools import gps2cell, get_cell_id_center_coord_dict
+from vis.trajectoryVIS import randomcolor
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import pickle
-from vis.trajectoryVIS import randomcolor
 import time
 import numpy as np
 from gcc.graph_convolutional_clustering.gcc.metrics import output_metrics, print_metrics
@@ -29,7 +29,7 @@ flags.DEFINE_integer('runs', 80, 'Number of runs per power.')
 flags.DEFINE_integer('n_clusters', 0, 'Number of clusters (0 for ground truth).')
 flags.DEFINE_integer('max_iter', 30, 'Number of iterations of the algorithm.')
 flags.DEFINE_float('tol', 10e-7, 'Tolerance threshold of convergence.')
-data_path = './gcc/graph_convolutional_clustering/data'
+data_path = 'D:/PycharmProjects/make_od_data'
 
 
 def draw_cluster_in_trj_view(trj_labels, gps_trips):
@@ -241,6 +241,7 @@ def run(adj, features, cluster_num):
             features = norm_adj @ features
 
         model_path = f'{data_path}/{model_W_file_name}.pkl'
+        # print('model_path', model_path, os.path.exists(model_path))
         if os.path.exists(model_path):
             G, F, W, losses = optimize(features, n_clusters, node_feat_dim,
                                        max_iter=max_iter, tolerance=tolerance, model_path=model_path)
@@ -256,7 +257,7 @@ def run(adj, features, cluster_num):
                 })
                 f.write(picklestring)
                 f.close()
-        print_metrics(np.mean(run_metrics, 0), np.std(run_metrics, 0))
+        # print_metrics(np.mean(run_metrics, 0), np.std(run_metrics, 0))
         return G
 
     def train_and_infer():

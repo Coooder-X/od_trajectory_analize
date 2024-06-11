@@ -1,7 +1,8 @@
 import json
 from datetime import datetime
 
-from database.test import get_db_connection, get_trips_by_day
+from database.table_create import get_trips_by_day
+from database.test import get_db_connection
 
 from data_process.SpatialRegionTools import inregionS
 

@@ -109,7 +109,8 @@ def run_model2(args, gps_trips, best_model, trj_region):
     gps_trips = tmp_gps_trips
 
     vecs = []
-    torch.cuda.set_device(args.device)  # 指定第几块显卡
+    if args.cuda:
+        torch.cuda.set_device(args.device)  # 指定第几块显卡
     # 创建预训练时候用到的模型评估其性能
     m0 = EncoderDecoder(args.vocab_size, args.embedding_size,
                         args.hidden_size, args.num_layers,

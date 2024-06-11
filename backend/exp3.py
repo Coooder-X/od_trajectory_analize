@@ -25,6 +25,15 @@ import networkx as nx
 
 exp3_log_name = 'exp3_log'
 exp3_log = []
+month = 5
+start_day, end_day = 1, 2
+start_hour, end_hour = 8, 9
+args.cuda = False
+
+is_none_graph_baseline = False
+is_none_feat_baseline = False
+# start_day, end_day = 11, 12
+# start_hour, end_hour = 18, 20
 
 def Q(G, node_name_cluster_dict):
     """
@@ -186,12 +195,6 @@ def get_ok_cluster_num(cluster_point_dict):
     return ok_cluster_num
 
 
-month = 5
-start_day, end_day = 12, 14
-start_hour, end_hour = 8, 10
-# start_day, end_day = 11, 12
-# start_hour, end_hour = 18, 20
-
 def get_grid_split(region, od_pair_set, hot_od_gps_set):
     #   研究区域确定、网格划分、轨迹数据的时间确定
     start_time = datetime.now()
@@ -276,10 +279,14 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             f.close()
     print('get_trj_ids_by_force_node')
     print('=============>', args.best_model)
+    best_model = None
+    print('os.path.isfile(args.best_model)', os.path.isfile(args.best_model))
     if os.path.isfile(args.best_model):
         print("=> loading best_model '{}'".format(args.best_model))
-        # best_model = torch.load(args.best_model, map_location=torch.device('cpu'))
-        best_model = torch.load(args.best_model)
+        if args.cuda:
+            best_model = torch.load(args.best_model)
+        else:
+            best_model = torch.load(args.best_model, map_location=torch.device('cpu'))
 
     print('trj len', len(trj_idxs))
     print('node name len', len(node_names_trjId_dict.keys()))
@@ -323,8 +330,6 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     print(f'线图节点个数：{len(lg.nodes())}, 向量个数：{len(features)}')
     print('向量长度', len(features[0]))
 
-    is_none_graph_baseline = False
-    is_none_feat_baseline = True
 
     if is_none_feat_baseline is True:
         shape = features[0].shape
@@ -425,7 +430,6 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     }
 
 
-
 if __name__ == '__main__':
     def print_time():  # 无限循环
         print('-------------------->>>>  start')
@@ -445,8 +449,9 @@ if __name__ == '__main__':
         trj_region = pickle.loads(file.read())
     # makeVocab(trj_region, h5_files)
     total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, od_region)
-    # print(total_od_pairs[0:3])
-    od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, od_region, 1000, 1)
+
+    # get_od_hot_cell 的后2个参数：1000 是只考虑当前区域和时间段内最热门的k=1000个OD对，lower_bound=0是过滤阈值，即流量大于0的OD都会被加入数据集
+    od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, od_region, k=1000, lower_bound=0)
     res = get_grid_split(od_region, od_pair_set, hot_od_gps_set)
     get_line_graph(od_region, trj_region, month, start_day, end_day, start_hour, end_hour, res['out_adj_table'], res['cluster_point_dict'], od_pair_set)
 
