@@ -10,6 +10,7 @@ def init_trj_table():
 
 
 if __name__ == '__main__':
+    pass
     # ========= 初始化轨迹表 ===========
     # init_trj_table()
     # get_trips_by_day('trajectory_db', 1, 2)  # test

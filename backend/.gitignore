@@ -155,4 +155,6 @@ backend/home/zhengxuan.lin/project/tmp/
 cluster_res/excel/*
 cluster_res/img/*
 exp3_log_our_Q.txt
+exp4_log_our_Q.txt
+exp5_log_our_Q.txt
 od_flow_dict.pkl

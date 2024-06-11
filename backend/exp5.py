@@ -26,81 +26,21 @@ from t2vec import args
 from t2vec_graph import run_model2, get_cluster_by_trj_feature
 import networkx as nx
 
-G = nx.karate_club_graph()
-# print('------+++++++++', G.edges)
-g = ig.Graph(directed=True)
-g = g.from_networkx(G)
-G = igraph2networkx(g, nx.MultiDiGraph)
-print('G -----<>', G)
-# g.add_vertices(list(G.nodes))
-# g.add_edges(list(G.edges))
-gl = g.linegraph()
-print('line graph ======>', gl)
-print('edges ======>', list(gl.es))
-# for e in gl.es:
-#     print('edge', e.source, e.target)
-# print('nodes =====>', list(gl.vs))
-# for v in gl.es:
-#     print('node', v)
-# com = ig.GraphBase.community_leading_eigenvector(g, 3)
-# com = g.community_leading_eigenvector(3, arpack_options=None, weights=None)
-com = g.community_edge_betweenness(clusters=3, directed=True, weights=None)
-# com = ig.GraphBase.community_edge_betweenness(g, 3, True)
-print('com ===========>', com.as_clustering())
-# com = algorithms.em(G, k=3)
-# print('=================== test', list(com.communities))
-# for c in list(com.communities):
-#     print('c', c)
-# import networkx.algorithms.community
 
-exp3_log_name = 'exp5_log'
-exp3_log = []
+exp5_log_name = 'exp5_log'
+exp5_log = []
 
+args.cuda = False
+consider_edge_weight = True
+use_line_graph = False
+use_igraph = False
+tradition_method = 'CNM'  # 'CNM' 'louvain'
 
-def Q(G, node_name_cluster_dict):
-    """
-    @node_name_cluster_dict: 节点名到社区id的映射
-    """
-    node_names = set(list(node_name_cluster_dict.keys()))
-    m = len(G.edges())
-    res = 0.0
-    for a in G.nodes():
-        src, tgt = G.nodes[a]['name'].split('-')
-        a_name = f'{src}_{tgt}'
-        for b in G.nodes():
-            # if a == b:
-            #     continue
-            src, tgt = G.nodes[b]['name'].split('-')
-            b_name = f'{src}_{tgt}'
-            Aab = 1 if (a, b, 0) in G.edges() else 0
-            ksy = 0
-            if a_name in node_names and b_name in node_names:
-                ksy = 1 if node_name_cluster_dict[a_name] == node_name_cluster_dict[b_name] else 0
-            # E = G.out_degree(a) * G.out_degree(b) / m
-            # E = G.degree(a) * G.degree(b) / (2 * m)
-            E = G.out_degree(a) * G.in_degree(b) / m
-            res += (Aab - E) * ksy / m
-            if (Aab - E) * ksy / m > 0:
-                print(f'Aab={Aab}, E={E}, ksy={ksy}, cur={(Aab - E) * ksy / m}')
-    exp3_log.append(f'cluster_num {len(set(list(node_name_cluster_dict.values())))} Q = {res}')
-    # labels = list(node_name_cluster_dict.values())
-    # for cluster_id in labels:
-    #     ai = 0
-    #     eij = 0
-    #     for a in G.nodes():
-    #         src, tgt = G.nodes[a]['name'].split('-')
-    #         a_name = f'{src}_{tgt}'
-    #         ksy = 1 if node_name_cluster_dict[a_name] == cluster_id else 0
-    #         ai += (1 / m) * G.out_degree(a) * ksy
-    #         for b in G.nodes():
-    #             src, tgt = G.nodes[b]['name'].split('-')
-    #             b_name = f'{src}_{tgt}'
-    #             Aab = 1 if (a, b, 0) in G.edges() else 0
-    #             ksy = node_name_cluster_dict[a_name] == cluster_id and node_name_cluster_dict[b_name] == cluster_id
-    #             eij += (1 / m) * Aab * ksy
-    #     res += eij - ai ** 2
-
-    return res
+month = 5
+start_day, end_day = 1, 2
+start_hour, end_hour = 8, 10
+# start_day, end_day = 11, 12
+# start_hour, end_hour = 18, 20
 
 
 def CON(G, cluster_id, node_name_cluster_dict):
@@ -115,14 +55,14 @@ def CON(G, cluster_id, node_name_cluster_dict):
                 (node_name_cluster_dict[u_name] != cluster_id and node_name_cluster_dict[v_name] == cluster_id):
             fz += 1
     vol_C = vol(G, cluster_id, node_name_cluster_dict)
-    print(f'vol_C={vol_C}({cluster_id})')
+    # print(f'vol_C={vol_C}({cluster_id})')
     fm = fz + vol_C
     # fm = min(vol_C, m - vol_C)
     if fm == 0 or fz == 0:
         return -1
     end = datetime.now()
-    print('用时', end - start)
-    print(f'分子={fz}， 分母={fm}')
+    # print('用时', end - start)
+    # print(f'分子={fz}， 分母={fm}')
     # res = fz / (fz + vol_C + 0.01)
     # print(f'CON=({res})')
     res = fz / fm
@@ -142,7 +82,6 @@ def avg_CON(G, cluster_point_dict, node_name_cluster_dict, use_igraph):
     if use_igraph is True:
         G = igraph2networkx(G, nx.MultiDiGraph)
     avg = 0.0
-    # print(len(cluster_point_dict.keys()))
     ok_cluster_num = 0
     for cluster_id in cluster_point_dict:
         # if len(cluster_point_dict[cluster_id]) > 5:
@@ -154,7 +93,7 @@ def avg_CON(G, cluster_point_dict, node_name_cluster_dict, use_igraph):
         print(f'cluster: {cluster_id} cur_con = {cur_con}')
 
     avg /= ok_cluster_num
-    exp3_log.append(f'cluster_num {len(cluster_point_dict.keys())} avg Con = {avg}')
+    exp5_log.append(f'cluster_num {len(cluster_point_dict.keys())} avg Con = {avg}')
     return avg
 
 
@@ -164,11 +103,6 @@ def get_ok_cluster_num(cluster_point_dict):
         if len(cluster_point_dict[cluster_id]) > 5:
             ok_cluster_num += 1
     return ok_cluster_num
-
-
-consider_edge_weight = True
-use_line_graph = False
-use_igraph = False
 
 
 def get_origin_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected_cluster_ids, out_adj_dict,
@@ -261,13 +195,6 @@ def get_origin_graph_by_selected_cluster(selected_cluster_ids_in_brush, selected
     # return force_nodes, force_edges, filtered_adj_dict, line_graph
 
 
-month = 5
-# start_day, end_day = 11, 12
-start_day, end_day = 12, 14
-# start_hour, end_hour = 18, 20
-start_hour, end_hour = 8, 10
-
-
 def get_grid_split(region, od_pair_set, hot_od_gps_set):
     #   研究区域确定、网格划分、轨迹数据的时间确定
     start_time = datetime.now()
@@ -334,19 +261,9 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             g = g_tmp.linegraph()
         else:
             g = lg
-        # for n in g.nodes:
-        #     g_tmp.add_vertex(n)
-        # # print(g)
-        # for e in g.edges:
-        # #     g_tmp.add_edge(ig.Edge(source=e[0], target=e[1]))
-        #     g_tmp.add_edge(e[0], e[1])
-        # edges = [(e[0], e[1]) for e in g.edges]
-        # print('------+++++++++', g.edges)
-        # g_tmp.add_vertices(list(g.nodes))
-        # g_tmp.add_edges(edges)
     else:
         g, filtered_adj_dict = get_origin_graph_by_selected_cluster(selected_cluster_ids, selected_cluster_ids,
-                                                                out_adj_table, exp_od_pair_set)
+                                                                    out_adj_table, exp_od_pair_set)
         if use_igraph is True:
             g = networkx2igraph(g.G)
         else:
@@ -364,125 +281,78 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
 
     total_od_points = od_pair_process.get_od_points_filter_by_day_and_hour(month, start_day, end_day, 0, 24)[
         'od_points']
-    # cid_center_coord_dict = get_cluster_center_coord(total_od_points, cluster_point_dict, selected_cluster_ids)
 
     # # +++++++++++++++ 轨迹获取和特征 ++++++++++++++
-    # # node_label_dict = None
-    # if os.path.exists(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl'):
-    #     with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'rb') as f:
-    #         obj = pickle.loads(f.read())
-    #         trj_idxs, node_names_trjId_dict = obj['trj_idxs'], obj['node_names_trjId_dict']
-    # else:
-    #     trj_idxs, node_names_trjId_dict = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points, region)
-    #     with open(f'./read_trjs_{start_day}_{end_day}_{start_hour}_{end_hour}.pkl', 'wb') as f:
-    #         picklestring = pickle.dumps({
-    #             'trj_idxs': trj_idxs,
-    #             'node_names_trjId_dict': node_names_trjId_dict
-    #         })
-    #         f.write(picklestring)
-    #         f.close()
-    # print('get_trj_ids_by_force_node')
+    if use_line_graph:
+        trj_idxs, node_names_trjId_dict = get_trj_ids_by_force_node(force_nodes, cluster_point_dict, total_od_points, region)
 
-    if os.path.isfile(args.best_model):
-        print("=> loading best_model '{}'".format(args.best_model))
-        best_model = torch.load(args.best_model)
+        best_model = None
+        print('os.path.isfile(args.best_model)', os.path.isfile(args.best_model))
+        if os.path.isfile(args.best_model):
+            print("=> loading best_model '{}'".format(args.best_model))
+            if args.cuda:
+                best_model = torch.load(args.best_model)
+            else:
+                best_model = torch.load(args.best_model, map_location=torch.device('cpu'))
 
-    # print('trj len', len(trj_idxs))
-    # print('node name len', len(node_names_trjId_dict.keys()))
-    # node_names_trjFeats_dict = {}   # 节点名 -> 包含的轨迹特征数组的 map
-    # trjId_node_name_dict = {}   # 轨迹ID -> 所在的节点名的 map
-    # node_names_trj_dict = {}    # 节点名 -> gps 轨迹数组的 map
-    # for node_name in node_names_trjId_dict:
-    #     node_trj_idxs = node_names_trjId_dict[node_name]
-    #     for trj_id in node_trj_idxs:
-    #         trjId_node_name_dict[trj_id] = node_name
+        node_names_trjFeats_dict = {}   # 节点名 -> 包含的轨迹特征数组的 map
+        trjId_node_name_dict = {}   # 轨迹ID -> 所在的节点名的 map
+        node_names_trj_dict = {}    # 节点名 -> gps 轨迹数组的 map
+        for node_name in node_names_trjId_dict:
+            node_trj_idxs = node_names_trjId_dict[node_name]
+            for trj_id in node_trj_idxs:
+                trjId_node_name_dict[trj_id] = node_name
 
-    # trj_idxs = list(trjId_node_name_dict.keys())  # 所有轨迹id, trjId 的形式为 {天}_{当天的轨迹id}，这是由于每新的一天，轨迹id都从0开始算
-    # gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
-    #
-    # print('draw_cluster_in_trj_view======================')
-    # draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
-    # trj_feats = run_model2(args, gps_trips, best_model, trj_region)    # 特征数组，顺序与 trj_idxs 对应
-    # print(f'轨迹id数= {len(trj_idxs)}, 轨迹数 = {len(gps_trips)}, 特征数 = {len(trj_feats)}')
+        trj_idxs = list(trjId_node_name_dict.keys())  # 所有轨迹id, trjId 的形式为 {天}_{当天的轨迹id}，这是由于每新的一天，轨迹id都从0开始算
+        gps_trips = get_trips_by_ids(trj_idxs, month, start_day, end_day)
+        #
+        # print('draw_cluster_in_trj_view======================')
+        # draw_cluster_in_trj_view([1 for i in range(len(gps_trips))], gps_trips)
+        trj_feats = run_model2(args, gps_trips, best_model, trj_region)    # 特征数组，顺序与 trj_idxs 对应
+        # print(f'轨迹id数= {len(trj_idxs)}, 轨迹数 = {len(gps_trips)}, 特征数 = {len(trj_feats)}')
 
-    # for i in range(len(trj_idxs)):
-    #     id = trj_idxs[i]
-    #     feat = trj_feats[i]
-    #     trip = gps_trips[i]
-    #     node_name = trjId_node_name_dict[id]
-    #     if node_name not in node_names_trjFeats_dict:
-    #         node_names_trjFeats_dict[node_name] = []
-    #         node_names_trj_dict[node_name] = []
-    #     node_names_trjFeats_dict[node_name].append(feat)    # 得到每个节点对应的其包含的特征们
-    #     node_names_trj_dict[node_name].append(trip)
+        for i in range(len(trj_idxs)):
+            id = trj_idxs[i]
+            feat = trj_feats[i]
+            trip = gps_trips[i]
+            node_name = trjId_node_name_dict[id]
+            if node_name not in node_names_trjFeats_dict:
+                node_names_trjFeats_dict[node_name] = []
+                node_names_trj_dict[node_name] = []
+            node_names_trjFeats_dict[node_name].append(feat)    # 得到每个节点对应的其包含的特征们
+            node_names_trj_dict[node_name].append(trip)
 
-    # total_num = 0
-    # for name in node_names_trjFeats_dict:
-    #     total_num += len(node_names_trjFeats_dict[name])
-    #     # print(f"{name} 包含 {len(node_names_trjFeats_dict[name])} 条轨迹")
-    # avg_num = total_num // len(node_names_trjFeats_dict.keys())
+        total_num = 0
+        for name in node_names_trjFeats_dict:
+            total_num += len(node_names_trjFeats_dict[name])
+            # print(f"{name} 包含 {len(node_names_trjFeats_dict[name])} 条轨迹")
+        avg_num = total_num // len(node_names_trjFeats_dict.keys())
 
-    # ============== GCC 社区发现代码 ===============
-    # adj_mat = get_adj_matrix(g)  # 根据线图得到 csc稀疏矩阵类型的邻接矩阵
-    # features, related_node_names = get_feature_list(lg, node_names_trjFeats_dict, avg_num)  # 根据线图节点顺序，整理一个节点向量数组，以及对应顺序的node name
+        # ============== GCC 社区发现代码 ===============
+        adj_mat = get_adj_matrix(g)  # 根据线图得到 csc稀疏矩阵类型的邻接矩阵
+        features, related_node_names = get_feature_list(lg, node_names_trjFeats_dict, avg_num)  # 根据线图节点顺序，整理一个节点向量数组，以及对应顺序的node name
 
     # print(f'原图节点个数：{len(g.nodes())}')
     # print('向量长度', len(features[0]))
 
-    is_none_graph_baseline = False
-    is_none_feat_baseline = False
-
-    # print(f'===>> g.nodes = {g.nodes}')
-    # related_node_names = list(g.nodes())
-    # print(list(g.nodes()))
-    # if is_none_feat_baseline is True:
-    #     shape = [768]  # features[0].shape
-    #     # print(features[0])
-    #     features = []
-    #     # related_node_names = []
-    #     for node in g.nodes():
-    #         features.append(np.random.random(shape))
-    #         # print(f'---> g.nodes[i] = {g.nodes[node]}')
-    #         # related_node_names.append(g.nodes[node])
-    #         # features.append(np.zeros(shape))
-    #     features = np.array(features)
-    #     # print(features[0])
+    related_node_names = list(g.nodes())
 
     ######## 仅在做实验时需要这个 for 循环，否则不需要循环，执行一次即可\
     tsne_points = []
     cluster_point_dict = {}
+    weight = 'edge_feature' if consider_edge_weight is True else None
     # for cluster_num in [10, 20, 30, 40, 50]:
     for cluster_num in [5, 5]:
-        if is_none_graph_baseline:
-            pass
-            # labels_dict, trj_labels = get_cluster_by_trj_feature(cluster_num, torch.from_numpy(features))
-            # # print('labels_dict==============t', labels_dict)
-            # tsne_points = utils.DoTSNE_show(features, 2, trj_labels)
-            # print('tsne_points', len(tsne_points))
-            # # print('labels_dict', labels_dict)
-            # node_name_cluster_dict = {}
-            # for i in labels_dict:
-            #     label = labels_dict[i]
-            #     if label not in cluster_point_dict:
-            #         cluster_point_dict[label] = []
-            #     # 在线图中度为 0 的散点，视为噪声，从社区中排除
-            #     # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
-            #     cluster_point_dict[label].append(related_node_names[int(i)])
-            #     node_name_cluster_dict[related_node_names[int(i)]] = label
-            # print('实际有效社区个数: ', get_ok_cluster_num(cluster_point_dict))
-            # exp3_log.append(f'实际有效社区个数: {get_ok_cluster_num(cluster_point_dict)}')
-        else:
-            weight = 'edge_feature' if consider_edge_weight is True else None
+        if tradition_method == 'louvain':
             # louvain --------------------------------------------------------------------
             communities = nx.algorithms.community.louvain_partitions(g, weight=weight, resolution=0.7, threshold=1e-03, seed=30)
-            print('=====> communities1=', communities)
             trj_labels = []
             for c in communities:
-                print('c ===', c)
                 trj_labels.append(c)
             print('trj==', trj_labels)
             communities = trj_labels[0]
-            print('=====> communities2=', communities)
+            print('=====> 社区划分结果：', communities)
+            cluster_num = len(communities)
             node_name_cluster_dict = {}
             cluster_point_dict = {}
             for (i, cluster) in enumerate(communities):
@@ -491,6 +361,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
                     node_name_cluster_dict[cluster_id] = i
 
             # em --------------------------------------------------------------------------
+        # if tradition_method == 'em':
             # communities = algorithms.em(g, cluster_num)
             # communities = algorithms.async_fluid(g, cluster_num)
             # g_tmp = ig.Graph(directed=True)
@@ -509,6 +380,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             #         node_name_cluster_dict[cluster_id] = i
 
             # community_edge_betweenness (igraph)  ------------------------------------------------------
+        # if tradition_method == 'community_edge_betweenness':
             # com = g.community_edge_betweenness(clusters=cluster_num, directed=True, weights=None)
             # # com = g.community_leading_eigenvector(clusters=cluster_num, arpack_options=None, weights=None)
             # # print('com is ==============>', com)
@@ -526,6 +398,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             #         node_name_cluster_dict[cluster_id] = i
 
             # asyn_lpa_communities --------------------------------------------------------
+        # if tradition_method == 'asyn_lpa_communities':
             # communities = networkx.algorithms.community.asyn_lpa_communities(g, weight=weight, seed=None)
             # print('=====> communities1=', communities)
             # trj_labels = []
@@ -541,36 +414,38 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
             #     for cluster_id in cluster:
             #         node_name_cluster_dict[cluster_id] = i
 
-            # greedy_modularity_communities --------------------------------------------------------
-            # communities = nx.algorithms.community.greedy_modularity_communities(g, weight=weight, resolution=1.72, cutoff=1.2, best_n=None)
-            # print('=====> communities1=', communities)
-            # trj_labels = []
-            # for c in communities:
-            #     trj_labels.append(list(c))
-            # print('trj==', trj_labels)
-            # communities = trj_labels
-            # print('=====> communities2=', communities)
-            # node_name_cluster_dict = {}
-            # cluster_point_dict = {}
-            # for (i, cluster) in enumerate(communities):
-            #     cluster_point_dict[i] = list(cluster)
-            #     for cluster_id in cluster:
-            #         node_name_cluster_dict[cluster_id] = i
+        # greedy_modularity_communities --------------------------------------------------------
+        if tradition_method == 'CNM':
+            communities = nx.algorithms.community.greedy_modularity_communities(g, weight=weight, resolution=1.72, cutoff=1.2, best_n=None)
+            trj_labels = []
+            for c in communities:
+                trj_labels.append(list(c))
+            print('trj==', trj_labels)
+            communities = trj_labels
+            print('=====> 社区划分结果：', communities)
+            cluster_num = len(communities)
+            node_name_cluster_dict = {}
+            cluster_point_dict = {}
+            for (i, cluster) in enumerate(communities):
+                cluster_point_dict[i] = list(cluster)
+                for cluster_id in cluster:
+                    node_name_cluster_dict[cluster_id] = i
 
             # 本文方法 ----------------------------------------------------------------------
-            # trj_labels = run(adj_mat, features, cluster_num)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
-            # trj_labels = trj_labels.numpy().tolist()
-            # node_name_cluster_dict = {}
-            # for i in range(len(trj_labels)):
-            #     label = trj_labels[i]
-            #     if label not in cluster_point_dict:
-            #         cluster_point_dict[label] = []
-            #     # 在线图中度为 0 的散点，视为噪声，从社区中排除
-            #     # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
-            #     cluster_point_dict[label].append(related_node_names[i])
-            #     node_name_cluster_dict[related_node_names[i]] = label
+        if use_line_graph:
+            trj_labels = run(adj_mat, features, cluster_num)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
+            trj_labels = trj_labels.numpy().tolist()
+            node_name_cluster_dict = {}
+            for i in range(len(trj_labels)):
+                label = trj_labels[i]
+                if label not in cluster_point_dict:
+                    cluster_point_dict[label] = []
+                # 在线图中度为 0 的散点，视为噪声，从社区中排除
+                # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
+                cluster_point_dict[label].append(related_node_names[i])
+                node_name_cluster_dict[related_node_names[i]] = label
             print('实际有效社区个数: ', get_ok_cluster_num(cluster_point_dict))
-            exp3_log.append(f'实际有效社区个数: {get_ok_cluster_num(cluster_point_dict)}')
+            exp5_log.append(f'实际有效社区个数: {get_ok_cluster_num(cluster_point_dict)}')
         # print(
         #     f'=========> feat len={len(features)}  nodename len={len(related_node_names)}  label len={len(trj_labels)}')
         # print(list(trj_labels))
@@ -598,30 +473,11 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
         print(f'====> 社区个数：{cluster_num}, CON = {avg_CON(g, cluster_point_dict, node_name_cluster_dict, use_igraph)}')
         # print(f'====> 社区个数：{cluster_num}, TPR = {avg_TPR(lg, cluster_point_dict)}')
 
-    if is_none_graph_baseline:
-        file_name = f'{exp3_log_name}_none_graph_baseline_Q.txt'
-    elif is_none_feat_baseline:
-        file_name = f'{exp3_log_name}_none_feat_baseline_Q.txt'
-    else:
-        file_name = f'{exp3_log_name}_our_Q.txt'
+    file_name = f'{exp5_log_name}_our_Q.txt'
     f = open(file_name, 'w')
-    for log in exp3_log:
+    for log in exp5_log:
         f.write(log + '\n')
     f.close()
-
-    # return {
-    #     # 'force_nodes': force_nodes,
-    #     # 'force_edges': force_edges,
-    #     'filtered_adj_dict': filtered_adj_dict,
-    #     'cid_center_coord_dict': cid_center_coord_dict,
-    #     'community_group': cluster_point_dict,
-    #     'tsne_points': tsne_points,
-    #     'trj_labels': trj_labels,  # 每个节点（OD对）的社区label，与 tsne_points 顺序对应
-    #     'related_node_names': related_node_names,
-    #     'tmp_trj_idxs': related_node_names,  # 与 tsne_points 顺序对应,
-    #     'node_name_cluster_dict': node_name_cluster_dict
-    #     # 'tid_trip_dict': tid_trip_dict,
-    # }
 
 
 if __name__ == '__main__':
@@ -632,19 +488,16 @@ if __name__ == '__main__':
             print('keep live', current_time)  # 休眠10分钟，即600秒 time.sleep(600)
             time.sleep(600)
 
-
-    thread = threading.Thread(target=print_time)
-    thread.start()
+    # thread = threading.Thread(target=print_time)
+    # thread.start()
 
     od_region = get_region()
-    # cell_id_center_coord_dict = get_cell_id_center_coord_dict(od_region)
-    # for key in cell_id_center_coord_dict:
-    #     print(key, cell_id_center_coord_dict[key])
     with open("./data/region.pkl", 'rb') as file:
         trj_region = pickle.loads(file.read())
     # makeVocab(trj_region, h5_files)
     total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, od_region)
-    # print(total_od_pairs[0:3])
+
+    # get_od_hot_cell 的后2个参数：1000 是只考虑当前区域和时间段内最热门的k=1000个OD对，lower_bound=0是过滤阈值，即流量大于0的OD都会被加入数据集
     od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, od_region, 1000, 0)
     res = get_grid_split(od_region, od_pair_set, hot_od_gps_set)
     get_line_graph(od_region, trj_region, month, start_day, end_day, start_hour, end_hour, res['out_adj_table'],
