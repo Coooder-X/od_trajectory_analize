@@ -28,32 +28,41 @@
   - `LG-TF` 是本文提出的方法。
 
   即，若要执行 `LG-TFc`，则配置变量为：
-  ```
+  ```python
   is_none_graph_baseline = True
   is_none_feat_baseline = False
   ```
   若要执行 `LG-TFt`，则配置变量为：
-  ```
+  ```python
   is_none_graph_baseline = False
   is_none_feat_baseline = True
   ```
   若要执行 `LG-TF`，则配置变量为：
-  ```
+  ```python
   is_none_graph_baseline = False
   is_none_feat_baseline = False
   ```
     - 线图方法的实验需要指定社区划分的个数，并且实验可以执行多次取以记录每次划分的结果，配置方法：找到`get_line_graph`函数中的如下片段：
-  ```
+  ```python
   for cluster_num in [5, 5, 5, 5, 5]:  # 执行5次线图方法，每次划分的社区个数都是5
     code......
   ```
   该 for 循环的每次执行都会运行一次线图方法，指定的社区划分个数为 `cluster_num`，若要修改执行次数和社区个数，在这行代码中修改数组即可。
+  - exp3.py 的其它配置参数：
+  ```python
+  args.cuda = False  # 是否使用 GPU
+  draw_cluster_picture = False  # 是否将社区发现结果输出为图片
+  # 社区发现结果输出 excel 文件，用于 arcmap 绘图。前提是 draw_cluster_picture = True，执行了绘制函数
+  output_excel = draw_cluster_picture and True
+  ```
 - 蓝色框方法（exp5.py）：
   - 该实验部分均运行非线图的传统方法，配置项可在当前文件中找到：
-  ```
-  consider_edge_weight = True
-  use_line_graph = False
-  use_igraph = False
+  ```python
+  args.cuda = False  # 是否使用 GPU
+  consider_edge_weight = True  # 是否考虑边权
+  use_line_graph = False  # 是否是运行线图方法
+  use_igraph = False  # 无用，保持 False
+  tradition_method = 'CNM'  # 运行传统方法的类型，取值为'CNM'或'louvain'
   ```
   其中，`use_line_graph` 始终置 `False`。
 `Louvain_e` 和 `CNM_e` 方法为考虑边权值的方法，若执行 `Louvain_e` 或 `CNM_e` 方法，则需要将`consider_edge_weight`置为`True`，否则置为`False`。
@@ -61,10 +70,9 @@
   -  `Louvain` 方法对应`get_line_graph`函数中的如下代码段：
     ![./doc-Image/20240607152916.png](./doc-Image/20240607152916.png)
   - `CNM` 方法对应`get_line_graph`函数中的如下代码段：
-  ![./doc-Image/20240607154019.png](./doc-Image/20240607154019.png)
+  ![./doc-Image/20240611153459.png](./doc-Image/20240611153459.png)
   
     即包含 `nx.algorithms.community.greedy_modularity_communities` 方法的代码段
-  - **执行对应传统方法时，需要将该方法的注释打开，并注释另一个方法的代码**
 
 #### 1.1.3 实验结果输出
 
@@ -73,7 +81,9 @@
     - LG-TFt：`exp3_log_none_feat_baseline_Q.txt`
     - LG-TF：`exp3_log_our_Q.txt`
   - exp5.py（输出至控制台）：
+    - 控制台中存在 "=====> 社区划分结果：" 字样的一行，后方为一个表示社区划分结果的数组
     - 控制台中存在 "CON = xxxx" 字样的一行，CON 后方的数字即为实验指标
+    - `exp5_log.txt`，记录 CON 指标的输出
 
 ## 2. 代码结构
 ### 2.1 空间网格划分
@@ -83,7 +93,7 @@
 
 ### 2.2 轨迹特征提取
 在实验代码的 `get_line_graph()` 函数中，有使用到轨迹特征提取的逻辑，可找到一行代码：
-```
+```python
 trj_feats = run_model2(args, gps_trips, best_model, trj_region)
 ```
 此处的`run_model2()`函数是使用`t2vec`进行轨迹特征提取的方法。这个函数中，输入为轨迹数据`gps_trips`、训练好的模型，和针对轨迹进行的空间网格划分`trj_region`（该空间网格划分对象也由 SpatialRegionTools 类实例化而来，但相关代码在黄家慧项目中，这里是直接从以前生成的文件中读取了）。

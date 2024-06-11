@@ -473,7 +473,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
         print(f'====> 社区个数：{cluster_num}, CON = {avg_CON(g, cluster_point_dict, node_name_cluster_dict, use_igraph)}')
         # print(f'====> 社区个数：{cluster_num}, TPR = {avg_TPR(lg, cluster_point_dict)}')
 
-    file_name = f'{exp5_log_name}_our_Q.txt'
+    file_name = f'{exp5_log_name}.txt'
     f = open(file_name, 'w')
     for log in exp5_log:
         f.write(log + '\n')

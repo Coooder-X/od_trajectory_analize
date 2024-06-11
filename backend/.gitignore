@@ -157,4 +157,5 @@ cluster_res/img/*
 exp3_log_our_Q.txt
 exp4_log_our_Q.txt
 exp5_log_our_Q.txt
+exp5_log.txt
 od_flow_dict.pkl
