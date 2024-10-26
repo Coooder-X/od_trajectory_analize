@@ -1,4 +1,5 @@
 import os
+import random
 
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -30,6 +31,10 @@ flags.DEFINE_integer('n_clusters', 0, 'Number of clusters (0 for ground truth).'
 flags.DEFINE_integer('max_iter', 30, 'Number of iterations of the algorithm.')
 flags.DEFINE_float('tol', 10e-7, 'Tolerance threshold of convergence.')
 data_path = 'D:/PycharmProjects/make_od_data'
+
+np.random.seed(42)
+tf.random.set_seed(42)
+random.seed(42)
 
 
 def draw_cluster_in_trj_view(trj_labels, gps_trips):
