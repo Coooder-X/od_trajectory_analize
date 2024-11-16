@@ -37,7 +37,7 @@ use_igraph = False
 tradition_method = 'CNM'  # 'CNM' 'louvain'
 
 month = 5
-start_day, end_day = 1, 2
+start_day, end_day = 12, 14
 start_hour, end_hour = 8, 10
 # start_day, end_day = 11, 12
 # start_hour, end_hour = 18, 20
@@ -498,7 +498,7 @@ if __name__ == '__main__':
     total_od_pairs = get_od_filter_by_day_and_hour(month, start_day, end_day, start_hour, end_hour, od_region)
 
     # get_od_hot_cell 的后2个参数：1000 是只考虑当前区域和时间段内最热门的k=1000个OD对，lower_bound=0是过滤阈值，即流量大于0的OD都会被加入数据集
-    od_pairs, od_cell_set, od_pair_set, hot_od_gps_set = get_od_hot_cell(total_od_pairs, od_region, 1000, 0)
+    od_pairs, od_cell_set, od_pair_set, hot_od_gps_set, od_flow_dict = get_od_hot_cell(total_od_pairs, od_region, 1000, 1)
     res = get_grid_split(od_region, od_pair_set, hot_od_gps_set)
     get_line_graph(od_region, trj_region, month, start_day, end_day, start_hour, end_hour, res['out_adj_table'],
                    res['cluster_point_dict'], od_pair_set)

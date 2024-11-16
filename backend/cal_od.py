@@ -97,7 +97,7 @@ def get_od_hot_cell(od_pairs, region, k, lower_bound):
     # for i in range(100):
     #     if i not in od_cell_set:
     #         print(i)
-    return data, od_cell_set, od_pair_set, hot_od_gps_set
+    return data, od_cell_set, od_pair_set, hot_od_gps_set, od_flow_dict
 
 
 if __name__ == '__main__':
