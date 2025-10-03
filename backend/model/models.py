@@ -305,7 +305,7 @@ class EncoderDecoder(nn.Module):
 
     def load_pretrained_embedding(path):
         if os.path.isfile(path):
-            w = torch.load(path)
+            w = torch.load(path, weights_only=False)
             self.embedding.weight.data.copy_(w)
 
     def encoder_hn2decoder_h0(self, h):
@@ -361,7 +361,7 @@ class EncoderDecoder_without_dropout(nn.Module):
 
     def load_pretrained_embedding(path):
         if os.path.isfile(path):
-            w = torch.load(path)
+            w = torch.load(path, weights_only=False)
             self.embedding.weight.data.copy_(w)
 
     def encoder_hn2decoder_h0(self, h):

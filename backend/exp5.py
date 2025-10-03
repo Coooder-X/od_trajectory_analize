@@ -25,6 +25,7 @@ from graph_process.Graph import get_degree_by_node_name, get_feature_list, get_a
 from t2vec import args
 from t2vec_graph import run_model2, get_cluster_by_trj_feature
 import networkx as nx
+from MAGI.magi import run_magi
 
 
 exp5_log_name = 'exp5_log'
@@ -32,9 +33,10 @@ exp5_log = []
 
 args.cuda = False
 consider_edge_weight = True
-use_line_graph = False
+use_line_graph = True
 use_igraph = False
 tradition_method = 'CNM'  # 'CNM' 'louvain'
+use_magi = True  # 是否使用MAGI方法（2024年新方法）
 
 month = 5
 start_day, end_day = 12, 14
@@ -92,6 +94,9 @@ def avg_CON(G, cluster_point_dict, node_name_cluster_dict, use_igraph):
         avg += cur_con
         print(f'cluster: {cluster_id} cur_con = {cur_con}')
 
+    if ok_cluster_num == 0:
+        exp5_log.append(f'cluster_num {len(cluster_point_dict.keys())} avg Con：有效的社区个数为0，无法计算 CON')
+        return '有效的社区个数为0，无法计算 CON'
     avg /= ok_cluster_num
     exp5_log.append(f'cluster_num {len(cluster_point_dict.keys())} avg Con = {avg}')
     return avg
@@ -291,9 +296,9 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
         if os.path.isfile(args.best_model):
             print("=> loading best_model '{}'".format(args.best_model))
             if args.cuda:
-                best_model = torch.load(args.best_model)
+                best_model = torch.load(args.best_model, weights_only=False)
             else:
-                best_model = torch.load(args.best_model, map_location=torch.device('cpu'))
+                best_model = torch.load(args.best_model, map_location=torch.device('cpu'), weights_only=False)
 
         node_names_trjFeats_dict = {}   # 节点名 -> 包含的轨迹特征数组的 map
         trjId_node_name_dict = {}   # 轨迹ID -> 所在的节点名的 map
@@ -342,7 +347,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     cluster_point_dict = {}
     weight = 'edge_feature' if consider_edge_weight is True else None
     # for cluster_num in [10, 20, 30, 40, 50]:
-    for cluster_num in [5, 5]:
+    for cluster_num in [5, 5, 5]:
         if tradition_method == 'louvain':
             # louvain --------------------------------------------------------------------
             communities = nx.algorithms.community.louvain_partitions(g, weight=weight, resolution=0.7, threshold=1e-03, seed=30)
@@ -431,8 +436,55 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
                 for cluster_id in cluster:
                     node_name_cluster_dict[cluster_id] = i
 
-            # 本文方法 ----------------------------------------------------------------------
-        if use_line_graph:
+           # MAGI方法 (2024年新方法) -------------------------------------------------------
+        if use_magi:
+            if use_line_graph:
+                # 使用线图的特征和邻接矩阵，参考GCC成功经验调参
+                trj_labels = run_magi(adj_mat, features, cluster_num,
+                                      epochs=2000,  # 更多训练轮数
+                                      lr=0.000001,  # 更小学习率
+                                      modularity_weight=5.0,  # 极强调模块度
+                                      contrastive_weight=2.0)  # 强调对比学习
+                node_name_cluster_dict = {}
+                cluster_point_dict = {}
+                for i in range(len(trj_labels)):
+                    label = int(trj_labels[i])
+                    if label not in cluster_point_dict:
+                        cluster_point_dict[label] = []
+                    cluster_point_dict[label].append(related_node_names[i])
+                    node_name_cluster_dict[related_node_names[i]] = label
+                print('MAGI 社区发现结果: ', cluster_point_dict)
+                print('实际有效社区个数: ', len(cluster_point_dict.keys()))
+                exp5_log.append(f'MAGI实际有效社区个数: {get_ok_cluster_num(cluster_point_dict)}')
+            else:
+                # 使用原图进行MAGI聚类
+                adj_mat = nx.adjacency_matrix(g)
+                # 创建简单的节点特征（度特征 + 随机特征）
+                degrees = dict(g.degree())
+                node_list = list(g.nodes())
+                features = []
+                for node in node_list:
+                    # 使用度作为基础特征，添加一些随机特征
+                    feat = [degrees[node]] + [np.random.random() for _ in range(9)]  # 10维特征
+                    features.append(feat)
+                features = np.array(features)
+                
+                # 调整参数以获得更好的聚类效果
+                trj_labels = run_magi(adj_mat, features, cluster_num,
+                                    epochs=500,      # 增加训练轮数
+                                    lr=0.0001)       # 降低学习率
+                node_name_cluster_dict = {}
+                cluster_point_dict = {}
+                for i, node in enumerate(node_list):
+                    label = int(trj_labels[i])
+                    if label not in cluster_point_dict:
+                        cluster_point_dict[label] = []
+                    cluster_point_dict[label].append(node)
+                    node_name_cluster_dict[node] = label
+                print('MAGI 社区发现结果: ', cluster_point_dict)
+                
+        # 原有的GCC方法 ----------------------------------------------------------------------
+        elif use_line_graph:
             trj_labels = run(adj_mat, features, cluster_num)  # 得到社区划分结果，索引对应 features 的索引顺序，值是社区 id
             trj_labels = trj_labels.numpy().tolist()
             node_name_cluster_dict = {}
@@ -444,8 +496,8 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
                 # if get_degree_by_node_name(lg, related_node_names[i]) > 0:
                 cluster_point_dict[label].append(related_node_names[i])
                 node_name_cluster_dict[related_node_names[i]] = label
-            print('实际有效社区个数: ', get_ok_cluster_num(cluster_point_dict))
-            exp5_log.append(f'实际有效社区个数: {get_ok_cluster_num(cluster_point_dict)}')
+            print('GCC实际有效社区个数: ', get_ok_cluster_num(cluster_point_dict))
+            exp5_log.append(f'GCC实际有效社区个数: {get_ok_cluster_num(cluster_point_dict)}')
         # print(
         #     f'=========> feat len={len(features)}  nodename len={len(related_node_names)}  label len={len(trj_labels)}')
         # print(list(trj_labels))

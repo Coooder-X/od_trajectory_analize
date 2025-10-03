@@ -1,0 +1,9 @@
+{
+    "python.pythonPath": "D:\\python_venvs\\od_trajectory_analize_venv\\Scripts\\python.exe",
+    "python.defaultInterpreterPath": "D:\\python_venvs\\od_trajectory_analize_venv\\Scripts\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "${workspaceFolder}"
+    }
+}
