@@ -26,17 +26,33 @@ from t2vec import args
 from t2vec_graph import run_model2, get_cluster_by_trj_feature
 import networkx as nx
 from MAGI.magi import run_magi
-
+from HLC.hlc_utils import run_cdlib_hlc, detect_line_graph_nodes, map_edge_communities_to_nodes, merge_clusters_to_target
+try:
+    from cdlib import algorithms
+    _cdlib_available = True
+except Exception:
+    _cdlib_available = False
 
 exp5_log_name = 'exp5_log'
 exp5_log = []
 
 args.cuda = False
 consider_edge_weight = True
-use_line_graph = True
+use_line_graph = False
 use_igraph = False
 tradition_method = 'CNM'  # 'CNM' 'louvain'
-use_magi = True  # 是否使用MAGI方法（2024年新方法）
+use_magi = False  # 是否使用MAGI方法（2024年新方法）
+# 是否使用CDlib的链接社区检测（2010年的方法，直接对原图进行边聚类。运行此方法时 use_line_graph 要为 False）
+use_cdlib_link_community = True
+
+# CDlib(0.4.0) 后处理参数：
+need_merge_hlc_cluster = True   # 是否启用合并：将碎片化小社区合并到目标簇数；False 则直接输出 HLC 原始结果（仅做必要的格式映射）
+# 是否过滤：边社区的最小边数（在映射之前过滤），若开启，则过滤掉社区内边数小于阈值的社区，保证社区内边的条数不小于阈值
+need_filter_small_edge = False
+cdlib_min_edges = 2            # 过滤：边社区的最小边数（在映射之前过滤）
+cdlib_target_k = 10            # 目标社区数（合并后尽量逼近）
+cdlib_merge_max_iter = 300     # 最大合并迭代次数
+cdlib_merge_min_overlap = 0.0  # 合并阈值：最小Jaccard重叠；0表示总能合并（防止卡死）
 
 month = 5
 start_day, end_day = 12, 14
@@ -53,8 +69,10 @@ def CON(G, cluster_id, node_name_cluster_dict):
         u, v = edge[0], edge[1]
         u_name, v_name = u, v
         # u_name, v_name = f'{u[0]}_{u[1]}', f'{v[0]}_{v[1]}'
-        if (node_name_cluster_dict[u_name] == cluster_id and node_name_cluster_dict[v_name] != cluster_id) or \
-                (node_name_cluster_dict[u_name] != cluster_id and node_name_cluster_dict[v_name] == cluster_id):
+        u_c = node_name_cluster_dict.get(u_name, None)
+        v_c = node_name_cluster_dict.get(v_name, None)
+        if (u_c == cluster_id and v_c != cluster_id) or \
+                (u_c != cluster_id and v_c == cluster_id):
             fz += 1
     vol_C = vol(G, cluster_id, node_name_cluster_dict)
     # print(f'vol_C={vol_C}({cluster_id})')
@@ -106,6 +124,15 @@ def get_ok_cluster_num(cluster_point_dict):
     ok_cluster_num = 0
     for cluster_id in cluster_point_dict:
         if len(cluster_point_dict[cluster_id]) > 5:
+            ok_cluster_num += 1
+    return ok_cluster_num
+
+
+# CDlib 链接社区检测，是基于原图，但对边进行聚类的方法。因此社区内有2个元素就是有效的社区。因为2个元素的含义是2条边，已经包含了2个节点
+def get_ok_cluster_num_for_line_graph_cdlib(cluster_point_dict):
+    ok_cluster_num = 0
+    for cluster_id in cluster_point_dict:
+        if len(cluster_point_dict[cluster_id]) >= 2:
             ok_cluster_num += 1
     return ok_cluster_num
 
@@ -257,6 +284,8 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     if use_line_graph is True:
         g, filtered_adj_dict = get_origin_graph_by_selected_cluster(selected_cluster_ids, selected_cluster_ids,
                                                                     out_adj_table, exp_od_pair_set)
+        # 保留原始图（用于CDlib的链接社区检测）
+        original_g_nx = g.G
         force_nodes, force_edges, line_graph_filtered_adj_dict, lg = get_line_graph_by_selected_cluster(
             selected_cluster_ids, selected_cluster_ids, out_adj_table, exp_od_pair_set)
         if use_igraph is True:
@@ -347,7 +376,57 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
     cluster_point_dict = {}
     weight = 'edge_feature' if consider_edge_weight is True else None
     # for cluster_num in [10, 20, 30, 40, 50]:
-    for cluster_num in [5, 5, 5]:
+    for cluster_num in [5, 10, 20, 30, 40, 50]:
+        # 使用CDlib的链接社区（边社区）方法：在原图上做边聚类，再映射为线图上的节点社区
+        if use_cdlib_link_community:
+            cluster_point_dict = {}
+            node_name_cluster_dict = {}
+            if not _cdlib_available:
+                print('CDlib 未安装，跳过链接社区检测（pip install cdlib）')
+                return
+            try:
+                # 若未构建线图，则使用当前 g 的对应原始图
+                # original_g_nx 在 use_line_graph=True 时已保留；否则 g 可能已是原图
+                cdlib_input_graph = original_g_nx if 'original_g_nx' in locals() and original_g_nx is not None else g
+                # 兼容不同版本CDlib：优先使用 full，不存在或签名不兼容则回退到基础版本/无参数
+                # 由于 hierarchical_link_community 方法不支持指定簇数k，探测的社区个数和有效社区个数差距较大（前者过大、后者过小），
+                # 因此，需要进行后处理，合并小的社区，直到社区个数达到 k（或目标范围）。
+                ec = run_cdlib_hlc(cdlib_input_graph)
+                # 映射/后处理：
+                # 1) 边社区集合获取；当启用后处理时按 need_filter_small_edge 过滤；关闭后处理则直接使用原始边社区（不做过滤）。
+                raw_edge_comms = list(ec.communities)
+                edge_comms = (
+                    [c for c in raw_edge_comms if len(c) >= cdlib_min_edges]
+                    if need_filter_small_edge else
+                    raw_edge_comms
+                )
+                # 将边社区映射为：
+                # - 如果当前 g 是线图（节点是边tuple），则直接用边tuple作为社区节点
+                # - 如果当前 g 是原图（节点是原节点id），则将边社区转换为其端点节点的并集
+                is_line_graph_nodes, current_nodes = detect_line_graph_nodes(g)
+                # 本实验中，如果输出的两个都是 false，则 hierarchical_link_community 方法的使用是符合预期的
+                print(f'是否是基于线图运行: is_line_graph_nodes: {is_line_graph_nodes}, use_line_graph: {use_line_graph}')
+                cluster_point_dict, node_name_cluster_dict = map_edge_communities_to_nodes(
+                    edge_comms, g, is_line_graph_nodes, current_nodes
+                )
+                # 2) 合并：基于节点集合的Jaccard重叠，计算两个社区之间的 Jaccard 相似度，迭代合并最小簇到重叠度最高的簇
+                # 以当前循环的 cluster_num 为目标簇数进行合并（保持与原逻辑一致）
+                if need_merge_hlc_cluster and len(cluster_point_dict) > cluster_num:
+                    cluster_point_dict, node_name_cluster_dict = merge_clusters_to_target(
+                        cluster_point_dict,
+                        target_k=cluster_num,
+                        max_iter=cdlib_merge_max_iter,
+                        min_overlap=cdlib_merge_min_overlap,
+                    )
+                # 使用得到的社区数
+                final_cluster_num = len(cluster_point_dict.keys())
+                print('CDlib 链接社区结果: ', cluster_point_dict)
+                exp5_log.append(f'CDlib链接社区，设定k={cluster_num} 实际有效社区个数: {get_ok_cluster_num_for_line_graph_cdlib(cluster_point_dict)}')
+            except Exception as e:
+                print('CDlib 链接社区检测失败: ', e)
+            # 评估并进入下一轮
+            print(f'====> 社区个数：{final_cluster_num}, CON = {avg_CON(g, cluster_point_dict, node_name_cluster_dict, use_igraph)}')
+            continue
         if tradition_method == 'louvain':
             # louvain --------------------------------------------------------------------
             communities = nx.algorithms.community.louvain_partitions(g, weight=weight, resolution=0.7, threshold=1e-03, seed=30)
