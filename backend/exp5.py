@@ -40,10 +40,10 @@ args.cuda = False
 consider_edge_weight = True
 use_line_graph = False
 use_igraph = False
-tradition_method = 'CNM'  # 'CNM' 'louvain'
-use_magi = False  # 是否使用MAGI方法（2024年新方法）
+tradition_method = 'MAGI'  # 'CNM' 'louvain' 'MAGI'
+use_magi = True  # 是否使用MAGI方法（2024年新方法）
 # 是否使用CDlib的链接社区检测（2010年的方法，直接对原图进行边聚类。运行此方法时 use_line_graph 要为 False）
-use_cdlib_link_community = True
+use_cdlib_link_community = False
 
 # CDlib(0.4.0) 后处理参数：
 need_merge_hlc_cluster = True   # 是否启用合并：将碎片化小社区合并到目标簇数；False 则直接输出 HLC 原始结果（仅做必要的格式映射）
@@ -516,7 +516,7 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
                     node_name_cluster_dict[cluster_id] = i
 
            # MAGI方法 (2024年新方法) -------------------------------------------------------
-        if use_magi:
+        if tradition_method == 'MAGI':
             if use_line_graph:
                 # 使用线图的特征和邻接矩阵，参考GCC成功经验调参
                 trj_labels = run_magi(adj_mat, features, cluster_num,
@@ -534,24 +534,66 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
                     node_name_cluster_dict[related_node_names[i]] = label
                 print('MAGI 社区发现结果: ', cluster_point_dict)
                 print('实际有效社区个数: ', len(cluster_point_dict.keys()))
-                exp5_log.append(f'MAGI实际有效社区个数: {get_ok_cluster_num(cluster_point_dict)}')
+                final_cluster_num = len(cluster_point_dict.keys())
+                exp5_log.append(
+                    f'MAGI（线图），设定k={cluster_num} 实际社区数={final_cluster_num} 有效社区数={get_ok_cluster_num(cluster_point_dict)}'
+                )
+                print(f'====> 社区个数：{final_cluster_num}, CON = {avg_CON(g, cluster_point_dict, node_name_cluster_dict, use_igraph)}')
             else:
-                # 使用原图进行MAGI聚类
+                # 使用原图进行MAGI聚类（大图调参版）
+                # 1) 邻接矩阵
                 adj_mat = nx.adjacency_matrix(g)
-                # 创建简单的节点特征（度特征 + 随机特征）
-                degrees = dict(g.degree())
+                # 2) 结构特征构建：度/PR/聚类系数/core-number，并做标准化，避免随机特征导致不稳定
                 node_list = list(g.nodes())
-                features = []
-                for node in node_list:
-                    # 使用度作为基础特征，添加一些随机特征
-                    feat = [degrees[node]] + [np.random.random() for _ in range(9)]  # 10维特征
-                    features.append(feat)
-                features = np.array(features)
-                
-                # 调整参数以获得更好的聚类效果
-                trj_labels = run_magi(adj_mat, features, cluster_num,
-                                    epochs=500,      # 增加训练轮数
-                                    lr=0.0001)       # 降低学习率
+                n = len(node_list)
+                deg = dict(g.degree())
+                # PageRank（适用于有向/无向；对稀疏大图较稳）
+                try:
+                    pr = nx.pagerank(g, alpha=0.85, max_iter=100)
+                except Exception:
+                    pr = {u: 1.0 / n for u in node_list}
+                # 聚类系数（转无向以获得稳定定义）
+                try:
+                    g_und = g.to_undirected() if hasattr(g, 'to_undirected') else g
+                    cc = nx.clustering(g_und)
+                except Exception:
+                    cc = {u: 0.0 for u in node_list}
+                # k-core number（衡量节点核心性）
+                try:
+                    core = nx.core_number(g_und if 'g_und' in locals() else g)
+                except Exception:
+                    core = {u: 0 for u in node_list}
+                # 组装与标准化
+                raw_feats = []
+                for u in node_list:
+                    raw_feats.append([deg.get(u, 0), pr.get(u, 0.0), cc.get(u, 0.0), core.get(u, 0)])
+                features = np.array(raw_feats, dtype=float)
+                # 标准化（z-score）
+                feat_mean = features.mean(axis=0)
+                feat_std = features.std(axis=0) + 1e-8
+                features = (features - feat_mean) / feat_std
+
+                # 3) 训练参数（更长训练、更强模块度/对比权重，抑制塌缩到单簇）
+                trj_labels = run_magi(
+                    adj_mat,
+                    features,
+                    cluster_num,
+                    epochs=1000,
+                    lr=0.001,
+                    modularity_weight=3.0,
+                    contrastive_weight=0.5,
+                    balance_weight=1.0,
+                    center_sep_weight=0.15,
+                    center_sep_sigma=5.0,
+                    empty_cluster_threshold=0.02,
+                    empty_cluster_reinit=True,
+                    final_kmeans=True,
+                    hidden_dim=256,
+                    output_dim=128,
+                    num_layers=3,
+                    dropout=0.2,
+                    tau=0.6,
+                )
                 node_name_cluster_dict = {}
                 cluster_point_dict = {}
                 for i, node in enumerate(node_list):
@@ -561,6 +603,17 @@ def get_line_graph(region, trj_region, month, start_day, end_day, start_hour, en
                     cluster_point_dict[label].append(node)
                     node_name_cluster_dict[node] = label
                 print('MAGI 社区发现结果: ', cluster_point_dict)
+                # 简单的簇大小分布日志，便于观察是否塌缩
+                try:
+                    from collections import Counter
+                    print('MAGI label 分布: ', Counter([int(x) for x in trj_labels]))
+                except Exception:
+                    pass
+                final_cluster_num = len(cluster_point_dict.keys())
+                exp5_log.append(
+                    f'MAGI（原图），设定k={cluster_num} 实际社区数={final_cluster_num} 有效社区数={get_ok_cluster_num(cluster_point_dict)}'
+                )
+                print(f'====> 社区个数：{final_cluster_num}, CON = {avg_CON(g, cluster_point_dict, node_name_cluster_dict, use_igraph)}')
                 
         # 原有的GCC方法 ----------------------------------------------------------------------
         elif use_line_graph:

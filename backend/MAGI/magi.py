@@ -76,6 +76,24 @@ class MAGI(nn.Module):
         q = q / torch.sum(q, dim=1, keepdim=True)
         
         return q
+
+    def center_separation_loss(self, sigma: float = 1.0):
+        """Encourage cluster centers to be separated.
+        loss = mean_{i<j} exp(-||ci-cj||^2 / sigma)
+        Minimizing this pushes centers apart.
+        """
+        C = self.cluster_layer
+        k = C.size(0)
+        if k <= 1:
+            return torch.tensor(0.0, device=C.device)
+        # Pairwise squared distances
+        dist2 = torch.cdist(C, C, p=2.0) ** 2  # [k,k]
+        # Use upper triangle without diagonal
+        triu_mask = torch.triu(torch.ones_like(dist2, dtype=torch.bool), diagonal=1)
+        vals = torch.exp(-dist2[triu_mask] / max(sigma, 1e-8))
+        if vals.numel() == 0:
+            return torch.tensor(0.0, device=C.device)
+        return vals.mean()
     
     def target_distribution(self, q):
         """Compute target distribution P"""
@@ -83,72 +101,74 @@ class MAGI(nn.Module):
         return (weight.t() / weight.sum(1)).t()
     
     def modularity_loss(self, z, adj_matrix, cluster_assignments):
-        """Compute modularity-based contrastive loss"""
+        """Differentiable modularity loss using soft assignments.
+        Uses S = q (n x k) to compute Q = trace(S^T B S)/(2m).
+        """
         if adj_matrix is None:
             return torch.tensor(0.0, device=z.device)
-            
-        # Convert cluster assignments to hard assignments
-        hard_assignments = torch.argmax(cluster_assignments, dim=1)
-        
+
         # Compute modularity matrix
         A = adj_matrix.to_dense() if hasattr(adj_matrix, 'to_dense') else adj_matrix
+        A = A.float()
+        # Symmetrize for modularity (undirected assumption)
+        A = 0.5 * (A + A.t())
         k = A.sum(dim=1)  # degree vector
-        m = A.sum() / 2   # total edges
-        
-        if m == 0:
+        m = A.sum() / 2.0
+
+        if m.item() == 0.0:
             return torch.tensor(0.0, device=z.device)
-            
+
         # Modularity matrix B = A - k*k^T/(2m)
-        B = A - torch.outer(k, k) / (2 * m)
-        
-        # Compute modularity for current clustering
-        modularity = 0.0
-        for c in range(self.num_clusters):
-            mask = (hard_assignments == c)
-            if mask.sum() > 0:
-                modularity += B[mask][:, mask].sum()
-        
-        modularity = modularity / (2 * m)
-        
-        # Convert to loss (negative modularity)
+        B = A - torch.outer(k, k) / (2.0 * m)
+
+        # Soft community assignment matrix S = q
+        S = cluster_assignments  # [n, k]
+
+        # Q = trace(S^T B S) / (2m)
+        BS = torch.matmul(B, S)
+        ST_B_S = torch.matmul(S.transpose(0, 1), BS)
+        modularity = torch.trace(ST_B_S) / (2.0 * m)
+
+        # Negative modularity is the loss
         return -modularity
     
     def contrastive_loss(self, z, adj_matrix):
-        """Compute contrastive loss based on graph structure"""
+        """Node-wise InfoNCE contrastive loss.
+        For each node i: positives are neighbors (A_ij>0), negatives are others.
+        L = - 1/N sum_i log( sum_{j in P(i)} exp(sim(i,j)/tau) / sum_{k!=i} exp(sim(i,k)/tau) )
+        """
         if adj_matrix is None:
             return torch.tensor(0.0, device=z.device)
-            
-        # Normalize embeddings
-        z_norm = F.normalize(z, dim=1)
-        
-        # Compute similarity matrix
-        sim_matrix = torch.mm(z_norm, z_norm.t()) / self.tau
-        
-        # Create positive and negative masks based on adjacency
+
         A = adj_matrix.to_dense() if hasattr(adj_matrix, 'to_dense') else adj_matrix
-        pos_mask = A > 0
-        neg_mask = A == 0
-        
-        # Remove self-loops
-        eye = torch.eye(A.size(0), device=A.device).bool()
-        pos_mask = pos_mask & ~eye
-        neg_mask = neg_mask & ~eye
-        
-        if pos_mask.sum() == 0:
+        A = A.float()
+        N = A.size(0)
+        if N <= 1:
             return torch.tensor(0.0, device=z.device)
-        
-        # Compute contrastive loss
-        pos_sim = sim_matrix[pos_mask]
-        neg_sim = sim_matrix[neg_mask]
-        
-        if len(neg_sim) == 0:
+
+        # Normalize embeddings and compute sim matrix
+        z_norm = F.normalize(z, dim=1)
+        sim = torch.mm(z_norm, z_norm.t()) / self.tau
+
+        eye = torch.eye(N, device=A.device, dtype=torch.bool)
+        pos_mask = (A > 0) & (~eye)
+        all_mask = ~eye
+
+        # Avoid nodes with no positives
+        pos_counts = pos_mask.sum(dim=1)
+        valid = pos_counts > 0
+        if valid.sum() == 0:
             return torch.tensor(0.0, device=z.device)
-            
-        # InfoNCE-style loss
-        pos_loss = -torch.log(torch.exp(pos_sim).sum() + 1e-8)
-        neg_loss = torch.log(torch.exp(neg_sim).sum() + 1e-8)
-        
-        return pos_loss + neg_loss
+
+        # Numerator: sum exp(sim_ij) over positives
+        exp_sim = torch.exp(sim)
+        numer = (exp_sim * pos_mask).sum(dim=1)
+        # Denominator: sum exp(sim_ik) over all k!=i
+        denom = (exp_sim * all_mask).sum(dim=1) + 1e-8
+
+        per_node_loss = -torch.log((numer + 1e-8) / denom)
+        loss = per_node_loss[valid].mean()
+        return loss
 
 
 def scipy_sparse_to_torch(sparse_mx):
@@ -161,8 +181,12 @@ def scipy_sparse_to_torch(sparse_mx):
     return torch.sparse.FloatTensor(indices, values, shape)
 
 
-def run_magi(adj_matrix, features, num_clusters, device='cpu', epochs=200, lr=0.001, 
-             modularity_weight=0.5, contrastive_weight=0.3):
+def run_magi(adj_matrix, features, num_clusters, device='cpu', epochs=200, lr=0.001,
+             modularity_weight=0.5, contrastive_weight=0.3, balance_weight=0.0,
+             center_sep_weight=0.0, center_sep_sigma=1.0,
+             empty_cluster_threshold=0.005, empty_cluster_reinit=True,
+             final_kmeans=False,
+             hidden_dim=128, output_dim=64, num_layers=2, dropout=0.1, tau=0.5):
     """
     Run MAGI clustering algorithm
     
@@ -196,7 +220,15 @@ def run_magi(adj_matrix, features, num_clusters, device='cpu', epochs=200, lr=0.
     
     # Initialize model
     input_dim = features.size(1)
-    model = MAGI(input_dim=input_dim, num_clusters=num_clusters).to(device)
+    model = MAGI(
+        input_dim=input_dim,
+        hidden_dim=hidden_dim,
+        output_dim=output_dim,
+        num_clusters=num_clusters,
+        num_layers=num_layers,
+        dropout=dropout,
+        tau=tau,
+    ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     
     # Initialize cluster centers with k-means (多次尝试获得更好的初始化)
@@ -218,26 +250,64 @@ def run_magi(adj_matrix, features, num_clusters, device='cpu', epochs=200, lr=0.
     
     # Training loop
     model.train()
+    reinit_events = 0
     for epoch in range(epochs):
         optimizer.zero_grad()
         
         # Forward pass
         z, q = model(features, edge_index, adj_tensor)
         
-        # Compute target distribution
-        p = model.target_distribution(q)
+        # Compute target distribution (DEC): KL(P || Q)
+        with torch.no_grad():
+            p = model.target_distribution(q)
         
         # Compute losses
-        kl_loss = F.kl_div(q.log(), p, reduction='batchmean')
+        # KL(P||Q): encourage sharpening towards target distribution
+        kl_loss = F.kl_div(p.log(), q, reduction='batchmean')
         modularity_loss = model.modularity_loss(z, adj_tensor, q)
         contrastive_loss = model.contrastive_loss(z, adj_tensor)
+        center_sep = model.center_separation_loss(center_sep_sigma) if center_sep_weight > 0.0 else torch.tensor(0.0, device=z.device)
+        # Cluster balance regularizer: maximize entropy of average assignment
+        if balance_weight > 0.0:
+            avg_q = q.mean(dim=0)
+            balance = (avg_q * (avg_q + 1e-8).log()).sum()  # equals -H(avg_q)
+        else:
+            balance = torch.tensor(0.0, device=q.device)
         
         # Total loss - 使用可调整的权重
-        total_loss = kl_loss + modularity_weight * modularity_loss + contrastive_weight * contrastive_loss
+        total_loss = (
+            kl_loss
+            + modularity_weight * modularity_loss
+            + contrastive_weight * contrastive_loss
+            + balance_weight * balance
+            + center_sep_weight * center_sep
+        )
         
         # Backward pass
         total_loss.backward()
         optimizer.step()
+
+        # Empty cluster re-initialization (soft criterion) every 50 epochs
+        if empty_cluster_reinit and (epoch % 50 == 0):
+            with torch.no_grad():
+                avg_q_epoch = q.mean(dim=0)  # [k]
+                low_mass = (avg_q_epoch < empty_cluster_threshold)
+                if low_mass.any():
+                    # pick farthest samples from any center to reinit these centers
+                    dists = torch.cdist(z, model.cluster_layer, p=2.0)  # [n,k]
+                    # for each node, distance to its nearest center
+                    min_to_any = dists.min(dim=1).values
+                    # sort nodes by descending distance
+                    order = torch.argsort(min_to_any, descending=True)
+                    idx_iter = iter(order.tolist())
+                    for c in torch.where(low_mass)[0].tolist():
+                        # find a candidate farthest node that isn't already used
+                        try:
+                            node_idx = next(idx_iter)
+                        except StopIteration:
+                            node_idx = int(order[0].item())
+                        model.cluster_layer.data[c] = z[node_idx]
+                        reinit_events += 1
         
         if epoch % 50 == 0:
             # 检查当前聚类质量
@@ -250,13 +320,20 @@ def run_magi(adj_matrix, features, num_clusters, device='cpu', epochs=200, lr=0.
                   f'KL = {kl_loss.item():.4f}, '
                   f'Modularity = {modularity_loss.item():.4f}, '
                   f'Contrastive = {contrastive_loss.item():.4f}, '
+                  f'Balance = {balance.item():.4f}, '
+                  f'CenterSep = {center_sep.item():.4f}, '
+                  f'Reinit = {reinit_events}, '
                   f'Clusters = {unique_clusters}/{num_clusters}')
     
     # Get final cluster assignments
     model.eval()
     with torch.no_grad():
-        _, q = model(features, edge_index, adj_tensor)
-        cluster_labels = torch.argmax(q, dim=1).cpu().numpy()
+        z, q = model(features, edge_index, adj_tensor)
+        if final_kmeans:
+            km = KMeans(n_clusters=num_clusters, n_init=10, random_state=42)
+            cluster_labels = km.fit_predict(z.cpu().numpy())
+        else:
+            cluster_labels = torch.argmax(q, dim=1).cpu().numpy()
     
     return cluster_labels
 

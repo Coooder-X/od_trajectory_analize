@@ -1,0 +1,18 @@
+MAGI（原图），设定k=5 实际社区数=5 有效社区数=5
+cluster_num 5 avg Con = 0.3691422481502319
+cluster_num 5 avg Con = 0.3691422481502319
+MAGI（原图），设定k=10 实际社区数=10 有效社区数=8
+cluster_num 10 avg Con = 0.42941861148217886
+cluster_num 10 avg Con = 0.42941861148217886
+MAGI（原图），设定k=20 实际社区数=20 有效社区数=5
+cluster_num 20 avg Con = 0.46765229438604056
+cluster_num 20 avg Con = 0.46765229438604056
+MAGI（原图），设定k=30 实际社区数=30 有效社区数=3
+cluster_num 30 avg Con = 0.48673924255820805
+cluster_num 30 avg Con = 0.48673924255820805
+MAGI（原图），设定k=40 实际社区数=40 有效社区数=3
+cluster_num 40 avg Con = 0.4934813597069491
+cluster_num 40 avg Con = 0.4934813597069491
+MAGI（原图），设定k=50 实际社区数=50 有效社区数=3
+cluster_num 50 avg Con = 0.4977573446961202
+cluster_num 50 avg Con = 0.4977573446961202
